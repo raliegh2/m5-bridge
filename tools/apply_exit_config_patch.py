@@ -1,6 +1,6 @@
 """Wire configurable exit-management .env values into the bot.
 
-Run once from the repository root:
+Run from the repository root:
     python tools/apply_exit_config_patch.py
 
 The script is idempotent: running it again after a successful patch makes no
@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "mt5_ai_bridge" / "config.py"
 APP = ROOT / "mt5_ai_bridge" / "app.py"
+FAKES = ROOT / "tests" / "fakes.py"
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -82,15 +83,10 @@ def patch_app() -> None:
         risk_pips = abs(entry - (getattr(p, "sl", 0.0) or entry)) / pip
         tp_distance_pips = abs((take_profit or entry) - entry) / pip
 
-        # TRAILING_START is expressed as a fraction of the planned TP path.
-        # Fall back to the classic pip threshold when no TP is available.
         dynamic_trail_start = (
             tp_distance_pips * settings.trailing_start
             if tp_distance_pips > 0 else settings.trail_start_pips
         )
-
-        # ATR-distance configuration is converted into pips using the original
-        # risk distance as a conservative volatility proxy for open positions.
         dynamic_trail_distance = max(
             settings.trail_distance_pips,
             risk_pips * settings.trailing_distance_atr,
@@ -122,9 +118,25 @@ def patch_app() -> None:
     print(f"Patched {APP.relative_to(ROOT)}")
 
 
+def patch_test_fixture() -> None:
+    text = FAKES.read_text(encoding="utf-8")
+    text = replace_once(
+        text,
+        "        trail_enabled=False, trail_start_pips=20, trail_distance_pips=15,\n",
+        "        trail_enabled=False, trail_start_pips=20, trail_distance_pips=15,\n"
+        "        break_even_trigger=1.0, break_even_buffer_pips=0.5,\n"
+        "        partial_profit_trigger=0.75, partial_profit_lock_ratio=0.35,\n"
+        "        trailing_start=0.85, trailing_distance_atr=1.50,\n",
+        "test Settings defaults",
+    )
+    FAKES.write_text(text, encoding="utf-8")
+    print(f"Patched {FAKES.relative_to(ROOT)}")
+
+
 def main() -> None:
     patch_config()
     patch_app()
+    patch_test_fixture()
     print("Exit configuration wiring complete. Run: python -m pytest -q")
 
 
