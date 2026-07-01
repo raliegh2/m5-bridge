@@ -6,11 +6,10 @@ Pipeline per iteration:
 Console: with CONSOLE_STATUS on, the terminal shows a single updating status
 line plus a concise line each time a trade opens. Full detail -> logs/bridge.log.
 
-Trend model (MULTI_BOOK): the fast ENTRY read is TIMEFRAME (M15); a trade only
-fires when the CONFIRMATION timeframes (M30 + H4 + D1) all agree on the same
-direction (REQUIRE_TREND_ALIGNMENT). This makes trading smoother and takes
-FEWER — not more — trades. Stops are ATR-based; each position is sized by the
-fixed-fractional 1-2% rule. Winners trail.
+Trend model (MULTI_BOOK): the intraday engine reads M1 + M5 + M15 micro-trend
+plus M30 confirmation, while H4 acts as a strong-opposition filter. Swing still
+uses H4/D1 plus M30/M15 timing. This keeps the bot trend-aware without forcing
+extra low-timeframe trades.
 
 Remote control: the dashboard's Start/Pause buttons POST to the local control
 server, toggling a shared ControlState. The loop opens NEW trades only while
@@ -51,6 +50,9 @@ from .strategy import evaluate_strategy
 from .trade_manager import close_position, modify_position_sl, trailing_sl
 
 log = get_logger("app")
+
+
+INTRADAY_MICRO_TIMEFRAMES = ("M1", "M5")
 
 
 def make_strategy(settings: Settings) -> Callable:
@@ -95,24 +97,55 @@ def _risk_cfg(settings, risk_percent: Optional[float] = None) -> RiskConfig:
                       max_lot=settings.max_lot)
 
 
+def _intraday_tfs(settings) -> tuple:
+    """Return the intraday micro stack: M1, M5, and the configured entry TF."""
+    tfs = list(INTRADAY_MICRO_TIMEFRAMES) + [settings.timeframe]
+    seen, unique = set(), []
+    for tf in tfs:
+        key = str(tf).upper()
+        if key not in seen:
+            seen.add(key)
+            unique.append(tf)
+    return tuple(unique)
+
+
+def _majority_bias(*decisions):
+    """Return BUY/SELL when at least two readable trade signals agree."""
+    buys = [d for d in decisions if d is not None and d.signal is Signal.BUY]
+    sells = [d for d in decisions if d is not None and d.signal is Signal.SELL]
+    if len(buys) >= 2 and len(buys) > len(sells):
+        return Signal.BUY
+    if len(sells) >= 2 and len(sells) > len(buys):
+        return Signal.SELL
+    return None
+
+
+def _min_confidence(decisions, side: Signal) -> float:
+    aligned = [d.confidence for d in decisions
+               if d is not None and d.signal is side]
+    return min(aligned) if aligned else 0.0
+
+
 def _dual_engine_state(decisions: dict, settings) -> dict:
     """Return independent intraday and swing setup states.
 
-    Intraday needs M15+M30 agreement and is blocked by strong H4 opposition.
-    Swing needs H4+D1 agreement plus matching M15+M30 entry timing. No engine
-    treats a weak/disagreeing read as a probe trade.
+    Intraday uses M1+M5+M15 micro-trend majority, M30 confirmation, and a strong
+    H4 opposition veto. Swing still needs H4+D1 agreement plus M30/M15 timing.
+    No engine treats a weak/disagreeing read as a probe trade.
     """
     def get(tf):
         return decisions.get(tf)
 
+    micro_tfs = _intraday_tfs(settings)
+    micro_decisions = [get(tf) for tf in micro_tfs]
     entry = get(settings.timeframe)
     mid = get(settings.trend_tf_mid)
     high = get(settings.swing_tf_high)
     higher = get(settings.swing_tf_higher)
 
-    intraday_bias = trend_bias(
-        *(d.signal for d in (entry, mid) if d is not None)
-    ) if entry is not None and mid is not None else None
+    micro_bias = _majority_bias(*micro_decisions)
+    mid_agrees = bool(mid is not None and mid.signal is micro_bias)
+    intraday_bias = micro_bias if micro_bias is not None and mid_agrees else None
     h4_opposes = bool(
         intraday_bias is not None and high is not None
         and high.signal.is_trade and high.signal is not intraday_bias
@@ -126,21 +159,28 @@ def _dual_engine_state(decisions: dict, settings) -> dict:
         if entry is not None and mid is not None else None
     swing_valid = bool(swing_bias is not None and swing_trigger is swing_bias)
 
-    intraday_conf = min(entry.confidence, mid.confidence) \
+    intraday_conf = min(_min_confidence(micro_decisions, intraday_bias),
+                        mid.confidence if mid is not None else 0.0) \
         if intraday_valid else 0.0
     swing_conf = min(entry.confidence, mid.confidence,
                      high.confidence, higher.confidence) \
         if swing_valid else 0.0
+
+    if intraday_valid:
+        intraday_reason = "M1/M5/M15 majority agrees with M30; no strong H4 opposition."
+    elif h4_opposes:
+        intraday_reason = "Blocked by a strong opposing H4 trend."
+    elif micro_bias is None:
+        intraday_reason = "Waiting for at least 2 of M1/M5/M15 to agree."
+    else:
+        intraday_reason = "Waiting for M30 to confirm the M1/M5/M15 micro-trend."
 
     return {
         "intraday": {
             "valid": intraday_valid,
             "bias": intraday_bias,
             "confidence": intraday_conf,
-            "reason": ("M15 and M30 agree; no strong H4 opposition."
-                       if intraday_valid else
-                       ("Blocked by a strong opposing H4 trend."
-                        if h4_opposes else "Waiting for M15 and M30 to agree.")),
+            "reason": intraday_reason,
         },
         "swing": {
             "valid": swing_valid,
@@ -207,15 +247,12 @@ def account_snapshot(client, symbol: str) -> dict:
 def _bot_thinking(client, settings, strategy_fn) -> Optional[dict]:
     """What the bot sees now, for the dashboard.
 
-    Reads the fast ENTRY timeframe (M15) and the CONFIRMATION timeframes
-    (M30 + H4 + D1). Each row carries a plain-English 'why'. Returns the
-    confirmed trend, whether it's aligned, and whether the current entry is a
-    valid setup. Returns None when the multi-book engine is off."""
+    Reads M1, M5, M15, M30, H4 and D1. Each row carries a plain-English 'why'.
+    Returns the confirmed trend, whether it's aligned, and whether the current
+    entry is a valid setup. Returns None when the multi-book engine is off.
+    """
     if not settings.multi_book:
         return None
-
-    entry_tf = settings.timeframe
-    confirm_tfs = list(settings.confirm_timeframes)
 
     def evaluate(tf, label):
         try:
@@ -236,12 +273,20 @@ def _bot_thinking(client, settings, strategy_fn) -> Optional[dict]:
         }
         return decision, view
 
-    views, decisions = [], {}
-    labels = ((entry_tf, "Entry"),
-              (settings.trend_tf_mid, "Intraday confirm"),
-              (settings.swing_tf_high, "Swing trend"),
-              (settings.swing_tf_higher, "Swing anchor"))
+    labels = []
+    for tf in _intraday_tfs(settings):
+        label = "Entry" if tf == settings.timeframe else "Intraday micro"
+        labels.append((tf, label))
+    labels.extend(((settings.trend_tf_mid, "Intraday confirm"),
+                   (settings.swing_tf_high, "Swing trend"),
+                   (settings.swing_tf_higher, "Swing anchor")))
+
+    views, decisions, seen = [], {}, set()
     for tf, label in labels:
+        key = str(tf).upper()
+        if key in seen:
+            continue
+        seen.add(key)
         decision, view = evaluate(tf, label)
         if view is not None:
             views.append(view)
@@ -355,13 +400,13 @@ def _signal_flags(decision, thinking) -> tuple:
     """Per-analysis (setup, filtered) flags for the journal.
 
     setup=1 when this loop is a valid trade setup; filtered=1 when the entry
-    wanted to trade but a filter (trend not aligned / veto) blocked it."""
+    wanted to trade but a filter (trend not aligned / veto) blocked it.
+    """
     if thinking is not None:
         setup_ok = bool(thinking.get("setup_valid"))
         setup = 1 if setup_ok else 0
         filtered = 1 if (decision.signal.is_trade and not setup_ok) else 0
         return setup, filtered
-    # Single-book fallback: a trade signal is itself the setup.
     return (1 if decision.signal.is_trade else 0), 0
 
 
@@ -380,12 +425,10 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
                            account.equity, len(positions))
     log.info("Risk: %s | day_loss=%.2f | active=%s", risk.message, day_loss, active)
 
-    # Fast ENTRY read (TIMEFRAME = M15).
     market = market_snapshot(client, settings.symbol, settings.timeframe,
                              settings.atr_period)
     decision = strategy_fn(market)
 
-    # Higher-timeframe confirmation view (for the dashboard + setup/filter flags).
     thinking = _bot_thinking(client, settings, strategy_fn)
     setup_flag, filtered_flag = _signal_flags(decision, thinking)
 
@@ -396,7 +439,6 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
              decision.signal.value, decision.reason, decision.confidence,
              setup_flag, filtered_flag)
 
-    # Open NEW trades only while trading is ACTIVE (remote pause honoured).
     if settings.mode is not Mode.READ_ONLY and risk.ok and active:
         if settings.multi_book:
             _run_books(client, journal, settings, strategy_fn, planner_cfgs,
@@ -408,7 +450,6 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     if settings.mode is Mode.APPROVAL and positions:
         _maybe_close(client, journal, settings, positions)
 
-    # Existing positions keep trailing even while paused (protects open risk).
     if settings.mode is not Mode.READ_ONLY and settings.trail_enabled:
         _update_trailing_stops(client, settings)
 
@@ -438,8 +479,8 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
             cache[tf] = (snap, strategy_fn(snap))
         return cache[tf]
 
-    timeframes = (settings.timeframe, settings.trend_tf_mid,
-                  settings.swing_tf_high, settings.swing_tf_higher)
+    timeframes = tuple(dict.fromkeys(_intraday_tfs(settings) + (
+        settings.trend_tf_mid, settings.swing_tf_high, settings.swing_tf_higher)))
     decisions = {tf: decide(tf)[1] for tf in timeframes}
     state = _dual_engine_state(decisions, settings)
     books = build_books(settings)
@@ -508,8 +549,6 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
             else:
                 break
 
-    # Swing is evaluated first; intraday may still open alongside it when both
-    # engines point the same way and shared account limits permit.
     open_engine("swing", state["swing"], swing_book,
                 settings.swing_tf_high, settings.swing_risk_percent)
     open_engine("intraday", state["intraday"], intraday_book,
@@ -594,8 +633,6 @@ def run(settings: Optional[Settings] = None, client=None,
                         settings.max_open_positions)
     tracker = DailyLossTracker()
 
-    # Shared trading switch: the control server toggles it (Start/Pause on the
-    # dashboard); the loop reads it. Trading starts ACTIVE.
     state = ControlState(active=True)
 
     if settings.serve_dashboard and serve_dashboard:
