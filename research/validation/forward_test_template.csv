@@ -1,0 +1,1 @@
+signal_id,signal_time,entry_time,exit_time,side,status,initial_risk_usd,net_pnl_usd,entry_spread_pips,entry_slippage_pips,exit_slippage_pips,parameter_sha256,hard_stop_attached,notes
