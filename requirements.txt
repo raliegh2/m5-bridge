@@ -1,0 +1,8 @@
+# Runtime
+MetaTrader5 ; platform_system == "Windows"
+pandas>=2.0
+python-dotenv>=1.0
+tzdata ; platform_system == "Windows"   # EST/EDT zone data for the dashboard clock
+
+# Dev / test
+pytest>=7.0
