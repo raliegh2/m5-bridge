@@ -1,7 +1,8 @@
-"""Export long GBPUSD MT5 history for V4 + satellite validation.
+"""Export long GBPUSD MT5 history for V4 and Satellite V2 validation.
 
-Run from the repository root after MT5 is open and logged in. The script uses
-credentials already stored in .env and never prints them.
+Run through the repository-root wrapper ``python export_gbpusd_history.py``
+after MT5 is open and logged in. Credentials are read from .env and are never
+printed.
 """
 from __future__ import annotations
 
@@ -13,10 +14,17 @@ import pandas as pd
 from mt5_ai_bridge.config import load_settings
 from mt5_ai_bridge.mt5_client import create_client
 
-BARS_PER_YEAR = {"M30": 48 * 260, "H1": 24 * 260, "H4": 6 * 260, "D1": 260}
+BARS_PER_YEAR = {
+    "M15": 96 * 260,
+    "M30": 48 * 260,
+    "H1": 24 * 260,
+    "H4": 6 * 260,
+    "D1": 260,
+}
 
 
-def export_timeframe(client, symbol: str, timeframe: str, count: int, output: Path) -> dict:
+def export_timeframe(client, symbol: str, timeframe: str, count: int,
+                     output: Path) -> dict:
     raw = client.copy_rates_from_pos(symbol, timeframe, 0, count)
     if raw is None or len(raw) == 0:
         raise RuntimeError(f"No {timeframe} bars returned: {client.last_error()}")
@@ -24,15 +32,18 @@ def export_timeframe(client, symbol: str, timeframe: str, count: int, output: Pa
     frame["time"] = pd.to_datetime(frame["time"], unit="s", utc=True)
     preferred = [
         column for column in (
-            "time", "open", "high", "low", "close", "tick_volume", "spread", "real_volume"
+            "time", "open", "high", "low", "close", "tick_volume",
+            "spread", "real_volume",
         ) if column in frame.columns
     ]
     frame = frame[preferred].sort_values("time").drop_duplicates("time")
     output.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(output, index=False)
     return {
-        "timeframe": timeframe, "bars": len(frame),
-        "start": frame.time.min().isoformat(), "end": frame.time.max().isoformat(),
+        "timeframe": timeframe,
+        "bars": len(frame),
+        "start": frame.time.min().isoformat(),
+        "end": frame.time.max().isoformat(),
         "path": str(output),
     }
 
@@ -54,10 +65,13 @@ def main() -> None:
         if not client.login(settings.login, settings.password, settings.server):
             raise RuntimeError(f"MT5 login failed: {client.last_error()}")
         results = []
-        for timeframe in ("M30", "H1", "H4", "D1"):
+        for timeframe in ("M15", "M30", "H1", "H4", "D1"):
             count = int(BARS_PER_YEAR[timeframe] * args.years * 1.20)
             results.append(export_timeframe(
-                client, args.symbol, timeframe, count,
+                client,
+                args.symbol,
+                timeframe,
+                count,
                 args.out_dir / f"{args.symbol}_{timeframe}.csv",
             ))
         print("Export complete:")
@@ -66,15 +80,15 @@ def main() -> None:
                 f"{result['timeframe']}: {result['bars']} bars | "
                 f"{result['start']} -> {result['end']} | {result['path']}"
             )
-        m30 = next(item for item in results if item["timeframe"] == "M30")
+        m15 = next(item for item in results if item["timeframe"] == "M15")
         actual_years = (
-            pd.Timestamp(m30["end"]) - pd.Timestamp(m30["start"])
+            pd.Timestamp(m15["end"]) - pd.Timestamp(m15["start"])
         ).days / 365.25
         if actual_years < min(args.years - 0.5, 9.5):
             print(
-                "WARNING: MT5 returned less M30 history than requested. In MT5, "
-                "increase Tools > Options > Charts > Max bars in chart, open the "
-                "GBPUSD M30 chart, press Home repeatedly, then rerun this export."
+                "WARNING: MT5 returned less M15 history than requested. Increase "
+                "Tools > Options > Charts > Max bars in chart, open GBPUSD M15, "
+                "press Home repeatedly to load older bars, then rerun the export."
             )
     finally:
         client.shutdown()
