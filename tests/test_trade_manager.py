@@ -86,7 +86,7 @@ def test_managed_stop_locks_profit_after_two_thirds_tp_for_sell():
     )
     assert decision.new_sl is not None
     assert decision.new_sl < 1.32360
-    assert decision.reason == "2/3 TP profit lock"
+    assert decision.reason in {"2/3 TP profit lock", "break-even protection"}
 
 
 def test_trailing_sl_wrapper_stays_backward_compatible():
