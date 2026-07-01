@@ -101,6 +101,7 @@ def test_wait_signal_opens_nothing():
 def test_intraday_can_trade_without_d1_h4_alignment_when_h4_is_not_strong():
     client = _client()
     _run_timeframe_signals(client, {
+        "M1": Signal.SELL, "M5": Signal.SELL,
         "M15": Signal.SELL, "M30": Signal.SELL,
         "H4": Signal.BUY, "D1": Signal.SELL,
     }, {"H4": 0.6})
@@ -111,6 +112,7 @@ def test_intraday_can_trade_without_d1_h4_alignment_when_h4_is_not_strong():
 def test_intraday_is_blocked_by_strong_opposing_h4():
     client = _client()
     _run_timeframe_signals(client, {
+        "M1": Signal.SELL, "M5": Signal.SELL,
         "M15": Signal.SELL, "M30": Signal.SELL,
         "H4": Signal.BUY, "D1": Signal.WAIT,
     }, {"H4": 0.9})
