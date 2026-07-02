@@ -1,0 +1,44 @@
+name: V17 swing risk 120 comparison
+
+on:
+  pull_request:
+    branches:
+      - v17-quality-swings
+    paths:
+      - "research/v17_swing_risk_120_runner.py"
+      - "tests/test_v17_swing_risk_120.py"
+      - ".github/workflows/v17-swing-risk-120.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy pytest
+      - name: Compile research code
+        run: python -m compileall -q research tests
+      - name: Run sizing regression tests
+        shell: bash
+        run: PYTHONPATH=research python -m pytest -q tests/test_v17_swing_risk_120.py
+      - name: Run baseline versus swing-risk-120 backtest
+        shell: bash
+        run: python research/v17_swing_risk_120_runner.py 2>&1 | tee swing-risk-120.log
+      - name: Upload comparison artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v17-swing-risk-120-results
+          path: |
+            swing-risk-120.log
+            research/v17_risk120_output/
+          if-no-files-found: error
+          retention-days: 30
