@@ -6,7 +6,9 @@ on:
       - v13-horizontal-expanded-assets
     paths:
       - "research/v12_plus_validated_assets_backtest.py"
+      - "research/v12_plus_protected_assets_backtest.py"
       - "tests/test_v12_plus_validated_assets.py"
+      - "tests/test_v12_plus_protected_assets.py"
       - ".github/workflows/v12-plus-validated-assets.yml"
   workflow_dispatch:
 
@@ -27,9 +29,14 @@ jobs:
       - name: Compile research code
         run: python -m compileall -q research tests
       - name: Run focused regression tests
-        run: PYTHONPATH=research python -m pytest -q tests/test_v12_plus_validated_assets.py
-      - name: Run V12 plus validated assets backtest
+        run: >-
+          PYTHONPATH=research python -m pytest -q
+          tests/test_v12_plus_validated_assets.py
+          tests/test_v12_plus_protected_assets.py
+      - name: Run broad-guard comparison
         run: python research/v12_plus_validated_assets_backtest.py 2>&1 | tee v12-plus-validated-assets.log
+      - name: Run original-protection comparison
+        run: python research/v12_plus_protected_assets_backtest.py 2>&1 | tee v12-plus-protected-assets.log
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
@@ -37,6 +44,8 @@ jobs:
           name: v12-plus-validated-assets-results
           path: |
             v12-plus-validated-assets.log
+            v12-plus-protected-assets.log
             research/v12_plus_validated_assets_output/
+            research/v12_plus_protected_assets_output/
           if-no-files-found: error
           retention-days: 30
