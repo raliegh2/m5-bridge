@@ -1,0 +1,43 @@
+{
+  "GBPUSD_SWING_V6": {
+    "enabled": false,
+    "entry_engine": "GBPUSD_V4_FROZEN_PLUS_PULLBACK_ADDON",
+    "core_risk_percent": 0.50,
+    "pullback_addon_risk_percent": 0.50,
+    "partial_fraction": 0.33,
+    "partial_r": 1.0,
+    "target_r": 4.5,
+    "trail_start_r": 2.0,
+    "trail_atr": 3.5,
+    "max_hold_h4_bars": 108,
+    "mode": "READ_ONLY"
+  },
+  "GBPUSD_SATELLITE_V2": {
+    "enabled": false,
+    "risk_percent": 0.25,
+    "mode": "READ_ONLY"
+  },
+  "EURUSD_SATELLITE_V7": {
+    "enabled": false,
+    "risk_percent": 0.25,
+    "mode": "READ_ONLY"
+  },
+  "GBPJPY_SATELLITE_V7": {
+    "enabled": false,
+    "risk_percent": 0.25,
+    "mode": "APPROVAL"
+  },
+  "portfolio": {
+    "starting_balance": 5000,
+    "max_positions": 3,
+    "max_open_risk_percent": 0.75,
+    "gbp_aligned_risk_percent": 0.75,
+    "gbp_mixed_risk_percent": 0.50,
+    "allow_aligned_gbpusd_swing_and_satellite": true,
+    "daily_loss_limit_dollars": 250,
+    "weekly_loss_limit_percent": 4.0,
+    "total_loss_limit_dollars": 500,
+    "drawdown_throttle_percent": 6.0,
+    "drawdown_pause_percent": 10.0
+  }
+}

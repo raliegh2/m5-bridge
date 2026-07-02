@@ -1,0 +1,34 @@
+{
+  "GBPUSD": {
+    "engine": "gbpusd_v4",
+    "enabled": true,
+    "risk_percent": 0.35
+  },
+  "EURUSD": {
+    "engine": "eurusd_satellite_v2",
+    "enabled": false,
+    "risk_percent": 0.20,
+    "target_trades_per_week": 3.0,
+    "max_hold_h4_bars": 30
+  },
+  "GBPJPY": {
+    "engine": "gbpjpy_satellite_v2",
+    "enabled": false,
+    "risk_percent": 0.15,
+    "target_trades_per_week": 3.0,
+    "max_hold_h4_bars": 42
+  },
+  "portfolio": {
+    "max_positions": 3,
+    "max_positions_per_symbol": 1,
+    "max_risk_per_trade_percent": 0.50,
+    "max_open_risk_percent": 0.75,
+    "max_daily_new_risk_percent": 0.75,
+    "max_weekly_new_risk_percent": 2.00,
+    "gbp_cluster_risk_percent": 0.50,
+    "daily_loss_limit_percent": 2.00,
+    "weekly_loss_limit_percent": 4.00,
+    "drawdown_throttle_percent": 6.00,
+    "drawdown_pause_percent": 10.00
+  }
+}

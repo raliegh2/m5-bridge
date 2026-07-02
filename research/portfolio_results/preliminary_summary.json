@@ -1,0 +1,40 @@
+{
+  "data_start": "2025-07-01T15:00:00+00:00",
+  "data_end": "2026-07-01T15:00:00+00:00",
+  "requested_windows": {
+    "10y": "INSUFFICIENT_M30_HISTORY",
+    "5y": "INSUFFICIENT_M30_HISTORY",
+    "3y": "INSUFFICIENT_M30_HISTORY",
+    "2y": "INSUFFICIENT_M30_HISTORY"
+  },
+  "available_window": {
+    "v4": {
+      "ending_balance": 5052.043075350775,
+      "net_profit": 52.043075350775325,
+      "return_percent": 1.0408615070155003,
+      "trades": 6,
+      "win_rate": 0.8333333333333334,
+      "profit_factor": 4.405702330820345,
+      "maximum_drawdown_percent": 0.7609753149095184
+    },
+    "satellite": {
+      "ending_balance": 5052.264633043885,
+      "net_profit": 52.264633043884714,
+      "return_percent": 1.0452926608776947,
+      "trades": 103,
+      "win_rate": 0.4854368932038835,
+      "profit_factor": 1.1966171602571265,
+      "maximum_drawdown_percent": 1.1000792622046922
+    },
+    "combined_approximation": {
+      "ending_balance": 5104.851710841796,
+      "net_profit": 104.85171084179638,
+      "return_percent": 2.0970342168359357,
+      "trades": 109,
+      "profit_factor": 1.3706570360825134,
+      "maximum_drawdown_percent": 0.9675265453760457,
+      "opposing_overlap_candidates": 0,
+      "method": "normalized-return portfolio approximation"
+    }
+  }
+}
