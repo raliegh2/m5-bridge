@@ -20,12 +20,13 @@ legacy GBPUSD swing entry with a common multi-symbol swing layer.
 - Partial closing is intentionally disabled in the frozen profile because the
   trailing-only profile produced better tested expectancy.
 
-## Install
+## Local run
+
+Keep the existing `.env`, set `MODE=READ_ONLY`, and use the standalone entrypoint:
 
 ```powershell
-python tools/apply_strategy_engine_v10_multisymbol.py
-python tools/apply_strategy_engine_v11_swing.py
+python bridge_v11.py
 ```
 
-Set `STRATEGY=v11_multisymbol_swing` and keep `MODE=READ_ONLY` for shadow
-reconciliation before demo approval or automatic execution.
+The runner reuses the existing MT5 connection, dashboard, journal, reconnect
+loop and V10 account-level risk controls without modifying `app.py`.
