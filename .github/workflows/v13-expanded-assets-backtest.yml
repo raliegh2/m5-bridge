@@ -6,6 +6,7 @@ on:
       - v12-hybrid-adaptive-swing
     paths:
       - "research/v13_expanded_assets_backtest.py"
+      - "research/v13_expanded_assets_backtest_v2.py"
       - ".github/workflows/v13-expanded-assets-backtest.yml"
       - "mt5_ai_bridge/**"
   workflow_dispatch:
@@ -23,11 +24,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip pandas numpy
-      - name: Run synchronized research replay
-        run: python research/v13_expanded_assets_backtest.py
+      - name: Run validation-gated synchronized replay
+        run: python research/v13_expanded_assets_backtest_v2.py
       - name: Upload backtest outputs
         uses: actions/upload-artifact@v4
         with:
-          name: v13-expanded-assets-backtest
-          path: research/v13_output/
+          name: v13-expanded-assets-backtest-v2
+          path: research/v13_output_v2/
           if-no-files-found: error
