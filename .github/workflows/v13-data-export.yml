@@ -1,0 +1,30 @@
+name: V13 research data export
+
+on:
+  pull_request:
+    branches:
+      - v12-hybrid-adaptive-swing
+    paths:
+      - "research/download_v13_data.py"
+      - ".github/workflows/v13-data-export.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip pandas
+      - run: python research/download_v13_data.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v13-research-data
+          path: research/v13_data/
+          if-no-files-found: error
