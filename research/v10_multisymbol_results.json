@@ -1,0 +1,106 @@
+{
+  "methodology": "Synchronized candidate-ledger replay using the V10 multi-symbol live risk policy and completed-H4 GBPUSD swing precision gate.",
+  "period": {
+    "start": "2025-07-07T11:00:00+00:00",
+    "end": "2026-06-29T19:45:00+00:00"
+  },
+  "metrics": {
+    "starting_balance": 5000.0,
+    "ending_balance": 6217.9872905153525,
+    "net_profit": 1217.9872905153525,
+    "return_percent": 24.35974581030705,
+    "trades": 138,
+    "wins": 71,
+    "losses": 67,
+    "win_rate": 0.5144927536231884,
+    "profit_factor": 2.4301826227246077,
+    "average_trade": 8.8259948588069,
+    "realized_drawdown_percent": 2.10739039829451,
+    "stress_drawdown_percent": 2.7926386655064444
+  },
+  "engine_summary": [
+    {
+      "engine": "EURUSD_SATELLITE_V7",
+      "trades": 22,
+      "net_profit": 195.74749306239636,
+      "win_rate": 0.5,
+      "profit_factor": 2.0507770277477104
+    },
+    {
+      "engine": "GBPJPY_SATELLITE_V7",
+      "trades": 19,
+      "net_profit": 195.0556401608595,
+      "win_rate": 0.5263157894736842,
+      "profit_factor": 2.8457765188810176
+    },
+    {
+      "engine": "GBPUSD_SATELLITE_V2",
+      "trades": 91,
+      "net_profit": 739.3514634384036,
+      "win_rate": 0.4945054945054945,
+      "profit_factor": 2.34339531285393
+    },
+    {
+      "engine": "GBPUSD_SWING_V6",
+      "trades": 6,
+      "net_profit": 87.83269385369283,
+      "win_rate": 0.8333333333333334,
+      "profit_factor": 10.43906845174745
+    }
+  ],
+  "rejections": {
+    "strategy_hour_filter": 80,
+    "max_open_risk": 5,
+    "swing_precision_filter": 1
+  },
+  "cost_stress": {
+    "0.03R": {
+      "starting_balance": 5000.0,
+      "ending_balance": 6137.475935991788,
+      "net_profit": 1137.475935991788,
+      "return_percent": 22.74951871983576,
+      "trades": 138,
+      "wins": 71,
+      "losses": 67,
+      "win_rate": 0.5144927536231884,
+      "profit_factor": 2.291258882684318,
+      "average_trade": 8.242579246317307,
+      "realized_drawdown_percent": 2.1839316147638574,
+      "stress_drawdown_percent": 2.868644093460503
+    },
+    "0.05R": {
+      "starting_balance": 5000.0,
+      "ending_balance": 6084.376531299073,
+      "net_profit": 1084.3765312990727,
+      "return_percent": 21.687530625981452,
+      "trades": 138,
+      "wins": 71,
+      "losses": 67,
+      "win_rate": 0.5144927536231884,
+      "profit_factor": 2.204626907467436,
+      "average_trade": 7.857800951442556,
+      "realized_drawdown_percent": 2.2349300208865,
+      "stress_drawdown_percent": 2.919285510740296
+    },
+    "0.10R": {
+      "starting_balance": 5000.0,
+      "ending_balance": 5953.611536954283,
+      "net_profit": 953.6115369542831,
+      "return_percent": 19.072230739085665,
+      "trades": 138,
+      "wins": 70,
+      "losses": 68,
+      "win_rate": 0.5072463768115942,
+      "profit_factor": 2.005995325603608,
+      "average_trade": 6.910228528654227,
+      "realized_drawdown_percent": 2.362324352051543,
+      "stress_drawdown_percent": 3.045788081587187
+    }
+  },
+  "limitations": [
+    "This is a synchronized ledger replay, not a fresh tick/OHLC simulation.",
+    "EURUSD and GBPJPY candidate history is approximately one year, not ten years.",
+    "Live broker spread, slippage and order rejection are represented only by R-cost stress.",
+    "The GBPUSD precision gate is applied to the synchronized swing candidates using uploaded completed H4 bars."
+  ]
+}
