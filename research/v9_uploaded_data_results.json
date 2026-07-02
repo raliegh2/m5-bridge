@@ -1,0 +1,75 @@
+{
+  "status": "PARTIAL_BACKTEST_COMPLETED_FULL_V9_BLOCKED",
+  "requested_period": {
+    "start": "2016-07-01T16:00:00+00:00",
+    "end": "2026-07-01T16:00:00+00:00"
+  },
+  "exact_component": "GBPUSD_SWING_V5",
+  "v4_10y_comparison": {
+    "initial_balance": 5000.0,
+    "ending_balance": 5573.165101149407,
+    "net_profit": 573.1651011494068,
+    "return_percent": 11.463302022988131,
+    "trades": 93,
+    "win_rate": 0.7096774193548387,
+    "profit_factor": 2.365222397322741,
+    "maximum_drawdown_percent": 1.48270025232053
+  },
+  "exact_windows": {
+    "10y": {
+      "ending_balance": 5646.255700334857,
+      "net_profit": 646.2557003348566,
+      "trades": 125,
+      "win_rate": 0.672,
+      "profit_factor": 2.1924936269768294,
+      "maximum_drawdown_percent": 1.740272263634946
+    },
+    "5y": {
+      "ending_balance": 5273.931352116712,
+      "net_profit": 273.93135211671233,
+      "trades": 59,
+      "win_rate": 0.6779661016949152,
+      "profit_factor": 2.1011798187256114,
+      "maximum_drawdown_percent": 1.7014322145774239
+    },
+    "3y": {
+      "ending_balance": 5104.060360523737,
+      "net_profit": 104.06036052373656,
+      "trades": 33,
+      "win_rate": 0.6060606060606061,
+      "profit_factor": 1.6596283514974506,
+      "maximum_drawdown_percent": 1.4712957911865983
+    },
+    "2y": {
+      "ending_balance": 5154.299922788637,
+      "net_profit": 154.29992278863665,
+      "trades": 22,
+      "win_rate": 0.7272727272727273,
+      "profit_factor": 2.952832328250731,
+      "maximum_drawdown_percent": 0.7459579913609655
+    },
+    "1y": {
+      "ending_balance": 5057.0379649012175,
+      "net_profit": 57.03796490121749,
+      "trades": 7,
+      "win_rate": 0.8571428571428571,
+      "profit_factor": 4.732568236985107,
+      "maximum_drawdown_percent": 0.7602277388779846
+    },
+    "1m": {
+      "ending_balance": 5008.226114147443,
+      "net_profit": 8.226114147442786,
+      "trades": 1,
+      "win_rate": 1.0,
+      "profit_factor": null,
+      "maximum_drawdown_percent": 0.329003125044694
+    }
+  },
+  "data_limitations": {
+    "gbpusd_m15": "not supplied; V9 GBPUSD Satellite V3 cannot be re-simulated",
+    "gbpusd_daily": "uploaded file contains six rows per date and no time column; it is not a valid D1 export",
+    "eurusd_m15": "starts 2022-06-22; approximately four years, not ten",
+    "gbpjpy_m15": "starts 2022-06-06; approximately four years, not ten",
+    "full_v9_portfolio": "cannot be honestly labeled a ten-year test with the supplied data"
+  }
+}
