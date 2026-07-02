@@ -1,0 +1,50 @@
+{
+  "GBPUSD_V4_SWING_CORE": {
+    "enabled": true,
+    "risk_percent": 0.35,
+    "unchanged": true
+  },
+  "GBPUSD_SWING_V5_ADDON": {
+    "enabled": false,
+    "risk_percent": 0.20,
+    "mode": "READ_ONLY"
+  },
+  "GBPUSD_SATELLITE_V2": {
+    "enabled": false,
+    "risk_percent": 0.25,
+    "unchanged": true,
+    "mode": "READ_ONLY"
+  },
+  "EURUSD_SATELLITE_V7": {
+    "enabled": false,
+    "risk_percent": 0.25,
+    "max_entries_per_day": 1,
+    "enabled_setups": [
+      "EUR_COMPRESSION_LONG",
+      "EUR_MOMENTUM_SHORT",
+      "EUR_NY_RETEST_SHORT"
+    ],
+    "force_flat_hour_utc": 20,
+    "mode": "READ_ONLY"
+  },
+  "GBPJPY_SATELLITE_V7": {
+    "enabled": false,
+    "risk_percent": 0.25,
+    "max_entries_per_day": 2,
+    "enabled_setups": [
+      "GJ_MOMENTUM_LONG",
+      "GJ_PULLBACK_SHORT"
+    ],
+    "force_flat_hour_utc": 20,
+    "mode": "APPROVAL"
+  },
+  "portfolio": {
+    "max_risk_per_trade_percent": 0.50,
+    "max_open_risk_percent": 0.75,
+    "max_positions": 3,
+    "max_positions_per_symbol": 1,
+    "gbp_cluster_risk_percent": 0.50,
+    "daily_loss_limit_dollars": 250,
+    "total_loss_limit_dollars": 500
+  }
+}
