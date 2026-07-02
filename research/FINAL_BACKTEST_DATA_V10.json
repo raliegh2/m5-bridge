@@ -1,0 +1,226 @@
+{
+  "scope_note": "The exact ten-year raw-data result applies to GBPUSD Swing V5. EURUSD and GBPJPY sections come from the synchronized V9/V10 candidate replay because uploaded M15 coverage begins in June 2022. No EURGBP dataset was supplied.",
+  "pair_sections": {
+    "GBPUSD_swing_exact_10y": {
+      "ending_balance": 5646.255700334857,
+      "net_profit": 646.2557003348566,
+      "trades": 125,
+      "win_rate": 0.672,
+      "profit_factor": 2.1924936269768294,
+      "maximum_drawdown_percent": 1.740272263634946
+    },
+    "EURUSD_satellite_v7_v9": {
+      "engine": "EURUSD_SATELLITE_V7",
+      "trades": 22,
+      "net_profit": 137.1750272459238,
+      "profit_factor": 2.058536761711538,
+      "win_rate": 0.5,
+      "average_trade": 6.235228511178354
+    },
+    "GBPJPY_satellite_v7_v9": {
+      "engine": "GBPJPY_SATELLITE_V7",
+      "trades": 19,
+      "net_profit": 137.58649592228645,
+      "profit_factor": 2.8683826598290914,
+      "win_rate": 0.5263157894736842,
+      "average_trade": 7.241394522225602
+    },
+    "GBPUSD_satellite_v3_v9": {
+      "engine": "GBPUSD_SATELLITE_V2",
+      "trades": 91,
+      "net_profit": 604.8897454369456,
+      "profit_factor": 2.3471198836901017,
+      "win_rate": 0.4945054945054945,
+      "average_trade": 6.647140059746655
+    }
+  },
+  "v9_control": {
+    "starting_balance": 5000.0,
+    "ending_balance": 5983.627274979044,
+    "net_profit": 983.6272749790442,
+    "return_percent": 19.67254549958088,
+    "trades": 139,
+    "wins": 72,
+    "losses": 67,
+    "win_rate": 0.5179856115107914,
+    "profit_factor": 2.44166153849872,
+    "average_trade": 7.076455215676578,
+    "realized_drawdown_percent": 1.5751807016000492,
+    "open_risk_stress_drawdown_percent": 2.0673047980920543,
+    "maximum_win": 87.93082149305131,
+    "maximum_loss": -30.03416048895858
+  },
+  "v10_candidate": {
+    "starting_balance": 5000.0,
+    "ending_balance": 6214.657113333046,
+    "net_profit": 1214.6571133330463,
+    "return_percent": 24.293142266660926,
+    "trades": 139,
+    "wins": 72,
+    "losses": 67,
+    "win_rate": 0.5179856115107914,
+    "profit_factor": 2.4007069338339444,
+    "average_trade": 8.738540383690978,
+    "realized_drawdown_percent": 2.1073903982944895,
+    "open_risk_stress_drawdown_percent": 2.7926386655064217,
+    "maximum_win": 71.27115044546363,
+    "maximum_loss": -25.262789321846046
+  },
+  "v10_risk_allocation_percent": {
+    "EURUSD_SATELLITE_V7": 0.35,
+    "GBPJPY_SATELLITE_V7": 0.35,
+    "GBPUSD_SATELLITE_V2": 0.3,
+    "GBPUSD_SWING_V6": 0.4
+  },
+  "improvement_vs_v9": {
+    "net_profit_dollars": 231.0298383540021,
+    "net_profit_percent": 23.4875388504171,
+    "return_change_percentage_points": 4.620596767080045,
+    "profit_factor_change": -0.04095460466477574,
+    "realized_drawdown_change_percentage_points": 0.5322096966944403,
+    "stress_drawdown_change_percentage_points": 0.7253338674143675
+  },
+  "v10_engine_summary": [
+    {
+      "engine": "EURUSD_SATELLITE_V7",
+      "trades": 22,
+      "net_profit": 195.83046186830708,
+      "profit_factor": 2.0514731857745057,
+      "win_rate": 0.5,
+      "average_trade": 8.901384630377594
+    },
+    {
+      "engine": "GBPJPY_SATELLITE_V7",
+      "trades": 19,
+      "net_profit": 195.18882578844472,
+      "profit_factor": 2.847563147101351,
+      "win_rate": 0.5263157894736842,
+      "average_trade": 10.27309609412867
+    },
+    {
+      "engine": "GBPUSD_SATELLITE_V2",
+      "trades": 91,
+      "net_profit": 739.6156934172174,
+      "profit_factor": 2.3436543288566027,
+      "win_rate": 0.4945054945054945,
+      "average_trade": 8.127644982606784
+    },
+    {
+      "engine": "GBPUSD_SWING_V6",
+      "trades": 7,
+      "net_profit": 84.02213225907688,
+      "profit_factor": 4.3834945950461375,
+      "win_rate": 0.8571428571428571,
+      "average_trade": 12.003161751296698
+    }
+  ],
+  "development_before_2026": {
+    "v9": {
+      "starting_balance": 5000.0,
+      "ending_balance": 5649.151069613095,
+      "net_profit": 649.1510696130954,
+      "return_percent": 12.983021392261907,
+      "trades": 72,
+      "wins": 41,
+      "losses": 31,
+      "win_rate": 0.5694444444444444,
+      "profit_factor": 3.4272118575070785,
+      "average_trade": 9.01598707795966,
+      "realized_drawdown_percent": 0.7971057739309738,
+      "open_risk_stress_drawdown_percent": 1.045113009496153,
+      "maximum_win": 87.93082149305131,
+      "maximum_loss": -14.77965396260541
+    },
+    "v10": {
+      "starting_balance": 5000.0,
+      "ending_balance": 5780.403342643665,
+      "net_profit": 780.4033426436654,
+      "return_percent": 15.608066852873307,
+      "trades": 72,
+      "wins": 41,
+      "losses": 31,
+      "win_rate": 0.5694444444444444,
+      "profit_factor": 3.3188282834133953,
+      "average_trade": 10.83893531449535,
+      "realized_drawdown_percent": 0.9560132698825528,
+      "open_risk_stress_drawdown_percent": 1.2531452300729062,
+      "maximum_win": 71.27115044546363,
+      "maximum_loss": -20.091717604886274
+    }
+  },
+  "validation_2026": {
+    "v9": {
+      "starting_balance": 5000.0,
+      "ending_balance": 5296.041123032718,
+      "net_profit": 296.04112303271813,
+      "return_percent": 5.920822460654362,
+      "trades": 67,
+      "wins": 31,
+      "losses": 36,
+      "win_rate": 0.4626865671641791,
+      "profit_factor": 1.806277575988713,
+      "average_trade": 4.418524224368933,
+      "realized_drawdown_percent": 1.5751807016000592,
+      "open_risk_stress_drawdown_percent": 2.067304798092063,
+      "maximum_win": 37.20574609510555,
+      "maximum_loss": -26.58289725204286
+    },
+    "v10": {
+      "starting_balance": 5000.0,
+      "ending_balance": 5375.625838672683,
+      "net_profit": 375.62583867268313,
+      "return_percent": 7.5125167734536635,
+      "trades": 67,
+      "wins": 31,
+      "losses": 36,
+      "win_rate": 0.4626865671641791,
+      "profit_factor": 1.818383799622709,
+      "average_trade": 5.606355801084817,
+      "realized_drawdown_percent": 2.1073903982944935,
+      "open_risk_stress_drawdown_percent": 2.79263866550643,
+      "maximum_win": 44.64160809818967,
+      "maximum_loss": -21.85209908751119
+    }
+  },
+  "cost_stress": {
+    "0.03R": {
+      "net_profit": 1132.5328851681124,
+      "return_percent": 22.65065770336225,
+      "profit_factor": 2.2630517765509435,
+      "realized_drawdown_percent": 2.1839316147638455,
+      "open_risk_stress_drawdown_percent": 2.868644093460498
+    },
+    "0.05R": {
+      "net_profit": 1078.381797725845,
+      "return_percent": 21.567635954516902,
+      "profit_factor": 2.1771797390737233,
+      "realized_drawdown_percent": 2.234930020886505,
+      "open_risk_stress_drawdown_percent": 2.9192855107403015
+    },
+    "0.10R": {
+      "net_profit": 945.0683106976221,
+      "return_percent": 18.901366213952443,
+      "profit_factor": 1.9802154780061851,
+      "realized_drawdown_percent": 2.3623243520515236,
+      "open_risk_stress_drawdown_percent": 3.0457880815871694
+    }
+  },
+  "gbpusd_swing_v10_risk_replay_10y": {
+    "starting_balance": 5000.0,
+    "ending_balance": 5803.571065000269,
+    "net_profit": 803.5710650002693,
+    "return_percent": 16.071421300005387,
+    "trades": 125,
+    "win_rate": 0.672,
+    "profit_factor": 2.1035764610315706,
+    "maximum_drawdown_percent": 1.7472355150483903,
+    "method": "Risk-reweighted replay of the exact 10-year V5 trade outcomes at 0.40% risk per swing trade."
+  },
+  "limitations": [
+    "V10 risk weights were selected using the same synchronized candidate history, so the full result is research/in-sample.",
+    "The 2026 split is a robustness check, not a completely untouched test.",
+    "EURUSD and GBPJPY are not exact ten-year M15 reruns because their uploaded M15 data starts in June 2022.",
+    "The V10 10-year swing result reweights recorded trade outcomes and does not regenerate entries or fills.",
+    "No EURGBP dataset or EURGBP strategy was supplied."
+  ]
+}
