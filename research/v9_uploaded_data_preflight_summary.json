@@ -1,0 +1,37 @@
+{
+  "status": "BLOCKED_INSUFFICIENT_DATA",
+  "ten_year_label_allowed": false,
+  "requested_start": "2016-07-01T00:00:00+00:00",
+  "requested_end": "2026-07-01T00:00:00+00:00",
+  "datasets": {
+    "GBPUSD_M15": {
+      "status": "MISSING"
+    },
+    "GBPUSD_H4": {
+      "status": "AVAILABLE",
+      "rows": 16331,
+      "start": "2016-01-04T00:00:00+00:00",
+      "end": "2026-07-01T12:00:00+00:00",
+      "duplicate_timestamps": 0,
+      "invalid_ohlc_rows": 0
+    },
+    "GBPUSD_D1": {
+      "status": "INVALID_EXPORT",
+      "reason": "six rows per date and no time column"
+    },
+    "EURUSD_M15": {
+      "status": "PARTIAL",
+      "rows": 99972,
+      "start": "2022-06-22T12:00:00+00:00",
+      "end": "2026-07-01T19:15:00+00:00"
+    },
+    "GBPJPY_M15": {
+      "status": "PARTIAL",
+      "rows": 101167,
+      "start": "2022-06-06T00:00:00+00:00",
+      "end": "2026-07-01T19:15:00+00:00"
+    }
+  },
+  "completed_backtest": "GBPUSD_SWING_V5_10Y",
+  "full_v9_backtest": "NOT_RUN_MISSING_REQUIRED_RAW_DATA"
+}
