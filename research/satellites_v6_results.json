@@ -1,0 +1,28 @@
+{
+  "methodology": "Component combination: retained V5 gate-replay core plus independently simulated V6 additions; one trade per symbol/day, retained core priority on conflicts. Not a full integrated signal re-simulation.",
+  "EURUSD_V6": {
+    "full": {"net_profit": 76.5295, "trades": 69, "trades_per_week": 0.3304, "profit_factor": 1.6873, "win_rate": 0.6522, "closed_trade_drawdown_percent": 0.4794},
+    "3y": {"net_profit": 82.1979, "trades": 53, "trades_per_week": 0.3385, "profit_factor": 2.0928, "win_rate": 0.7170, "closed_trade_drawdown_percent": 0.4119},
+    "2y": {"net_profit": 59.8928, "trades": 32, "trades_per_week": 0.3068, "profit_factor": 2.3966, "win_rate": 0.7188, "closed_trade_drawdown_percent": 0.1924},
+    "1y": {"net_profit": 26.9897, "trades": 16, "trades_per_week": 0.3068, "profit_factor": 2.3806, "win_rate": 0.7500, "closed_trade_drawdown_percent": 0.1190},
+    "1m": {"net_profit": 0.0, "trades": 0, "trades_per_week": 0.0, "profit_factor": null, "win_rate": 0.0, "closed_trade_drawdown_percent": 0.0},
+    "new_models_only_full": {"net_profit": 40.5729, "trades": 39, "profit_factor": 1.7912, "win_rate": 0.6410, "closed_trade_drawdown_percent": 0.4683},
+    "new_models_cost_stress_25_percent": {"net_profit": 36.17, "trades": 39, "profit_factor": 1.69}
+  },
+  "GBPJPY_V6": {
+    "full": {"net_profit": 128.8722, "trades": 23, "trades_per_week": 0.1155, "profit_factor": 6.6782, "win_rate": 0.8261, "closed_trade_drawdown_percent": 0.1178},
+    "3y": {"net_profit": 101.6444, "trades": 18, "trades_per_week": 0.1150, "profit_factor": 6.8936, "win_rate": 0.8333, "closed_trade_drawdown_percent": 0.1185},
+    "2y": {"net_profit": 48.6633, "trades": 9, "trades_per_week": 0.0863, "profit_factor": 5.3054, "win_rate": 0.7778, "closed_trade_drawdown_percent": 0.1144},
+    "1y": {"net_profit": 30.1723, "trades": 5, "trades_per_week": 0.0959, "profit_factor": 6.2201, "win_rate": 0.8000, "closed_trade_drawdown_percent": 0.1148},
+    "1m": {"net_profit": 0.0, "trades": 0, "trades_per_week": 0.0, "profit_factor": null, "win_rate": 0.0, "closed_trade_drawdown_percent": 0.0},
+    "new_expansion_model_full": {"net_profit": 42.4885, "trades": 9, "profit_factor": null, "win_rate": 1.0, "closed_trade_drawdown_percent": 0.0},
+    "new_expansion_model_cost_stress_25_percent": {"net_profit": 41.70, "trades": 9, "profit_factor": null},
+    "unique_new_trade_days_added": 2
+  },
+  "disabled_families": {
+    "EURUSD_INDEPENDENT_LONDON_PULLBACK": "negative validation performance",
+    "GBPJPY_COMPRESSION_EXPANSION": "PF below 1.0 or negative development performance",
+    "GBPJPY_SECOND_LEG": "no parameter neighborhood met minimum development and validation gates",
+    "GBPJPY_ATR_60_65_TIER": "no robust incremental edge"
+  }
+}
