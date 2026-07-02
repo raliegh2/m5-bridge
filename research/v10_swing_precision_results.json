@@ -1,0 +1,57 @@
+{
+  "methodology": "Completed-signal-bar quality selection and risk-tier replay over the exact raw-H4 GBPUSD Swing V5 trade ledger.",
+  "baseline_v10_swing_0_40_percent": {
+    "starting_balance": 5000.0,
+    "ending_balance": 5803.571065000269,
+    "net_profit": 803.5710650002693,
+    "return_percent": 16.071421300005387,
+    "trades": 125,
+    "wins": 84,
+    "losses": 41,
+    "win_rate": 0.672,
+    "profit_factor": 2.1035764610315706,
+    "maximum_drawdown_percent": 1.7472355150483903
+  },
+  "v10_swing_precision": {
+    "starting_balance": 5000.0,
+    "ending_balance": 6105.494186940368,
+    "net_profit": 1105.4941869403683,
+    "return_percent": 22.109883738807365,
+    "trades": 93,
+    "wins": 71,
+    "losses": 22,
+    "win_rate": 0.7634408602150538,
+    "profit_factor": 4.232649930303936,
+    "maximum_drawdown_percent": 1.492701281868592
+  },
+  "improvement": {
+    "net_profit_dollars": 301.923121940099,
+    "net_profit_percent": 37.57267217430207,
+    "return_change_percentage_points": 6.038462438801978,
+    "profit_factor_change": 2.1290734692723654,
+    "drawdown_change_percentage_points": -0.2545342331797983
+  },
+  "development_before_2023": {
+    "baseline_net_profit": 625.1119063851365,
+    "precision_net_profit": 792.1371289342551,
+    "baseline_profit_factor": 2.459053271623491,
+    "precision_profit_factor": 5.715793252718224
+  },
+  "validation_2023_onward": {
+    "baseline_net_profit": 158.62720740947316,
+    "precision_net_profit": 270.50210572601645,
+    "baseline_profit_factor": 1.5954294552108477,
+    "precision_profit_factor": 2.800878547982769
+  },
+  "cost_stress": {
+    "0.03R": {"net_profit": 1052.2529680588004, "profit_factor": 4.004624792994127, "maximum_drawdown_percent": 1.5538607227413008},
+    "0.05R": {"net_profit": 1017.0139399118916, "profit_factor": 3.8596104788666366, "maximum_drawdown_percent": 1.5946163937288247},
+    "0.10R": {"net_profit": 929.8008429510082, "profit_factor": 3.519389339533723, "maximum_drawdown_percent": 1.6964450844698276}
+  },
+  "limitations": [
+    "Thresholds were derived after studying this historical sample.",
+    "This filters and reweights recorded raw-H4 trades; it does not create new intrabar fills.",
+    "No model can guarantee the exact maximum-profit entry in advance.",
+    "Keep the implementation in READ_ONLY or demo mode until forward validation."
+  ]
+}
