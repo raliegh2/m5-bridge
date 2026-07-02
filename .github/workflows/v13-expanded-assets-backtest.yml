@@ -1,0 +1,33 @@
+name: V13 expanded asset backtest
+
+on:
+  pull_request:
+    branches:
+      - v12-hybrid-adaptive-swing
+    paths:
+      - "research/v13_expanded_assets_backtest.py"
+      - ".github/workflows/v13-expanded-assets-backtest.yml"
+      - "mt5_ai_bridge/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip pandas numpy
+      - name: Run synchronized research replay
+        run: python research/v13_expanded_assets_backtest.py
+      - name: Upload backtest outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: v13-expanded-assets-backtest
+          path: research/v13_output/
+          if-no-files-found: error
