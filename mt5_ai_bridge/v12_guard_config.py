@@ -12,6 +12,18 @@ ENGINE_GBPJPY_CORE = "GBPJPY_SWING_CORE"
 ENGINE_GBPJPY_RETEST = "GBPJPY_SWING_RETEST"
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{name} must be true or false")
+
+
 @dataclass(frozen=True)
 class AdaptiveGuardConfig:
     rolling_trades: int = 12
@@ -35,8 +47,15 @@ class AdaptiveGuardConfig:
 @dataclass(frozen=True)
 class V12HybridConfig:
     state_path: str = "state/v12_hybrid_adaptive_state.json"
-    max_symbol_risk_percent: float = 0.65
-    precision_primary_a_risk: float = 0.50
+    max_open_positions: int = 5
+    max_open_risk_percent: float = 1.50
+    max_symbol_risk_percent: float = 0.40
+    aligned_gbp_cap_percent: float = 0.90
+    mixed_gbp_cap_percent: float = 0.65
+    basket_cap_enabled: bool = True
+    max_positions_per_basket: int = 1
+    stagger_cooldown_hours: float = 4.0
+    precision_primary_a_risk: float = 0.40
     precision_primary_b_risk: float = 0.20
     precision_secondary_risk: float = 0.40
     precision_pullback_risk: float = 0.40
@@ -66,8 +85,15 @@ class V12HybridConfig:
         )
         config = cls(
             state_path=os.getenv("V12_STATE_PATH", cls.state_path),
-            max_symbol_risk_percent=float(os.getenv("V12_MAX_SYMBOL_RISK_PERCENT", "0.65")),
-            precision_primary_a_risk=float(os.getenv("V12_GBPUSD_PRIMARY_A_RISK", "0.50")),
+            max_open_positions=int(os.getenv("MAX_OPEN_POSITIONS", "5")),
+            max_open_risk_percent=float(os.getenv("MAX_OPEN_RISK_PERCENT", "1.50")),
+            max_symbol_risk_percent=float(os.getenv("V12_MAX_SYMBOL_RISK_PERCENT", "0.40")),
+            aligned_gbp_cap_percent=float(os.getenv("ALIGNED_GBP_RISK_CAP_PERCENT", "0.90")),
+            mixed_gbp_cap_percent=float(os.getenv("MIXED_GBP_RISK_CAP_PERCENT", "0.65")),
+            basket_cap_enabled=_env_bool("V12_BASKET_CAP_ENABLED", True),
+            max_positions_per_basket=int(os.getenv("V12_MAX_POSITIONS_PER_BASKET", "1")),
+            stagger_cooldown_hours=float(os.getenv("V12_STAGGER_COOLDOWN_HOURS", "4")),
+            precision_primary_a_risk=float(os.getenv("V12_GBPUSD_PRIMARY_A_RISK", "0.40")),
             precision_primary_b_risk=float(os.getenv("V12_GBPUSD_PRIMARY_B_RISK", "0.20")),
             precision_secondary_risk=float(os.getenv("V12_GBPUSD_SECONDARY_RISK", "0.40")),
             precision_pullback_risk=float(os.getenv("V12_GBPUSD_PULLBACK_RISK", "0.40")),
@@ -77,8 +103,28 @@ class V12HybridConfig:
         return config
 
     def validate(self) -> None:
-        if not 0 < self.max_symbol_risk_percent <= 1.0:
-            raise ValueError("V12 symbol-risk cap must be within (0, 1]")
+        if self.max_open_positions < 1:
+            raise ValueError("MAX_OPEN_POSITIONS must be positive")
+        if not 0 < self.max_open_risk_percent <= 5.0:
+            raise ValueError("MAX_OPEN_RISK_PERCENT must be within (0, 5]")
+        if not 0 < self.max_symbol_risk_percent <= self.max_open_risk_percent:
+            raise ValueError("V12 symbol-risk cap must be within the global cap")
+        if not 0 < self.mixed_gbp_cap_percent <= self.aligned_gbp_cap_percent:
+            raise ValueError("Mixed GBP cap must not exceed aligned GBP cap")
+        if self.aligned_gbp_cap_percent > self.max_open_risk_percent:
+            raise ValueError("Aligned GBP cap cannot exceed global open-risk cap")
+        if self.max_positions_per_basket != 1:
+            raise ValueError("V12 currently enforces exactly one position per basket")
+        if self.stagger_cooldown_hours < 0:
+            raise ValueError("V12 stagger cooldown cannot be negative")
+        for risk in (
+            self.precision_primary_a_risk,
+            self.precision_primary_b_risk,
+            self.precision_secondary_risk,
+            self.precision_pullback_risk,
+        ):
+            if not 0 < risk <= self.max_symbol_risk_percent:
+                raise ValueError("V12 precision risk exceeds the per-symbol cap")
         if self.guard.minimum_trades < 1:
             raise ValueError("V12 guard minimum must be positive")
         if self.guard.rolling_trades < self.guard.minimum_trades:
