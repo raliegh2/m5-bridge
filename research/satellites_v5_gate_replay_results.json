@@ -1,0 +1,26 @@
+{
+  "methodology": "Quality-gate replay of completed V4 trades matched to raw M15 feature state; not a full signal re-simulation.",
+  "EURUSD_V5": {
+    "full": {"net_profit": 35.9566, "trades": 30, "trades_per_week": 0.1577, "profit_factor": 1.5986, "win_rate": 0.6667, "max_closed_trade_drawdown_percent": 0.3354},
+    "3y": {"net_profit": 30.2350, "trades": 25, "trades_per_week": 0.1597, "profit_factor": 1.6196, "win_rate": 0.6800, "max_closed_trade_drawdown_percent": 0.3358},
+    "2y": {"net_profit": 30.7749, "trades": 15, "trades_per_week": 0.1438, "profit_factor": 2.2603, "win_rate": 0.7333, "max_closed_trade_drawdown_percent": 0.1263},
+    "1y": {"net_profit": 8.4939, "trades": 7, "trades_per_week": 0.1342, "profit_factor": 1.7102, "win_rate": 0.7143, "max_closed_trade_drawdown_percent": 0.1194},
+    "1m": {"net_profit": 0.0, "trades": 0, "trades_per_week": 0.0, "profit_factor": null, "win_rate": 0.0, "max_closed_trade_drawdown_percent": 0.0},
+    "development_to_2024_07": {"net_profit": 5.1816, "trades": 15, "profit_factor": 1.1454},
+    "validation_from_2024_07": {"net_profit": 30.7749, "trades": 15, "profit_factor": 2.2603}
+  },
+  "GBPJPY_V5": {
+    "full": {"net_profit": 114.4062, "trades": 21, "trades_per_week": 0.1055, "profit_factor": 6.0408, "win_rate": 0.8095, "max_closed_trade_drawdown_percent": 0.1178},
+    "3y": {"net_profit": 87.1784, "trades": 16, "trades_per_week": 0.1022, "profit_factor": 6.0549, "win_rate": 0.8125, "max_closed_trade_drawdown_percent": 0.1185},
+    "2y": {"net_profit": 43.7342, "trades": 8, "trades_per_week": 0.0767, "profit_factor": 4.8693, "win_rate": 0.7500, "max_closed_trade_drawdown_percent": 0.1145},
+    "1y": {"net_profit": 25.2432, "trades": 4, "trades_per_week": 0.0767, "profit_factor": 5.3673, "win_rate": 0.7500, "max_closed_trade_drawdown_percent": 0.1149},
+    "1m": {"net_profit": 0.0, "trades": 0, "trades_per_week": 0.0, "profit_factor": null, "win_rate": 0.0, "max_closed_trade_drawdown_percent": 0.0},
+    "development_to_2024_07": {"net_profit": 70.6720, "trades": 13, "profit_factor": 7.2031},
+    "validation_from_2024_07": {"net_profit": 43.7342, "trades": 8, "profit_factor": 4.8693}
+  },
+  "rejected_optional_setups": {
+    "EURUSD_ASIAN_FALSE_BREAK_V5": {"trades": 8, "net_profit": -31.9371},
+    "GBPJPY_ADX_DEEP_PULLBACK_V5": {"trades": 3, "net_profit": -13.6142},
+    "GBPJPY_ATR_55_65_TIER": {"trades": 3, "net_profit": -2.4217}
+  }
+}
