@@ -1,0 +1,51 @@
+{
+  "data_start": "2025-07-04T01:45:00+00:00",
+  "data_end": "2026-07-01T14:45:00+00:00",
+  "initial_balance": 5000.0,
+  "ending_balance": 5358.544692339239,
+  "net_profit": 358.5446923392392,
+  "return_percent": 7.170893846784776,
+  "trades": 173,
+  "trades_per_week": 3.3403057119871282,
+  "average_profit_per_trade": 2.0725126724811886,
+  "win_rate": 0.3930635838150289,
+  "profit_factor": 1.4338090066978324,
+  "maximum_drawdown_percent": 2.235602944062211,
+  "by_setup": {
+    "LONDON_PULLBACK_V2": {
+      "trades": 132,
+      "net_profit": 228.7968146387012,
+      "average_profit_per_trade": 1.7333092018083425,
+      "win_rate": 0.3712121212121212,
+      "profit_factor": 1.3648581094297576
+    },
+    "NEW_YORK_RETEST_V2": {
+      "trades": 41,
+      "net_profit": 129.74787770054454,
+      "average_profit_per_trade": 3.1645823829401105,
+      "win_rate": 0.4634146341463415,
+      "profit_factor": 1.650628790253017
+    }
+  },
+  "development": {
+    "start": "2025-07-15T00:00:00+00:00",
+    "end": "2026-01-01T00:00:00+00:00",
+    "net_profit": 239.14639218488082,
+    "trades": 82,
+    "trades_per_week": 3.376470588235294,
+    "average_profit_per_trade": 2.9164194168888153,
+    "profit_factor": 1.6422609093450216,
+    "maximum_drawdown_percent": 1.2430857987207922
+  },
+  "later_validation": {
+    "start": "2026-01-01T00:00:00+00:00",
+    "end": "2026-07-01T00:00:00+00:00",
+    "net_profit": 93.22393044358614,
+    "trades": 89,
+    "trades_per_week": 3.441988950276243,
+    "average_profit_per_trade": 1.0474598926245593,
+    "profit_factor": 1.2124659948365333,
+    "maximum_drawdown_percent": 2.237497171695462
+  },
+  "status": "RESEARCH_AND_DEMO_ONLY"
+}
