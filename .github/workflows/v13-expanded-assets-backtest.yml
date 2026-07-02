@@ -1,0 +1,32 @@
+name: V13 expanded asset backtest
+
+on:
+  pull_request:
+    branches:
+      - v12-hybrid-adaptive-swing
+    paths:
+      - "research/v13_commodity_strategy_research.py"
+      - ".github/workflows/v13-expanded-assets-backtest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip pandas numpy
+      - name: Run commodity validation
+        run: python research/v13_commodity_strategy_research.py
+      - name: Upload outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: v13-commodity-strategy-research
+          path: research/v13_commodity_output/
+          if-no-files-found: error
