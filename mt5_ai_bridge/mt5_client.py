@@ -29,6 +29,10 @@ class RealMT5Client:
         self.TRADE_ACTION_SLTP = mt5.TRADE_ACTION_SLTP
         self.ORDER_TIME_GTC = mt5.ORDER_TIME_GTC
         self.TRADE_RETCODE_DONE = mt5.TRADE_RETCODE_DONE
+        self.TRADE_RETCODE_PLACED = getattr(mt5, "TRADE_RETCODE_PLACED", None)
+        self.TRADE_RETCODE_DONE_PARTIAL = getattr(
+            mt5, "TRADE_RETCODE_DONE_PARTIAL", None
+        )
         self.POSITION_TYPE_BUY = mt5.POSITION_TYPE_BUY
         self.POSITION_TYPE_SELL = mt5.POSITION_TYPE_SELL
 
@@ -52,8 +56,16 @@ class RealMT5Client:
     def positions_get(self, **kwargs) -> Any:
         return self._mt5.positions_get(**kwargs)
 
+    def symbols_get(self, *args, **kwargs) -> Any:
+        """Return broker symbols for suffix/prefix resolution."""
+        return self._mt5.symbols_get(*args, **kwargs)
+
     def symbol_info(self, symbol: str) -> Any:
         return self._mt5.symbol_info(symbol)
+
+    def symbol_select(self, symbol: str, enable: bool = True) -> bool:
+        """Add or remove a symbol from Market Watch."""
+        return bool(self._mt5.symbol_select(symbol, enable))
 
     def symbol_info_tick(self, symbol: str) -> Any:
         return self._mt5.symbol_info_tick(symbol)
@@ -70,6 +82,17 @@ class RealMT5Client:
         return self._mt5.copy_rates_from_pos(
             symbol, self.timeframe(timeframe_name), start, count
         )
+
+    # -- sizing / validation ------------------------------------------------
+    def order_calc_profit(self, order_type: int, symbol: str, volume: float,
+                          price_open: float, price_close: float) -> Any:
+        return self._mt5.order_calc_profit(
+            order_type, symbol, volume, price_open, price_close
+        )
+
+    def order_check(self, request: dict) -> Any:
+        """Validate a trade request before it is sent to the broker."""
+        return self._mt5.order_check(request)
 
     # -- orders -------------------------------------------------------------
     def order_send(self, request: dict) -> Any:
