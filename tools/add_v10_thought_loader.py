@@ -1,5 +1,10 @@
 from pathlib import Path
 
+try:
+    from fix_v10_multisymbol_dashboard import main as apply_multisymbol_dashboard_fix
+except ImportError:
+    apply_multisymbol_dashboard_fix = None
+
 ROOT = Path(__file__).resolve().parents[1]
 PATH = ROOT / "mt5_ai_bridge" / "dashboard.py"
 
@@ -26,6 +31,9 @@ JS_NEW = """var ready=sy.length?total>0:!!t.aligned;
 var loader=q('thought_loader');if(loader){loader.className='thought-loader'+((sy.length&&total===0)?'':' hidden');}
 setTxt('loader_symbols','Scanning '+(sy.length?sy.map(function(s){return s.symbol;}).join(', '):(d.symbol||'the market'))+' using completed candles.');
 setTxt('loader_cycle','Last scan: '+d.time_est+' · refreshing every second.');"""
+
+if apply_multisymbol_dashboard_fix is not None:
+    apply_multisymbol_dashboard_fix()
 
 text = PATH.read_text(encoding="utf-8")
 backup = PATH.with_suffix(PATH.suffix + ".before-thought-loader")
