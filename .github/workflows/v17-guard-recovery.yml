@@ -1,0 +1,44 @@
+name: V17 guard recovery and selective sizing
+
+on:
+  pull_request:
+    branches:
+      - v16-profit-preserving-loss-guard
+    paths:
+      - "research/v17_guard.py"
+      - "research/v17_replay_core.py"
+      - "research/v17_guard_recovery_runner.py"
+      - "tests/test_v17_guard_recovery.py"
+      - ".github/workflows/v17-guard-recovery.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy pytest
+      - name: Compile research code
+        run: python -m compileall -q research tests
+      - name: Run focused regression tests
+        run: PYTHONPATH=research python -m pytest -q tests/test_v17_guard_recovery.py
+      - name: Run legacy, recovery and selective backtests
+        run: python research/v17_guard_recovery_runner.py 2>&1 | tee v17-guard-recovery.log
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v17-guard-recovery-results
+          path: |
+            v17-guard-recovery.log
+            research/v17_guard_recovery_output/
+          if-no-files-found: error
+          retention-days: 30
