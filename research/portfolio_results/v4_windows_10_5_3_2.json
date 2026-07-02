@@ -1,0 +1,50 @@
+{
+  "10y": {
+    "start": "2016-07-01T16:00:00+00:00",
+    "end": "2026-07-01T16:00:00+00:00",
+    "initial_balance": 5000.0,
+    "ending_balance": 5573.165101149407,
+    "net_profit": 573.1651011494068,
+    "return_percent": 11.463302022988131,
+    "trades": 93,
+    "win_rate": 0.7096774193548387,
+    "profit_factor": 2.365222397322741,
+    "maximum_drawdown_percent": 1.48270025232053
+  },
+  "5y": {
+    "start": "2021-07-01T16:00:00+00:00",
+    "end": "2026-07-01T16:00:00+00:00",
+    "initial_balance": 5000.0,
+    "ending_balance": 5229.047908407164,
+    "net_profit": 229.04790840716396,
+    "return_percent": 4.580958168143279,
+    "trades": 44,
+    "win_rate": 0.7045454545454546,
+    "profit_factor": 2.1808706846095443,
+    "maximum_drawdown_percent": 1.5236274799676792
+  },
+  "3y": {
+    "start": "2023-07-01T16:00:00+00:00",
+    "end": "2026-07-01T16:00:00+00:00",
+    "initial_balance": 5000.0,
+    "ending_balance": 5078.288428002268,
+    "net_profit": 78.28842800226812,
+    "return_percent": 1.5657685600453553,
+    "trades": 22,
+    "win_rate": 0.5909090909090909,
+    "profit_factor": 1.6094813900321396,
+    "maximum_drawdown_percent": 1.1035411167681963
+  },
+  "2y": {
+    "start": "2024-07-01T16:00:00+00:00",
+    "end": "2026-07-01T16:00:00+00:00",
+    "initial_balance": 5000.0,
+    "ending_balance": 5114.218045034589,
+    "net_profit": 114.21804503458861,
+    "return_percent": 2.284360900691773,
+    "trades": 15,
+    "win_rate": 0.6666666666666666,
+    "profit_factor": 2.639415699852824,
+    "maximum_drawdown_percent": 0.8932821292607067
+  }
+}
