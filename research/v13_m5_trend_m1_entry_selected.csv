@@ -1,0 +1,4 @@
+symbol,selected,reason
+GBPUSD,False,No M5-trend/M1-entry setup passed train+confirmation gates
+GBPJPY,False,No M5-trend/M1-entry setup passed train+confirmation gates
+EURUSD,False,"Uploaded M1 median step is 5.00 minutes, not true M1"
