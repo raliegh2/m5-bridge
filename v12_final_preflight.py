@@ -1,10 +1,10 @@
-"""Safe preflight for the final V12 demo profile.
+"""Safe preflight for the final V12 supervised research profile.
 
 Run with:  python v12_final_preflight.py
 
-Connects to MT5, verifies a demo account, checks all five symbols and broker pip
-values, confirms there are no unregistered positions, and exits without sending
-an order.
+Connects to MT5, checks all five symbols and broker-native pip values, confirms
+there are no unregistered positions, verifies APPROVAL mode, and exits without
+sending an order.
 """
 from __future__ import annotations
 
@@ -12,33 +12,26 @@ import os
 
 from mt5_ai_bridge.app import connect
 from mt5_ai_bridge.config import load_settings
+from mt5_ai_bridge.enums import Mode
 from mt5_ai_bridge.execution import pip_size
 from mt5_ai_bridge.mt5_client import create_client
 from mt5_ai_bridge.v12_final_risk import ALLOWED_SYMBOLS, PROFILE_ID, validate_profile
 from mt5_ai_bridge.v12_final_state import StateStore
 
 
-def _is_demo(client, account) -> bool:
-    constant = getattr(client, "ACCOUNT_TRADE_MODE_DEMO", None)
-    mode = getattr(account, "trade_mode", None)
-    if constant is not None and mode is not None:
-        return mode == constant
-    return "demo" in str(getattr(account, "server", "")).lower()
-
-
 def main() -> None:
     validate_profile()
     settings = load_settings()
     client = create_client()
-    state = StateStore(os.getenv("V12_FINAL_STATE_PATH", "v12_final_demo_state.json"))
+    state = StateStore(os.getenv("V12_FINAL_STATE_PATH", "v12_final_research_state.json"))
     errors = []
     try:
         connect(client, settings)
         account = client.account_info()
         if account is None:
             raise RuntimeError("account_info() returned None")
-        if not _is_demo(client, account):
-            errors.append("Connected account is not confirmed as DEMO.")
+        if settings.mode is not Mode.APPROVAL:
+            errors.append("MODE must be APPROVAL for the final supervised profile.")
 
         positions = list(client.positions_get() or [])
         registered = {item.ticket for item in state.state.positions.values()}
@@ -67,13 +60,14 @@ def main() -> None:
                       f"pip_value={abs(float(one_pip)):.4f}")
 
         print(f"Profile : {PROFILE_ID}")
-        print(f"Account : login={account.login} balance={account.balance} equity={account.equity}")
+        print(f"Account : login={account.login} server={getattr(account, 'server', '')} "
+              f"balance={account.balance} equity={account.equity}")
         if errors:
             print("\nPREFLIGHT FAILED")
             for error in errors:
                 print(f"- {error}")
             raise SystemExit(1)
-        print("\nPREFLIGHT PASSED: risk profile and broker inputs are ready.")
+        print("\nPREFLIGHT PASSED: supervised risk profile and broker inputs are ready.")
         print("No order was sent.")
     finally:
         client.shutdown()
