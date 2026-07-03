@@ -8,9 +8,11 @@ on:
       - "research/v12_plus_validated_assets_backtest.py"
       - "research/v12_plus_protected_assets_backtest.py"
       - "research/v12_audusd_quality_upgrade.py"
+      - "research/v12_audusd_defensive_sleeve.py"
       - "tests/test_v12_plus_validated_assets.py"
       - "tests/test_v12_plus_protected_assets.py"
       - "tests/test_v12_audusd_quality_upgrade.py"
+      - "tests/test_v12_audusd_defensive_sleeve.py"
       - ".github/workflows/v12-plus-validated-assets.yml"
   workflow_dispatch:
 
@@ -36,12 +38,15 @@ jobs:
           tests/test_v12_plus_validated_assets.py
           tests/test_v12_plus_protected_assets.py
           tests/test_v12_audusd_quality_upgrade.py
+          tests/test_v12_audusd_defensive_sleeve.py
       - name: Run broad-guard comparison
         run: python research/v12_plus_validated_assets_backtest.py 2>&1 | tee v12-plus-validated-assets.log
       - name: Run original-protection comparison
         run: python research/v12_plus_protected_assets_backtest.py 2>&1 | tee v12-plus-protected-assets.log
       - name: Run AUDUSD quality upgrade
         run: python research/v12_audusd_quality_upgrade.py 2>&1 | tee v12-audusd-quality.log
+      - name: Run AUDUSD defensive sleeve
+        run: python research/v12_audusd_defensive_sleeve.py 2>&1 | tee v12-audusd-defensive.log
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
@@ -51,8 +56,10 @@ jobs:
             v12-plus-validated-assets.log
             v12-plus-protected-assets.log
             v12-audusd-quality.log
+            v12-audusd-defensive.log
             research/v12_plus_validated_assets_output/
             research/v12_plus_protected_assets_output/
             research/v12_audusd_quality_output/
+            research/v12_audusd_defensive_output/
           if-no-files-found: error
           retention-days: 30
