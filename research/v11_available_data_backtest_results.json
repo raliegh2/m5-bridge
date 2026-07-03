@@ -1,0 +1,84 @@
+{
+  "status": "available_data_replay_estimate_not_raw_execution_backtest",
+  "intraday_only": true,
+  "swing_engines_removed": ["GBPUSD_SWING_V6"],
+  "base_dataset": "research/FINAL_BACKTEST_DATA_V10.json on strategy-engine-v10-profitability",
+  "methodology": "Risk-reweighted replay estimate using V10 intraday engine-level aggregate contribution and V11 base-risk allocations. Swing-trading contribution is excluded. This does not use a raw candidate ledger, quality-score promotion, candle execution, spread series, slippage simulation or walk-forward windows.",
+  "starting_balance": 5000.0,
+  "v10_intraday_reference": {
+    "net_profit": 1130.6349810739694,
+    "ending_balance": 6130.634981073969,
+    "return_percent": 22.61269962147939,
+    "trades": 132,
+    "weekly_equivalent": 21.742980405268643,
+    "excluded_swing_profit": 84.02213225907688,
+    "excluded_swing_trades": 7
+  },
+  "v11_intraday_base_risk_replay_estimate": {
+    "net_profit": 1046.8909648675126,
+    "ending_balance": 6046.890964867513,
+    "return_percent": 20.937819297350252,
+    "trades": 132,
+    "average_trade": 7.930992158087217,
+    "weekly_equivalent": 20.132518555144472,
+    "difference_vs_v10_intraday": -83.74401620645676,
+    "estimated_retention_of_v10_intraday_profit": 0.9259318722591531
+  },
+  "engine_reweighted_contribution": [
+    {
+      "engine": "EURUSD_SATELLITE_V7",
+      "type": "intraday",
+      "v10_profit": 195.83046186830708,
+      "v10_risk_percent": 0.35,
+      "v11_base_risk_percent": 0.30,
+      "estimated_v11_profit": 167.85468160140607
+    },
+    {
+      "engine": "GBPJPY_SATELLITE_V7",
+      "type": "intraday",
+      "v10_profit": 195.18882578844472,
+      "v10_risk_percent": 0.35,
+      "v11_base_risk_percent": 0.25,
+      "estimated_v11_profit": 139.42058984888908
+    },
+    {
+      "engine": "GBPUSD_SATELLITE_V3",
+      "type": "intraday",
+      "v10_profit": 739.6156934172174,
+      "v10_risk_percent": 0.30,
+      "v11_base_risk_percent": 0.30,
+      "estimated_v11_profit": 739.6156934172174
+    }
+  ],
+  "excluded_engine_contribution": [
+    {
+      "engine": "GBPUSD_SWING_V6",
+      "type": "swing",
+      "v10_profit": 84.02213225907688,
+      "v10_risk_percent": 0.40,
+      "reason": "Removed because V11 is strictly intraday/day-trading only."
+    }
+  ],
+  "cost_stress_scaled_estimate": {
+    "0.03R": {
+      "net_profit": 976.1095801303255,
+      "weekly_equivalent": 18.771338079429338
+    },
+    "0.05R": {
+      "net_profit": 929.4377387038171,
+      "weekly_equivalent": 17.8738026673811
+    },
+    "0.10R": {
+      "net_profit": 814.537258944669,
+      "weekly_equivalent": 15.66417805662825
+    }
+  },
+  "target_gap": {
+    "target_weekly_profit": 50.0,
+    "target_annual_profit": 2600.0,
+    "required_multiplier_from_v11_intraday_base_estimate": 2.4835442154465803,
+    "required_average_trade_at_132_trades": 19.696969696969695,
+    "current_v11_intraday_base_average_trade": 7.930992158087217
+  },
+  "decision": "The V11 intraday-only base-risk replay estimate remains profitable but does not meet the $50/week target. It is expected to earn about $20.13/week before additional quality-score promotions or new validated intraday setups. A real V11 backtest requires the raw accepted/rejected candidate ledger or broker-native M15/M1 historical data."
+}
