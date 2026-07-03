@@ -8,7 +8,8 @@ serves a responsive dashboard on http://127.0.0.1:8800, and refreshes dashboard
 data every second. The animated scanner is visible while a market scan is in
 progress.
 
-The current FinalV12Adapter is proposal-only and never calls order_send.
+Qualified signals are automatically routed to MT5 only when the connected
+account is confirmed as a demo account and every frozen V12 risk gate passes.
 """
 from __future__ import annotations
 
@@ -54,13 +55,13 @@ class SharedStatus:
             "last_scan_completed": None,
             "last_error": None,
             "scan_count": 0,
-            "new_proposals": 0,
+            "new_executions": 0,
             "account": {},
             "positions": [],
             "symbols": [],
             "engines": [],
             "recent_proposals": [],
-            "execution_mode": "PROPOSAL_ONLY",
+            "execution_mode": "DEMO_AUTO",
         }
 
     def update(self, **values: Any) -> None:
@@ -183,7 +184,7 @@ def scanner_loop(client, adapter: FinalV12Adapter, status: SharedStatus,
                 scanning=False,
                 last_scan_completed=datetime.now(timezone.utc).isoformat(),
                 scan_count=int(current.get("scan_count", 0)) + 1,
-                new_proposals=len(emitted),
+                new_executions=len(emitted),
                 account=account,
                 positions=positions,
                 symbols=symbols,
@@ -207,25 +208,25 @@ HTML = r'''<!doctype html>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090f1f;color:#e7edf7;font-family:Segoe UI,Arial,sans-serif}.wrap{max-width:1280px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.title{font-size:24px;font-weight:750}.sub{color:#91a3c1;font-size:13px}.badge{padding:7px 12px;border-radius:999px;font-size:12px;font-weight:750}.green{background:#12351f;color:#39dda0;border:1px solid #1d5b3a}.amber{background:#3b3012;color:#ffd166;border:1px solid #67531c}.red{background:#431b25;color:#ff8397;border:1px solid #713040}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin:18px 0}.card,.panel{background:#121b31;border:1px solid #223151;border-radius:12px;padding:15px}.k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#89a0c2}.v{font-size:22px;font-weight:750;margin-top:4px}.panel{margin-top:14px}h2{font-size:13px;text-transform:uppercase;color:#91a3c1;letter-spacing:.07em}.scanner{display:flex;align-items:center;gap:14px;padding:15px;background:#0d162b;border:1px solid #273a62;border-radius:10px}.spinner{width:34px;height:34px;border-radius:50%;border:4px solid #26385d;border-top-color:#39dda0;animation:spin .75s linear infinite}.spinner.idle{animation:none;border-top-color:#64748b}@keyframes spin{to{transform:rotate(360deg)}}.dots::after{content:'';animation:dots 1.2s steps(4,end) infinite}@keyframes dots{25%{content:'.'}50%{content:'..'}75%,100%{content:'...'}}table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:8px;border-bottom:1px solid #223151;white-space:nowrap}.table{overflow:auto}.ok{color:#39dda0}.warn{color:#ffd166}.bad{color:#ff8397}.muted{color:#8494ae}.enginegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:10px}.engine{padding:12px;background:#0d162b;border:1px solid #223151;border-radius:9px}.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:#39dda0;margin-right:7px;box-shadow:0 0 0 0 rgba(57,221,160,.7);animation:pulse 1.5s infinite}@keyframes pulse{70%{box-shadow:0 0 0 11px rgba(57,221,160,0)}}@media(max-width:600px){.wrap{padding:12px}.title{font-size:19px}.v{font-size:18px}}
 </style></head><body><div class="wrap">
-<div class="top"><div><div class="title">V12 Final Strategy Dashboard</div><div class="sub">Five-symbol completed-candle scanner · one-second dashboard refresh</div></div><span id="mode" class="badge amber">PROPOSAL ONLY</span></div>
+<div class="top"><div><div class="title">V12 Final Strategy Dashboard</div><div class="sub">Five-symbol completed-candle scanner · one-second dashboard refresh</div></div><span id="mode" class="badge green">DEMO AUTO</span></div>
 <div id="scanner" class="scanner" style="margin-top:16px"><div id="spin" class="spinner"></div><div><b id="scanTitle">Strategy engine scanning market<span class="dots"></span></b><div id="scanSub" class="sub">Preparing first scan</div></div></div>
 <div class="grid" id="cards"></div>
 <h2>Market watch</h2><div class="panel table"><table><thead><tr><th>Symbol</th><th>Bid</th><th>Ask</th><th>Spread</th><th>Status</th></tr></thead><tbody id="symbols"></tbody></table></div>
 <h2>Strategy engines</h2><div id="engines" class="enginegrid"></div>
 <h2>Open MT5 positions</h2><div class="panel table"><table><thead><tr><th>Ticket</th><th>Symbol</th><th>Side</th><th>Lots</th><th>Open</th><th>Current</th><th>SL</th><th>TP</th><th>P/L</th></tr></thead><tbody id="positions"></tbody></table></div>
-<h2>Recent qualified proposals</h2><div class="panel table"><table><thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Engine</th><th>Setup</th><th>Volume</th><th>Risk</th><th>Result</th></tr></thead><tbody id="proposals"></tbody></table></div>
+<h2>Recent execution attempts</h2><div class="panel table"><table><thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Engine</th><th>Setup</th><th>Volume</th><th>Risk</th><th>Ticket</th><th>Result</th></tr></thead><tbody id="proposals"></tbody></table></div>
 <div id="error" class="panel bad" style="display:none"></div>
 </div><script>
 const esc=x=>String(x??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 const money=x=>x==null?'—':Number(x).toFixed(2);
 function card(k,v,s=''){return `<div class="card"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div><div class="sub">${esc(s)}</div></div>`}
 async function poll(){try{let r=await fetch('/data?x='+Date.now(),{cache:'no-store'});let d=await r.json();
-let a=d.account||{};document.getElementById('cards').innerHTML=card('Balance','$'+money(a.balance),a.server||'')+card('Equity','$'+money(a.equity),'Open P/L $'+money(a.profit))+card('Open positions',(d.positions||[]).length,'Maximum 5')+card('Scans',d.scan_count||0,'1-second cycle')+card('New proposals',d.new_proposals||0,'Latest scan')+card('Last completed',d.last_scan_completed||'—','UTC');
+let a=d.account||{};document.getElementById('cards').innerHTML=card('Balance','$'+money(a.balance),a.server||'')+card('Equity','$'+money(a.equity),'Open P/L $'+money(a.profit))+card('Open positions',(d.positions||[]).length,'Maximum 5')+card('Scans',d.scan_count||0,'1-second cycle')+card('Execution attempts',d.new_executions||0,'Latest scan')+card('Last completed',d.last_scan_completed||'—','UTC');
 let scanning=!!d.scanning;document.getElementById('spin').className='spinner'+(scanning?'':' idle');document.getElementById('scanTitle').innerHTML=scanning?'Strategy engine scanning market<span class="dots"></span>':'Waiting for next one-second scan';document.getElementById('scanSub').textContent=scanning?'Evaluating GBPUSD, EURUSD, GBPJPY, AUDUSD and USDJPY':('Last completed: '+(d.last_scan_completed||'not yet'));
 document.getElementById('symbols').innerHTML=(d.symbols||[]).map(s=>`<tr><td>${esc(s.symbol)}</td><td>${s.available?esc(s.bid):'—'}</td><td>${s.available?esc(s.ask):'—'}</td><td>${s.available?esc(s.spread_pips)+' p':'—'}</td><td class="${s.available?'ok':'bad'}">${s.available?'LIVE':'UNAVAILABLE'}</td></tr>`).join('');
 document.getElementById('engines').innerHTML=(d.engines||[]).map(e=>`<div class="engine"><div class="k">${esc(e.symbol)}</div><b>${esc(e.engine)}</b><div class="${e.status==='DISABLED'?'bad':e.status==='ADAPTIVE'?'warn':'ok'}">${esc(e.status)}</div><div class="sub">Risk tiers: ${esc((e.risk_tiers||[]).join(', ')||'none')} · ${esc((e.setups||[]).join(', ')||'disabled')}</div></div>`).join('');
 document.getElementById('positions').innerHTML=(d.positions||[]).map(p=>`<tr><td>${p.ticket}</td><td>${esc(p.symbol)}</td><td>${esc(p.side)}</td><td>${p.volume}</td><td>${p.open}</td><td>${p.current}</td><td>${p.sl||'—'}</td><td>${p.tp||'—'}</td><td class="${p.profit>=0?'ok':'bad'}">${money(p.profit)}</td></tr>`).join('')||'<tr><td colspan="9" class="muted">No open positions.</td></tr>';
-document.getElementById('proposals').innerHTML=(d.recent_proposals||[]).map(x=>{let s=x.signal||{},z=x.result||{},p=z.proposal||{};return `<tr><td>${esc(x.created_at||'')}</td><td>${esc(s.symbol)}</td><td>${esc(s.side)}</td><td>${esc(s.engine)}</td><td>${esc(s.setup)}</td><td>${esc(z.volume??p.volume??'—')}</td><td>${esc(z.risk_percent??p.risk_percent??'—')}</td><td>${esc(z.code||'')}</td></tr>`}).join('')||'<tr><td colspan="8" class="muted">No qualified proposals yet.</td></tr>';
+document.getElementById('proposals').innerHTML=(d.recent_proposals||[]).map(x=>{let s=x.signal||{},z=x.result||{},p=z.proposal||{};return `<tr><td>${esc(x.created_at||'')}</td><td>${esc(s.symbol)}</td><td>${esc(s.side)}</td><td>${esc(s.engine)}</td><td>${esc(s.setup)}</td><td>${esc(z.volume??p.volume??'—')}</td><td>${esc(z.risk_percent??p.risk_percent??'—')}</td><td>${esc(z.ticket??'—')}</td><td>${esc(z.code||'')}</td></tr>`}).join('')||'<tr><td colspan="9" class="muted">No execution attempts yet.</td></tr>';
 let er=document.getElementById('error');if(d.last_error){er.style.display='block';er.textContent=d.last_error}else er.style.display='none';}catch(e){let er=document.getElementById('error');er.style.display='block';er.textContent='Dashboard update failed: '+e}setTimeout(poll,1000)}poll();
 </script></body></html>'''
 
@@ -273,7 +274,6 @@ def main() -> None:
     adapter = FinalV12Adapter(
         client,
         state_path=os.getenv("V12_FINAL_STATE_PATH", "v12_final_research_state.json"),
-        approval_callback=lambda _summary: True,
         max_deviation_points=int(os.getenv("V12_FINAL_MAX_DEVIATION_POINTS", "10")),
     )
     stop_event = threading.Event()
@@ -288,7 +288,7 @@ def main() -> None:
     print(f"V12 dashboard: {url}")
     print("Dashboard refresh: 1 second")
     print("Strategy scan interval: 1 second")
-    print("Execution mode: proposal-only; no broker orders are submitted")
+    print("Execution mode: automatic demo-only MT5 order submission")
     if not args.no_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     try:

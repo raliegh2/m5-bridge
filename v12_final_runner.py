@@ -2,11 +2,10 @@
 
 The runner reads H1/H4/D1 bars from the connected MT5 terminal, rebuilds the
 same frozen indicators and candidate families used by the final research model,
-applies the final portfolio gate through ``FinalV12Adapter``, and writes every
-validated proposal to JSONL.
-
-It does not call the broker order API. Use ``--once`` for one scan or leave it
-running to scan each completed H1/H4 candle.
+applies the final portfolio gate through ``FinalV12Adapter``, routes qualified
+signals to the demo-only MT5 executor, and writes every execution attempt to
+JSONL. Use ``--once`` for one scan or leave it running to scan each completed
+H1/H4 candle.
 """
 from __future__ import annotations
 
@@ -39,7 +38,8 @@ from mt5_ai_bridge.v12_final_adapter import FinalV12Adapter, NamedEngineSignal  
 SYMBOLS = ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY")
 AUDUSD_PARAMS = study.AUDUSDParams(15.0, 0.30, 0.25)
 STATE_FILE = ROOT / "v12_final_runner_state.json"
-PROPOSAL_LOG = ROOT / "v12_final_proposals.jsonl"
+EXECUTION_LOG = ROOT / "v12_final_executions.jsonl"
+PROPOSAL_LOG = EXECUTION_LOG  # Compatibility for existing dashboard imports.
 
 EXIT_MAP = {
     ("GBPUSD_V10_PRECISION", "PRIMARY_16UTC_BREAKOUT"): (1.50, 3.0),
@@ -206,10 +206,6 @@ def _atr_for_signal(prepared, row) -> float:
     return float(matches.iloc[-1]["atr14"])
 
 
-def _proposal_callback(summary) -> bool:
-    return True
-
-
 def scan_once(client, adapter: FinalV12Adapter, state_path: Path,
               proposal_log: Path, lookback_hours: int = 8) -> list[dict]:
     prepared = {symbol: prepare_live_frames(client, symbol) for symbol in SYMBOLS}
@@ -251,6 +247,7 @@ def scan_once(client, adapter: FinalV12Adapter, state_path: Path,
                 "message": result.message,
                 "volume": result.volume,
                 "risk_percent": result.risk_percent,
+                "ticket": result.ticket,
                 "proposal": asdict(result.proposal) if result.proposal else None,
             },
         }
@@ -258,7 +255,8 @@ def scan_once(client, adapter: FinalV12Adapter, state_path: Path,
             handle.write(json.dumps(payload, default=str) + "\n")
         print(json.dumps(payload, indent=2, default=str))
         emitted.append(payload)
-        seen.add(key)
+        if result.ok:
+            seen.add(key)
     state["seen"] = sorted(seen)[-5000:]
     _save_state(state_path, state)
     return emitted
@@ -277,7 +275,6 @@ def main() -> None:
     adapter = FinalV12Adapter(
         client,
         state_path=os.getenv("V12_FINAL_STATE_PATH", "v12_final_research_state.json"),
-        approval_callback=_proposal_callback,
         max_deviation_points=int(os.getenv("V12_FINAL_MAX_DEVIATION_POINTS", "10")),
     )
     try:

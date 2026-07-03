@@ -1,11 +1,8 @@
-"""Named-engine adapter for the final V12 supervised research profile.
+"""Named-engine adapter for automatic V12 demo-account execution.
 
 Signal generators submit a fully specified ``NamedEngineSignal``. The adapter
-converts it into a broker-aware proposal and displays account, symbol, engine,
-setup, direction, volume, stop, target, risk, and spread for human review.
-
-This module does not create signals and does not submit broker orders. It is the
-mandatory research boundary between the named V12 strategy engines and MT5 data.
+converts it into a broker-aware execution request and routes it through the
+demo-only automatic executor.
 """
 from __future__ import annotations
 
@@ -17,7 +14,7 @@ from .v12_final_execution import (
     ApprovalSummary,
     ExecutionResult,
     FinalExecutionRequest,
-    FinalResearchExecutor,
+    FinalMT5Executor,
 )
 from .v12_final_state import StateStore
 
@@ -57,12 +54,12 @@ def console_approval(summary: ApprovalSummary) -> bool:
 
 
 class FinalV12Adapter:
-    """Supervised proposal adapter used by named V12 signal engines."""
+    """Automatic execution adapter used by named V12 signal engines."""
 
     def __init__(self, client, state_path: str = "v12_final_research_state.json",
-                 approval_callback: Callable[[ApprovalSummary], bool] = console_approval,
+                 approval_callback: Optional[Callable[[ApprovalSummary], bool]] = None,
                  max_deviation_points: int = 10) -> None:
-        self.executor = FinalResearchExecutor(
+        self.executor = FinalMT5Executor(
             client=client,
             approval_callback=approval_callback,
             state=StateStore(state_path),

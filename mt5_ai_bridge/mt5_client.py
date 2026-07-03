@@ -28,6 +28,9 @@ class RealMT5Client:
         self.TRADE_ACTION_DEAL = mt5.TRADE_ACTION_DEAL
         self.TRADE_ACTION_SLTP = mt5.TRADE_ACTION_SLTP
         self.ORDER_TIME_GTC = mt5.ORDER_TIME_GTC
+        self.ORDER_FILLING_FOK = getattr(mt5, "ORDER_FILLING_FOK", 0)
+        self.ORDER_FILLING_IOC = getattr(mt5, "ORDER_FILLING_IOC", 1)
+        self.ORDER_FILLING_RETURN = getattr(mt5, "ORDER_FILLING_RETURN", 2)
         self.TRADE_RETCODE_DONE = mt5.TRADE_RETCODE_DONE
         self.TRADE_RETCODE_PLACED = getattr(mt5, "TRADE_RETCODE_PLACED", None)
         self.TRADE_RETCODE_DONE_PARTIAL = getattr(
@@ -35,6 +38,7 @@ class RealMT5Client:
         )
         self.POSITION_TYPE_BUY = mt5.POSITION_TYPE_BUY
         self.POSITION_TYPE_SELL = mt5.POSITION_TYPE_SELL
+        self.ACCOUNT_TRADE_MODE_DEMO = getattr(mt5, "ACCOUNT_TRADE_MODE_DEMO", 0)
 
     # -- connection ---------------------------------------------------------
     def initialize(self) -> bool:

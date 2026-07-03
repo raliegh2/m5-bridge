@@ -1,67 +1,43 @@
-# Final V12 Runner
+# Final V12 Automatic Demo Runner
 
-The runner continuously reads closed H1, H4, and D1 candles from the connected
-MetaTrader 5 terminal and evaluates the final five-symbol V12 strategy.
+The runner evaluates the frozen five-symbol strategy using completed H1, H4,
+and D1 candles. Qualified signals pass through the unchanged V12 risk gates and
+then through the demo-only MT5 executor.
 
 ## Files
 
-- `v12_final_runner.py` — continuous scanner
-- `v12_final_preflight.py` — connection and symbol validation
+- `v12_final_runner.py` — continuous scanner and execution router
+- `v12_final_preflight.py` — demo/account/symbol/reconciliation validation
+- `mt5_ai_bridge/v12_final_execution.py` — order, recovery, close, and modify layer
 - `research/v12_final_runner_parity_backtest.py` — historical parity check
-- `v12_final_proposals.jsonl` — generated proposal log
-- `v12_final_runner_state.json` — signal deduplication state
-- `v12_final_research_state.json` — portfolio and adaptive-guard state
+- `v12_final_executions.jsonl` — generated execution-attempt log
+- `v12_final_runner_state.json` — scanner signal deduplication state
+- `v12_final_research_state.json` — tickets, risk, cooldown, and recovery state
 
-## Verification
+## Start safely
 
-GitHub Actions run `28635397898` passed compilation, focused tests, candidate
-parity, and the final portfolio replay tolerance check.
-
-## Pull the latest branch
+Ensure MT5 is open and logged into a demo account, then:
 
 ```powershell
-git checkout v12-final-demo-risk-controls
-git pull origin v12-final-demo-risk-controls
-```
-
-## One scan
-
-```powershell
+python v12_final_preflight.py
 python v12_final_runner.py --once
 ```
 
-## Continuous scanning
+If preflight passes, continuous scanning can be started with:
 
 ```powershell
 python v12_final_runner.py --interval 60
 ```
 
-The runner checks for newly completed candles every 60 seconds. It evaluates:
+The scanner recognizes only newly completed frozen-strategy signals. A signal
+is not an order unless every portfolio, spread, drawdown, exposure, duplicate,
+and account check passes.
 
-- GBPUSD V10 primary and secondary precision breakouts
-- GBPUSD V5 pullback add-on
-- GBPUSD H4 retest
-- EURUSD H4 core and H1 retest
-- GBPJPY H4 core
-- AUDUSD D1/H4 pullback
-- USDJPY D1/H4 40-bar breakout
-
-The disabled `GBPUSD_SWING_CORE` and `GBPJPY_SWING_RETEST` engines are not built.
-
-## Local historical parity check
+## Historical parity
 
 ```powershell
 python research/v12_final_runner_parity_backtest.py
 ```
 
-Output is written to:
-
-```text
-research\v12_final_runner_parity_output\
-```
-
-## Important behavior
-
-The runner uses MT5 market and account data to calculate exact proposals and
-writes them to `v12_final_proposals.jsonl`. The current supervised research
-adapter does not submit orders to the broker.
+This checks signal/portfolio parity; it cannot reproduce future broker fills,
+slippage, outages, or guarantee future profit.

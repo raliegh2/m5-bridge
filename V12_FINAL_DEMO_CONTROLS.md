@@ -1,17 +1,16 @@
-# V12 Final $3,201.58 Supervised Research Controls
+# V12 Final $3,201.58 Automatic Demo Controls
 
-Status: **CONTINUOUS PROPOSAL-ONLY RESEARCH RUNNER**
+Status: **AUTOMATIC EXECUTION, CONFIRMED DEMO ACCOUNTS ONLY**
 
-This branch ports the final research portfolio limits into broker-independent,
-unit-tested code and adds a continuous named-engine runner. It does not submit
-broker orders.
+`v12_final_runner.py` reads closed H1, H4, and D1 candles, rebuilds the frozen
+V12 candidate families, applies the unchanged portfolio risk layer, and routes
+qualified signals to `MetaTrader5.order_send()`. Every attempt is written to
+`v12_final_executions.jsonl`.
 
-`v12_final_runner.py` reads closed H1, H4, and D1 candles from MetaTrader 5,
-rebuilds the same frozen candidate families used in the final research model,
-applies the final portfolio risk layer, and writes validated proposals to
-`v12_final_proposals.jsonl`.
+The executor fails closed unless `account_info().trade_mode` equals MT5's
+`ACCOUNT_TRADE_MODE_DEMO`. A server-name guess is never treated as proof.
 
-## Backtest-exact immutable limits
+## Frozen portfolio controls
 
 | Control | Value |
 |---|---:|
@@ -24,66 +23,32 @@ applies the final portfolio risk layer, and writes validated proposals to
 | Aligned GBP exposure cap | 0.90% |
 | Mixed-direction GBP exposure cap | 0.65% |
 
-## Engine risk map
+No individual engine requests more than 0.50% base risk. Disabled engines,
+adaptive multipliers, spread ceilings, daily/peak drawdown stops, and the
+historical signal logic are unchanged.
 
-| Engine | Base risk | State |
-|---|---:|---|
-| GBPUSD V10 precision primary | 0.20% or 0.50% | Protected |
-| GBPUSD V10 precision secondary | 0.40% | Protected |
-| GBPUSD V5 pullback add-on | 0.40% | Protected |
-| GBPUSD swing retest | 0.15% | Protected |
-| EURUSD swing core | 0.25% | Protected |
-| EURUSD swing retest | 0.10% × adaptive multiplier | Adaptive |
-| GBPJPY swing core | 0.15% | Protected |
-| AUDUSD trend pullback | 0.25% | Protected |
-| USDJPY safe-haven breakout | 0.25% × adaptive multiplier | Adaptive |
+## Execution and recovery
 
-Disabled engines:
-
-- `GBPUSD_SWING_CORE`
-- `GBPJPY_SWING_RETEST`
-
-Adaptive multipliers are `1.00`, `0.60`, `0.35` recovery probe, or `0.00`
-blocked. The guard uses 16 trades, a 12-trade minimum, a 45-day cooldown, and
-one reduced-risk recovery probe.
-
-## Research safety overlays
-
-- 1.50% daily-equity drawdown stop
-- 5.00% peak-equity drawdown stop
-- Broker-native pip-value sizing
-- Volume rounded down, never up
-- Spread ceilings per symbol
-- Duplicate-proposal lock
-- Persistent daily baseline, peak equity, cooldown, probe, and position-risk state
-- Fail closed when manual or unregistered positions are open
-- Fail closed when stop distance, pip value, symbol data, or account data is missing
-- No broker order submission
+- `TRADE_ACTION_DEAL` with the matching buy/sell order type
+- Broker-native pip-value sizing and volume min/max/step normalization
+- Entry, SL, TP, native filling mode, deviation, magic number, and comment
+- Accepted-retcode verification; rejected requests fail closed
+- Signal-key persistence before transmission to prevent duplicate submission
+- Filled ticket persistence and open-position reconciliation
+- Restart recovery by stable engine magic numbers
+- Unknown/manual positions block new orders
+- Full/partial close and SL/TP modification methods
+- Persisted open risk refreshed after modifications and partial closes
 
 ## Commands
 
-Preflight:
-
 ```powershell
+Copy-Item .env.v12-final-demo.example .env
 python v12_final_preflight.py
-```
-
-One scan:
-
-```powershell
 python v12_final_runner.py --once
-```
-
-Continuous scan every 60 seconds:
-
-```powershell
 python v12_final_runner.py --interval 60
-```
-
-Historical parity replay:
-
-```powershell
 python research/v12_final_runner_parity_backtest.py
 ```
 
-The legacy generic `bridge.py` remains blocked whenever `V12_FINAL_PROFILE` is selected.
+The preflight sends no order. The generic `bridge.py` remains blocked whenever
+`V12_FINAL_PROFILE` is selected.

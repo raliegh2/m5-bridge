@@ -1,10 +1,10 @@
-"""Safe preflight for the final V12 supervised research profile.
+"""Safe preflight for the final V12 automatic demo profile.
 
 Run with:  python v12_final_preflight.py
 
 Connects to MT5, checks all five symbols and broker-native pip values, confirms
-there are no unregistered positions, verifies APPROVAL mode, and exits without
-sending an order.
+open positions can be reconciled, verifies AUTO mode and a demo account, and
+exits without sending an order.
 """
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from mt5_ai_bridge.config import load_settings
 from mt5_ai_bridge.enums import Mode
 from mt5_ai_bridge.execution import pip_size
 from mt5_ai_bridge.mt5_client import create_client
+from mt5_ai_bridge.v12_final_execution import FinalMT5Executor
 from mt5_ai_bridge.v12_final_risk import ALLOWED_SYMBOLS, PROFILE_ID, validate_profile
 from mt5_ai_bridge.v12_final_state import StateStore
 
@@ -30,15 +31,14 @@ def main() -> None:
         account = client.account_info()
         if account is None:
             raise RuntimeError("account_info() returned None")
-        if settings.mode is not Mode.APPROVAL:
-            errors.append("MODE must be APPROVAL for the final supervised profile.")
+        if getattr(account, "trade_mode", None) != client.ACCOUNT_TRADE_MODE_DEMO:
+            errors.append("Connected MT5 account is not a confirmed demo account.")
+        if settings.mode is not Mode.AUTO:
+            errors.append("MODE must be AUTO for V12 automatic demo execution.")
 
-        positions = list(client.positions_get() or [])
-        registered = {item.ticket for item in state.state.positions.values()}
-        current = {int(item.ticket) for item in positions}
-        unknown = current - registered
-        if unknown:
-            errors.append(f"Unregistered/manual open positions: {sorted(unknown)}")
+        reconciled = FinalMT5Executor(client, state=state).reconcile_open_positions(account)
+        if not reconciled.ok:
+            errors.append(reconciled.message)
 
         for symbol in sorted(ALLOWED_SYMBOLS):
             info = client.symbol_info(symbol)
@@ -67,7 +67,7 @@ def main() -> None:
             for error in errors:
                 print(f"- {error}")
             raise SystemExit(1)
-        print("\nPREFLIGHT PASSED: supervised risk profile and broker inputs are ready.")
+        print("\nPREFLIGHT PASSED: automatic demo execution and broker inputs are ready.")
         print("No order was sent.")
     finally:
         client.shutdown()

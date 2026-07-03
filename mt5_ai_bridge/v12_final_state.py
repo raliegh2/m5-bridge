@@ -134,6 +134,10 @@ class StateStore:
         self.state.positions[str(position.ticket)] = position
         self.save()
 
+    def remove_position(self, ticket: int) -> None:
+        self.state.positions.pop(str(int(ticket)), None)
+        self.save()
+
     def sync_open_tickets(self, tickets: set[int]) -> None:
         self.state.positions = {
             key: value for key, value in self.state.positions.items()
