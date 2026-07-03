@@ -18,7 +18,6 @@ import time
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
@@ -55,11 +54,17 @@ EXIT_MAP = {
 }
 
 
+def _utc_ns(values) -> pd.Series:
+    """Normalize any datetime input to one merge-safe UTC nanosecond dtype."""
+    converted = pd.to_datetime(values, utc=True, errors="coerce")
+    return converted.astype("datetime64[ns, UTC]")
+
+
 def _frame(rates) -> pd.DataFrame:
     frame = pd.DataFrame(rates)
     if frame.empty:
         return frame
-    frame["time"] = pd.to_datetime(frame["time"], unit="s", utc=True)
+    frame["time"] = _utc_ns(pd.to_datetime(frame["time"], unit="s", utc=True))
     required = ["time", "open", "high", "low", "close", "tick_volume"]
     return frame[required].dropna().sort_values("time").drop_duplicates("time").reset_index(drop=True)
 
@@ -84,21 +89,23 @@ def prepare_live_frames(client, symbol: str,
     h4["body_ratio"] = (h4["close"] - h4["open"]).abs() / h4["range"].replace(0, np.nan)
     h4["close_location"] = (h4["close"] - h4["low"]) / h4["range"].replace(0, np.nan)
     h4["plus_di"], h4["minus_di"], h4["adx14"] = base.directional(h4)
-    h4["end"] = h4["time"] + pd.Timedelta(hours=4)
+    h4["end"] = _utc_ns(h4["time"] + pd.Timedelta(hours=4))
 
     h1["atr14"] = base.atr(h1)
     h1["ema20"] = base.ema(h1["close"], 20)
     h1["ema50"] = base.ema(h1["close"], 50)
-    h1["end"] = h1["time"] + pd.Timedelta(hours=1)
+    h1["end"] = _utc_ns(h1["time"] + pd.Timedelta(hours=1))
     h1["ema_sep_atr"] = (h1["ema20"] - h1["ema50"]).abs() / h1["atr14"]
     h1["hour"] = h1["end"].dt.hour
 
     d1["ema20"] = base.ema(d1["close"], 20)
     d1["ema50"] = base.ema(d1["close"], 50)
-    d1["available"] = d1["time"] + pd.Timedelta(days=1)
+    d1["available"] = _utc_ns(d1["time"] + pd.Timedelta(days=1))
     daily = d1[["available", "close", "ema20", "ema50"]].rename(columns={
         "close": "dclose", "ema20": "dema20", "ema50": "dema50"
     })
+    h4["time"] = _utc_ns(h4["time"])
+    daily["available"] = _utc_ns(daily["available"])
     h4 = pd.merge_asof(
         h4.sort_values("time"), daily.sort_values("available"),
         left_on="time", right_on="available", direction="backward",
@@ -108,7 +115,9 @@ def prepare_live_frames(client, symbol: str,
     d1["daily_ema20"] = base.ema(d1["close"], 20)
     d1["daily_ema50"] = base.ema(d1["close"], 50)
     d1["daily_ema20_slope"] = d1["daily_ema20"].diff(5) / 5
-    d1["available_v12"] = d1["time"] + pd.Timedelta(days=1)
+    d1["available_v12"] = _utc_ns(d1["time"] + pd.Timedelta(days=1))
+    h4["time"] = _utc_ns(h4["time"])
+    d1["available_v12"] = _utc_ns(d1["available_v12"])
     h4 = pd.merge_asof(
         h4.sort_values("time"),
         d1[["available_v12", "daily_atr14", "daily_ema20_slope"]].sort_values("available_v12"),
@@ -148,7 +157,7 @@ def prepare_live_frames(client, symbol: str,
 
 def build_final_candidates(prepared: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]) -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
-    gbp_h1, gbp_h4, _ = prepared["GBPUSD"]
+    _, gbp_h4, _ = prepared["GBPUSD"]
     frames.extend([
         study._gbpusd_precision(gbp_h4),
         study._gbpusd_retest_candidates(gbp_h4),
