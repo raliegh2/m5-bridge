@@ -1,14 +1,15 @@
 # V12 Final $3,201.58 Supervised Research Controls
 
-Status: **PROPOSAL-ONLY RESEARCH LAYER**
+Status: **CONTINUOUS PROPOSAL-ONLY RESEARCH RUNNER**
 
 This branch ports the final research portfolio limits into broker-independent,
-unit-tested code. It does not submit broker orders.
+unit-tested code and adds a continuous named-engine runner. It does not submit
+broker orders.
 
-Named engines send a signal to `FinalV12Adapter`. The adapter reads MT5 account
-and symbol data, calculates broker-aware volume, applies every risk rule, and
-returns an exact proposal for human review. Any trade is entered manually by the
-researcher outside this software.
+`v12_final_runner.py` reads closed H1, H4, and D1 candles from MetaTrader 5,
+rebuilds the same frozen candidate families used in the final research model,
+applies the final portfolio risk layer, and writes validated proposals to
+`v12_final_proposals.jsonl`.
 
 ## Backtest-exact immutable limits
 
@@ -57,18 +58,32 @@ one reduced-risk recovery probe.
 - Persistent daily baseline, peak equity, cooldown, probe, and position-risk state
 - Fail closed when manual or unregistered positions are open
 - Fail closed when stop distance, pip value, symbol data, or account data is missing
-- Explicit review callback required for every proposal
 - No broker order submission
 
-## Workflow
+## Commands
 
-1. Copy `.env.v12-final-demo.example` to `.env` and enter MT5 credentials.
-2. Set `MODE=APPROVAL`.
-3. Add all five symbols to MT5 Market Watch.
-4. Run `python v12_final_preflight.py`.
-5. Route named V12 signals through `FinalV12Adapter.submit()`.
-6. Review the calculated proposal.
-7. Enter a trade manually in MT5 only if you independently choose to do so.
-8. Record closed outcomes in R with `FinalV12Adapter.record_closed_trade()`.
+Preflight:
+
+```powershell
+python v12_final_preflight.py
+```
+
+One scan:
+
+```powershell
+python v12_final_runner.py --once
+```
+
+Continuous scan every 60 seconds:
+
+```powershell
+python v12_final_runner.py --interval 60
+```
+
+Historical parity replay:
+
+```powershell
+python research/v12_final_runner_parity_backtest.py
+```
 
 The legacy generic `bridge.py` remains blocked whenever `V12_FINAL_PROFILE` is selected.
