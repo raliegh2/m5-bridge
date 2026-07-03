@@ -2,13 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from mt5_ai_bridge.v12_final_risk import (
-    BacktestExactLimits,
-    OpenRisk,
-    OrderIntent,
-    PortfolioSnapshot,
-    validate_order,
-)
+from mt5_ai_bridge.v12_final_risk import OpenRisk, OrderIntent, PortfolioSnapshot, validate_order
 from mt5_ai_bridge.v12_final_state import StateStore
 
 
@@ -38,7 +32,6 @@ def snapshot(**overrides):
         peak_equity=5000.0,
         open_risk=(),
         recent_order_keys=frozenset(),
-        is_demo_account=True,
         now=datetime(2026, 7, 3, tzinfo=timezone.utc),
     )
     data.update(overrides)
@@ -66,10 +59,9 @@ def test_disabled_engines_are_rejected() -> None:
     assert result.code == "ENGINE_DISABLED"
 
 
-def test_non_demo_account_is_rejected() -> None:
-    result = validate_order(intent(), snapshot(is_demo_account=False))
-    assert not result.ok
-    assert result.code == "DEMO_ONLY"
+def test_account_type_is_not_part_of_risk_gate() -> None:
+    result = validate_order(intent(), snapshot())
+    assert result.ok
 
 
 def test_actual_broker_risk_cannot_exceed_profile() -> None:
@@ -113,7 +105,7 @@ def test_mixed_gbp_exposure_uses_lower_cap() -> None:
         ),
         snapshot(open_risk=(OpenRisk("GBPJPY", "GBPJPY_SWING_CORE", "BUY", 0.15),)),
     )
-    assert result.ok  # exactly 0.65%, the mixed-GBP ceiling
+    assert result.ok
 
     blocked = validate_order(
         intent(
@@ -147,13 +139,10 @@ def test_daily_and_total_drawdown_stops() -> None:
 def test_adaptive_guard_reduces_cools_and_probes(tmp_path) -> None:
     store = StateStore(str(tmp_path / "state.json"))
     now = datetime(2026, 1, 1, tzinfo=timezone.utc)
-
-    # Thin but acceptable history -> 0.60x.
     for value in [1.0, -1.0] * 6:
         store.record_trade_result("USDJPY_SAFE_HAVEN_BREAKOUT", value, now)
     assert store.guard_multiplier("USDJPY_SAFE_HAVEN_BREAKOUT", now) == 0.60
 
-    # Deteriorating rolling history starts a 45-day cooldown.
     state = store.engine_state("USDJPY_SAFE_HAVEN_BREAKOUT")
     state.history_r = [-1.0] * 16
     state.disabled_until = None
@@ -172,7 +161,6 @@ def test_state_survives_restart(tmp_path) -> None:
     store = StateStore(str(path))
     store.update_equity(5000.0, datetime(2026, 1, 1, tzinfo=timezone.utc))
     store.register_order_key("abc", datetime(2026, 1, 1, tzinfo=timezone.utc))
-
     restored = StateStore(str(path))
     assert restored.state.day_start_equity == 5000.0
     assert "abc" in restored.state.recent_orders
