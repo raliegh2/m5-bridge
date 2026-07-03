@@ -1,10 +1,11 @@
-"""Strategy Engine V11 intraday walk-forward profitability profile.
+"""Strategy Engine V11 intraday-only walk-forward profitability profile.
 
-V11 builds on the V10 profitability allocation, but it deliberately avoids a
-blanket risk increase. The profile adds a quality-scored admission layer,
+V11 builds on the V10 intraday satellite allocation, but it deliberately removes
+all swing-trading exposure. The profile adds a quality-scored admission layer,
 setup-level attribution targets, walk-forward validation requirements and
-bounded adaptive risk tiers. It is a research/demo configuration only and must
-remain READ_ONLY until broker-native out-of-sample validation passes.
+bounded adaptive risk tiers for day-trading engines only. It is a research/demo
+configuration only and must remain READ_ONLY until broker-native out-of-sample
+validation passes.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from typing import Mapping
 
 @dataclass(frozen=True)
 class EngineRiskPolicy:
-    """Risk policy for one named engine.
+    """Risk policy for one named intraday engine.
 
     ``base_risk_percent`` is used for normal valid setups. ``strong`` and
     ``exceptional`` tiers are only available when a setup-level quality score
@@ -95,21 +96,25 @@ def compute_quality_score(diagnostics: SetupDiagnostics) -> float:
 
 @dataclass(frozen=True)
 class StrategyEngineV11Profile:
-    """V11 research boundaries for the $50/week objective.
+    """V11 research boundaries for the intraday-only $50/week objective.
 
     The weekly target is stored as a research target only. It must not be used
-    to force trades or increase size after losses.
+    to force trades, hold positions overnight, add swing setups or increase size
+    after losses.
     """
 
     initial_balance: float = 5_000.0
     target_weekly_profit_dollars: float = 50.0
     mode: str = "READ_ONLY"
-    max_positions: int = 4
+    intraday_only: bool = True
+    max_positions: int = 3
     max_open_risk_percent: float = 0.90
     aligned_gbp_cap_percent: float = 0.60
     mixed_gbp_cap_percent: float = 0.45
     daily_new_risk_percent: float = 0.75
     max_risk_per_trade_percent: float = 0.40
+    force_flat_hour_utc: int = 20
+    allow_overnight_positions: bool = False
     quality_threshold: float = 0.62
     strong_quality_threshold: float = 0.74
     exceptional_quality_threshold: float = 0.84
@@ -127,7 +132,7 @@ class StrategyEngineV11Profile:
             exceptional_risk_percent=0.40,
             minimum_quality_score=0.62,
             max_trades_per_day=2,
-            rationale="Primary intraday profit engine; promoted only by quality score and forward evidence.",
+            rationale="Primary GBPUSD day-trading engine; promoted only by quality score and forward evidence.",
         ),
         EngineRiskPolicy(
             engine="EURUSD_SATELLITE_V7",
@@ -136,7 +141,7 @@ class StrategyEngineV11Profile:
             exceptional_risk_percent=0.40,
             minimum_quality_score=0.64,
             max_trades_per_day=2,
-            rationale="Non-GBP diversification engine with historically strong synchronized PF.",
+            rationale="Non-GBP intraday diversification engine with historically strong synchronized PF.",
         ),
         EngineRiskPolicy(
             engine="GBPJPY_SATELLITE_V7",
@@ -145,16 +150,7 @@ class StrategyEngineV11Profile:
             exceptional_risk_percent=0.40,
             minimum_quality_score=0.66,
             max_trades_per_day=1,
-            rationale="Higher-volatility GBP exposure; stricter daily count and GBP caps required.",
-        ),
-        EngineRiskPolicy(
-            engine="GBPUSD_SWING_V6",
-            base_risk_percent=0.25,
-            strong_risk_percent=0.35,
-            exceptional_risk_percent=0.40,
-            minimum_quality_score=0.70,
-            max_trades_per_day=1,
-            rationale="Low-frequency support engine; must not reserve capacity ahead of stronger intraday signals.",
+            rationale="Higher-volatility GBP day-trading engine; stricter daily count and GBP caps required.",
         ),
     )
 
@@ -169,10 +165,12 @@ class StrategyEngineV11Profile:
             "GBPUSD_NEW_YORK_RETEST_V2": "GBPUSD_SATELLITE_V3",
         }
         normalized = aliases.get(normalized, normalized)
+        if "SWING" in normalized:
+            raise KeyError(f"Swing engine is not allowed in intraday-only V11: {engine}")
         try:
             return self._policy_map()[normalized]
         except KeyError as exc:
-            raise KeyError(f"Unknown V11 engine: {engine}") from exc
+            raise KeyError(f"Unknown V11 intraday engine: {engine}") from exc
 
     def risk_for(self, engine: str, quality_score: float | None = None) -> float:
         policy = self.policy_for(engine)
@@ -190,6 +188,12 @@ class StrategyEngineV11Profile:
     def validate(self) -> None:
         if self.mode != "READ_ONLY":
             raise ValueError("V11 must default to READ_ONLY")
+        if not self.intraday_only:
+            raise ValueError("V11 must remain intraday-only")
+        if self.allow_overnight_positions:
+            raise ValueError("V11 cannot allow overnight positions")
+        if not 0 <= self.force_flat_hour_utc <= 23:
+            raise ValueError("force_flat_hour_utc must be a valid UTC hour")
         if self.initial_balance <= 0:
             raise ValueError("initial_balance must be positive")
         if self.target_weekly_profit_dollars <= 0:
@@ -214,6 +218,8 @@ class StrategyEngineV11Profile:
         if len(names) != len(set(names)):
             raise ValueError("risk policies must be unique")
         for policy in self.risk_policies:
+            if "SWING" in policy.engine.upper():
+                raise ValueError(f"Swing policy is not allowed in V11: {policy.engine}")
             if policy.base_risk_percent <= 0:
                 raise ValueError(f"{policy.engine} base risk must be positive")
             if policy.exceptional_risk_percent > self.max_risk_per_trade_percent:
