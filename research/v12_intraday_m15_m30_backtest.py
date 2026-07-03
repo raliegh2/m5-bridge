@@ -24,6 +24,7 @@ STARTING_BALANCE = 5_000.0
 
 @dataclass(frozen=True)
 class IntradayParams:
+    family: str = "TREND_PULLBACK"
     adx_min: float = 18.0
     stop_atr: float = 1.2
     reward_risk: float = 1.5
@@ -110,6 +111,9 @@ def prepare_signals(m5: pd.DataFrame, params: IntradayParams) -> pd.DataFrame:
     m15["ema9"] = ema(m15["close"], 9)
     m15["ema20"] = ema(m15["close"], 20)
     m15["rsi14"] = rsi(m15["close"])
+    m15["std20"] = m15["close"].rolling(20, min_periods=20).std()
+    m15["upper_band"] = m15["ema20"] + 2.0 * m15["std20"]
+    m15["lower_band"] = m15["ema20"] - 2.0 * m15["std20"]
     m15["prior_high"] = m15["high"].shift(1).rolling(params.channel_bars).max()
     m15["prior_low"] = m15["low"].shift(1).rolling(params.channel_bars).min()
 
@@ -150,14 +154,79 @@ def prepare_signals(m5: pd.DataFrame, params: IntradayParams) -> pd.DataFrame:
     )
     long_breakout = joined["close"] > joined["prior_high"]
     short_breakout = joined["close"] < joined["prior_low"]
-    joined["side"] = np.where(
-        in_session & long_trend & (long_pullback | long_breakout), 1,
-        np.where(in_session & short_trend & (short_pullback | short_breakout), -1, 0),
-    )
-    joined["setup"] = np.where(
-        joined["side"] == 0, "",
-        np.where(long_breakout | short_breakout, "M15_BREAKOUT", "M15_PULLBACK"),
-    )
+    if params.family in {"TREND_PULLBACK", "TREND_BREAKOUT_ONLY",
+                         "TREND_REENTRY_ONLY", "REGIME_ENSEMBLE"}:
+        if params.family == "TREND_BREAKOUT_ONLY":
+            long_trigger, short_trigger = long_breakout, short_breakout
+        elif params.family == "TREND_REENTRY_ONLY":
+            long_trigger, short_trigger = long_pullback, short_pullback
+        else:
+            long_trigger = long_pullback | long_breakout
+            short_trigger = short_pullback | short_breakout
+        joined["side"] = np.where(
+            in_session & long_trend & long_trigger, 1,
+            np.where(in_session & short_trend & short_trigger, -1, 0),
+        )
+        joined["setup"] = np.where(
+            joined["side"] == 0, "",
+            np.where(long_breakout | short_breakout, "M15_BREAKOUT", "M15_PULLBACK"),
+        )
+        if params.family == "REGIME_ENSEMBLE":
+            ranging = joined["m30_adx14"] <= max(16.0, params.adx_min - 4.0)
+            long_reentry = (
+                (joined["close"].shift(1) < joined["lower_band"].shift(1))
+                & (joined["close"] >= joined["lower_band"])
+                & (joined["rsi14"] < 45)
+            )
+            short_reentry = (
+                (joined["close"].shift(1) > joined["upper_band"].shift(1))
+                & (joined["close"] <= joined["upper_band"])
+                & (joined["rsi14"] > 55)
+            )
+            no_trend_signal = joined["side"] == 0
+            joined.loc[no_trend_signal & in_session & ranging & long_reentry,
+                       ["side", "setup"]] = [1, "RANGE_REVERSION"]
+            joined.loc[no_trend_signal & in_session & ranging & short_reentry,
+                       ["side", "setup"]] = [-1, "RANGE_REVERSION"]
+    elif params.family == "LONDON_ORB":
+        session_date = joined["time"].dt.date
+        opening = joined[(joined["time"].dt.hour == 7)
+                         & joined["time"].dt.minute.isin([0, 15])].groupby(
+            joined.loc[(joined["time"].dt.hour == 7)
+                       & joined["time"].dt.minute.isin([0, 15]), "time"].dt.date
+        ).agg(orb_high=("high", "max"), orb_low=("low", "min"))
+        joined["orb_high"] = session_date.map(opening["orb_high"])
+        joined["orb_low"] = session_date.map(opening["orb_low"])
+        minute_of_day = hour * 60 + joined["bar_end"].dt.minute
+        orb_window = minute_of_day.between(7 * 60 + 30, 12 * 60 - 1)
+        long_orb = ((joined["close"] > joined["orb_high"])
+                    & (joined["close"].shift(1) <= joined["orb_high"].shift(1)))
+        short_orb = ((joined["close"] < joined["orb_low"])
+                     & (joined["close"].shift(1) >= joined["orb_low"].shift(1)))
+        joined["side"] = np.where(
+            orb_window & long_trend & long_orb, 1,
+            np.where(orb_window & short_trend & short_orb, -1, 0),
+        )
+        joined["setup"] = np.where(joined["side"] != 0, "LONDON_ORB", "")
+    elif params.family == "RANGE_REVERSION":
+        ranging = joined["m30_adx14"] <= params.adx_min
+        long_reentry = (
+            (joined["close"].shift(1) < joined["lower_band"].shift(1))
+            & (joined["close"] >= joined["lower_band"])
+            & (joined["rsi14"] < 45)
+        )
+        short_reentry = (
+            (joined["close"].shift(1) > joined["upper_band"].shift(1))
+            & (joined["close"] <= joined["upper_band"])
+            & (joined["rsi14"] > 55)
+        )
+        joined["side"] = np.where(
+            in_session & ranging & long_reentry, 1,
+            np.where(in_session & ranging & short_reentry, -1, 0),
+        )
+        joined["setup"] = np.where(joined["side"] != 0, "RANGE_REVERSION", "")
+    else:
+        raise ValueError(f"Unknown intraday family: {params.family}")
     return joined.loc[joined["side"] != 0, [
         "bar_end", "side", "setup", "atr14", "m30_adx14"
     ]].dropna().drop_duplicates("bar_end").reset_index(drop=True)

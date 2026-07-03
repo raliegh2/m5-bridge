@@ -23,3 +23,18 @@ $env:PYTHONPATH="research"
 The `$50/week` figure is an evaluation target, not a trading quota or promise.
 The available M5 file covers only about eight months, so positive results would
 still require substantially longer out-of-sample and forward-demo validation.
+
+Expanded comparison:
+
+```powershell
+.\.venv\Scripts\python.exe research\v12_intraday_multifamily_research.py
+```
+
+Paper-forward scanner for the closest candidate:
+
+```powershell
+.\.venv\Scripts\python.exe v12_intraday_paper_bot.py --once
+.\.venv\Scripts\python.exe v12_intraday_paper_bot.py --interval 15
+```
+
+The paper scanner deliberately cannot submit broker orders.
