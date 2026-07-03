@@ -1,0 +1,5 @@
+scenario,window_or_basis,base_profit,added_profit,combined_profit,profit_increase,profit_increase_percent,ending_balance,return_percent,notes
+V12 Final only,Maximum history,3201.58,0,3201.58,0,0,8201.58,64.0316,Reported V12 final optimized maximum-history result
+V13 combined additive estimate,Max-history V12 plus available V11 intraday,3201.58,1046.89,4248.47,1046.89,32.6992,9248.47,84.9694,Capacity-unadjusted available-data estimate
+V12 Final one-year only,One-year window,289.65,0,289.65,0,0,5289.65,5.793,Reported V12 final optimized one-year window
+V13 rough one-year estimate,V12 one-year plus available V11 intraday,289.65,1046.89,1336.54,1046.89,361.4328,6336.54,26.7308,Closer duration but still not same-ledger replay
