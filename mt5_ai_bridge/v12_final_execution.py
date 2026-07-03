@@ -1,8 +1,8 @@
-"""Supervised order executor for the final V12 strategy profile.
+"""Supervised proposal engine for the final V12 strategy profile.
 
-Every named V12 signal must route through ``FinalResearchExecutor``. Account type
-is not used as a gate, but unattended execution is prohibited: an explicit
-approval callback must return True for every order after the full risk check.
+The named V12 engines may use this module to calculate broker-aware volume,
+validate every strategy and portfolio limit, and present a human-readable trade
+proposal. This module deliberately does not submit orders to the broker.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from typing import Callable, Optional
 from .enums import OrderSide
 from .execution import pip_size
 from .v12_final_risk import ENGINE_RULES, OrderIntent, PortfolioSnapshot, make_order_key, validate_order
-from .v12_final_state import StateStore, StoredPosition
+from .v12_final_state import StateStore
 
 
 @dataclass(frozen=True)
@@ -52,6 +52,7 @@ class ExecutionResult:
     ticket: Optional[int] = None
     volume: float = 0.0
     risk_percent: float = 0.0
+    proposal: Optional[ApprovalSummary] = None
 
 
 ApprovalCallback = Callable[[ApprovalSummary], bool]
@@ -62,7 +63,7 @@ class FinalResearchExecutor:
                  state: Optional[StateStore] = None,
                  max_deviation_points: int = 10) -> None:
         if approval_callback is None:
-            raise ValueError("An explicit approval callback is required.")
+            raise ValueError("An explicit review callback is required.")
         self.client = client
         self.approval_callback = approval_callback
         self.state = state or StateStore()
@@ -70,6 +71,7 @@ class FinalResearchExecutor:
 
     def place(self, request: FinalExecutionRequest,
               now: Optional[datetime] = None) -> ExecutionResult:
+        """Validate and return a reviewed proposal; never call order_send."""
         now = now or datetime.now(timezone.utc)
         account = self.client.account_info()
         if account is None:
@@ -143,7 +145,7 @@ class FinalResearchExecutor:
             return ExecutionResult(False, gate.code, gate.message, volume=volume,
                                    risk_percent=gate.actual_risk_percent)
 
-        approval = ApprovalSummary(
+        proposal = ApprovalSummary(
             symbol=request.symbol,
             engine=request.engine,
             setup=request.setup,
@@ -156,51 +158,21 @@ class FinalResearchExecutor:
             account_login=getattr(account, "login", None),
             account_server=str(getattr(account, "server", "")),
         )
-        if not self.approval_callback(approval):
-            return ExecutionResult(False, "USER_DECLINED", "Order was declined during supervised review.",
-                                   volume=volume, risk_percent=gate.actual_risk_percent)
+        if not self.approval_callback(proposal):
+            return ExecutionResult(False, "USER_DECLINED", "Proposal was declined during supervised review.",
+                                   volume=volume, risk_percent=gate.actual_risk_percent,
+                                   proposal=proposal)
 
-        stop = price - request.stop_pips * pip if side is OrderSide.BUY else price + request.stop_pips * pip
-        target = price + request.target_pips * pip if side is OrderSide.BUY else price - request.target_pips * pip
-        digits = int(getattr(info, "digits", 5))
-        broker_request = {
-            "action": self.client.TRADE_ACTION_DEAL,
-            "symbol": request.symbol,
-            "volume": volume,
-            "type": order_type,
-            "price": price,
-            "sl": round(stop, digits),
-            "tp": round(target, digits),
-            "deviation": self.max_deviation_points,
-            "magic": self._magic(request.engine),
-            "comment": self._comment(request.engine, request.setup),
-            "type_time": self.client.ORDER_TIME_GTC,
-        }
-        result = self.client.order_send(broker_request)
-        if result is None:
-            return ExecutionResult(False, "ORDER_SEND_FAILED", f"Order failed: {self.client.last_error()}.",
-                                   volume=volume, risk_percent=gate.actual_risk_percent)
-        if result.retcode != self.client.TRADE_RETCODE_DONE:
-            return ExecutionResult(False, "ORDER_REJECTED",
-                                   f"Order rejected: {result.retcode} - {result.comment}",
-                                   volume=volume, risk_percent=gate.actual_risk_percent)
-
-        ticket = self._ticket(result)
-        if ticket is None:
-            return ExecutionResult(False, "TICKET_MISSING",
-                                   "Broker accepted the order but returned no trackable ticket.",
-                                   volume=volume, risk_percent=gate.actual_risk_percent)
         self.state.register_order_key(order_key, now)
-        self.state.register_position(StoredPosition(
-            ticket=ticket,
-            symbol=request.symbol,
-            engine=request.engine,
-            side=request.side.upper(),
-            risk_percent=requested_risk,
-        ))
-        self.state.mark_order_opened(request.engine, multiplier)
-        return ExecutionResult(True, "FILLED", "Supervised final-profile order placed.", ticket,
-                               volume, gate.actual_risk_percent)
+        return ExecutionResult(
+            True,
+            "APPROVED_PROPOSAL",
+            "Proposal passed all controls. Enter it manually in MT5 if you choose.",
+            ticket=None,
+            volume=volume,
+            risk_percent=gate.actual_risk_percent,
+            proposal=proposal,
+        )
 
     def record_closed_trade(self, engine: str, r_multiple: float,
                             now: Optional[datetime] = None) -> None:
@@ -229,23 +201,5 @@ class FinalResearchExecutor:
             return 0.0
         return round(min(floored, maximum), 8)
 
-    @staticmethod
-    def _ticket(result) -> Optional[int]:
-        for name in ("position", "order", "deal"):
-            value = getattr(result, name, None)
-            if value:
-                return int(value)
-        return None
 
-    @staticmethod
-    def _magic(engine: str) -> int:
-        ordered = sorted(ENGINE_RULES)
-        return 20261200 + ordered.index(engine) + 1
-
-    @staticmethod
-    def _comment(engine: str, setup: str) -> str:
-        return f"V12:{engine}:{setup}"[:31]
-
-
-# Backward-compatible import name; behavior is now supervised research only.
 FinalDemoExecutor = FinalResearchExecutor
