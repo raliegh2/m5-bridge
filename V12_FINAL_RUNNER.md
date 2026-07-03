@@ -17,6 +17,13 @@ MetaTrader 5 terminal and evaluates the final five-symbol V12 strategy.
 GitHub Actions run `28635397898` passed compilation, focused tests, candidate
 parity, and the final portfolio replay tolerance check.
 
+## Pull the latest branch
+
+```powershell
+git checkout v12-final-demo-risk-controls
+git pull origin v12-final-demo-risk-controls
+```
+
 ## One scan
 
 ```powershell
