@@ -1,12 +1,11 @@
 """Named-engine adapter for the final V12 supervised research profile.
 
 Signal generators submit a fully specified ``NamedEngineSignal``. The adapter
-converts it into a final execution request and requires a console confirmation
-that displays account, symbol, engine, setup, direction, volume, stop, target,
-risk, and spread before the broker order is sent.
+converts it into a broker-aware proposal and displays account, symbol, engine,
+setup, direction, volume, stop, target, risk, and spread for human review.
 
-This module does not create signals. It is the mandatory boundary between the
-named V12 strategy engines and MT5 execution.
+This module does not create signals and does not submit broker orders. It is the
+mandatory research boundary between the named V12 strategy engines and MT5 data.
 """
 from __future__ import annotations
 
@@ -42,8 +41,8 @@ class NamedEngineSignal:
 
 
 def console_approval(summary: ApprovalSummary) -> bool:
-    """Require an exact, explicit confirmation for every proposed order."""
-    print("\nFINAL V12 SUPERVISED ORDER REVIEW")
+    """Require an exact confirmation before returning an approved proposal."""
+    print("\nFINAL V12 SUPERVISED PROPOSAL REVIEW")
     print(f"Account : {summary.account_login} @ {summary.account_server}")
     print(f"Signal  : {summary.symbol} {summary.side}")
     print(f"Engine  : {summary.engine}")
@@ -52,13 +51,13 @@ def console_approval(summary: ApprovalSummary) -> bool:
     print(f"Stop/TP : {summary.stop_pips:g} / {summary.target_pips:g} pips")
     print(f"Risk    : {summary.risk_percent:.4f}%")
     print(f"Spread  : {summary.spread_pips:.2f} pips")
-    phrase = f"APPROVE {summary.symbol} {summary.side}"
-    answer = input(f"Type exactly '{phrase}' to place this order: ").strip()
+    phrase = f"REVIEWED {summary.symbol} {summary.side}"
+    answer = input(f"Type exactly '{phrase}' to approve this research proposal: ").strip()
     return answer == phrase
 
 
 class FinalV12Adapter:
-    """Supervised adapter used by named V12 signal engines."""
+    """Supervised proposal adapter used by named V12 signal engines."""
 
     def __init__(self, client, state_path: str = "v12_final_research_state.json",
                  approval_callback: Callable[[ApprovalSummary], bool] = console_approval,
