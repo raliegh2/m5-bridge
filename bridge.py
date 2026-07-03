@@ -1,10 +1,19 @@
-"""Entrypoint. Run with: python bridge.py
+"""Default bridge entrypoint. Run with: python bridge.py
 
-The implementation lives in the mt5_ai_bridge package; this file stays so the
-original `python bridge.py` workflow keeps working.
+The final V12 profile uses named engines and a dedicated supervised proposal
+adapter. The legacy generic strategy is blocked when V12_FINAL_PROFILE is set,
+so the wrong strategy cannot run under the final research configuration.
 """
+
+import os
 
 from mt5_ai_bridge.app import main
 
+
 if __name__ == "__main__":
+    if os.getenv("V12_FINAL_PROFILE"):
+        raise SystemExit(
+            "V12 final profile selected: legacy bridge.py is disabled. "
+            "Use the named-engine FinalV12Adapter proposal workflow."
+        )
     main()
