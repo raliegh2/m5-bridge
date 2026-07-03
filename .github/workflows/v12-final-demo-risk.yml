@@ -12,6 +12,7 @@ on:
       - "tests/test_v12_final_risk.py"
       - "tests/test_v12_final_execution.py"
       - "tests/test_v12_final_adapter.py"
+      - "tests/test_v12_runner_timezones.py"
       - "v12_final_preflight.py"
       - "v12_final_runner.py"
       - "research/v12_final_runner_parity_backtest.py"
@@ -42,5 +43,6 @@ jobs:
           tests/test_v12_final_risk.py
           tests/test_v12_final_execution.py
           tests/test_v12_final_adapter.py
+          tests/test_v12_runner_timezones.py
       - name: Verify final runner parity
         run: python research/v12_final_runner_parity_backtest.py
