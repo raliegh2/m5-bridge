@@ -12,6 +12,11 @@ MetaTrader 5 terminal and evaluates the final five-symbol V12 strategy.
 - `v12_final_runner_state.json` — signal deduplication state
 - `v12_final_research_state.json` — portfolio and adaptive-guard state
 
+## Verification
+
+GitHub Actions run `28635397898` passed compilation, focused tests, candidate
+parity, and the final portfolio replay tolerance check.
+
 ## One scan
 
 ```powershell
@@ -42,9 +47,7 @@ The disabled `GBPUSD_SWING_CORE` and `GBPJPY_SWING_RETEST` engines are not built
 python research/v12_final_runner_parity_backtest.py
 ```
 
-This rebuilds the historical candidate set through the runner, compares it with
-the final targeted strategy candidate set, and replays the final portfolio
-policy. Output is written to:
+Output is written to:
 
 ```text
 research\v12_final_runner_parity_output\
