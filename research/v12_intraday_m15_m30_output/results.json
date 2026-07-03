@@ -1,0 +1,73 @@
+{
+  "status": "RESEARCH_ONLY",
+  "target": "$50 average profit per week (measurement, not a guarantee)",
+  "selected_params": {
+    "adx_min": 22.0,
+    "stop_atr": 1.5,
+    "reward_risk": 2.0,
+    "channel_bars": 12,
+    "max_hold_m5_bars": 36,
+    "risk_percent": 0.25,
+    "spread_pips": 1.0,
+    "slippage_pips_each_side": 0.2,
+    "session_start_utc": 7,
+    "session_end_utc": 17
+  },
+  "development_60_percent": {
+    "start": "2025-10-28T02:30:00+00:00",
+    "end": "2026-03-25T16:40:00+00:00",
+    "starting_balance": 5000.0,
+    "ending_balance": 5048.190690820086,
+    "net_profit": 48.190690820086274,
+    "return_percent": 0.9638138164017152,
+    "trades": 151,
+    "trades_per_week": 7.190476190476191,
+    "win_rate": 0.3708609271523179,
+    "profit_factor": 1.0433437924402342,
+    "max_drawdown_percent": 4.671387985974478,
+    "average_weekly_profit": 1.6616884813132893,
+    "median_weekly_profit": 9.834956970691476,
+    "weeks_at_or_above_50": 3,
+    "total_weeks": 21
+  },
+  "validation_40_percent": {
+    "start": "2026-03-25T16:45:00+00:00",
+    "end": "2026-07-01T04:20:00+00:00",
+    "starting_balance": 5000.0,
+    "ending_balance": 4915.766432244887,
+    "net_profit": -84.23356775511274,
+    "return_percent": -1.6846713551022519,
+    "trades": 112,
+    "trades_per_week": 8.0,
+    "win_rate": 0.35714285714285715,
+    "profit_factor": 0.9029075672641087,
+    "max_drawdown_percent": 3.5289187084065428,
+    "average_weekly_profit": -5.147961865829395,
+    "median_weekly_profit": 9.697316312233916,
+    "weeks_at_or_above_50": 0,
+    "total_weeks": 14
+  },
+  "full_sample_reference": {
+    "start": "2025-10-28T02:30:00+00:00",
+    "end": "2026-07-01T04:20:00+00:00",
+    "starting_balance": 5000.0,
+    "ending_balance": 4955.117496516933,
+    "net_profit": -44.88250348306701,
+    "return_percent": -0.8976500696613376,
+    "trades": 267,
+    "trades_per_week": 7.628571428571429,
+    "win_rate": 0.36329588014981273,
+    "profit_factor": 0.9777318456151168,
+    "max_drawdown_percent": 4.671387985974478,
+    "average_weekly_profit": -0.9348686242733892,
+    "median_weekly_profit": 9.834956970691476,
+    "weeks_at_or_above_50": 3,
+    "total_weeks": 35
+  },
+  "limitations": [
+    "Only 246 calendar days of GBPUSD M5 data are available.",
+    "Parameters were selected on the first 60% and require longer out-of-sample testing.",
+    "Fixed spread/slippage cannot reproduce every broker fill.",
+    "A weekly dollar profit cannot be guaranteed or enforced safely."
+  ]
+}
