@@ -27,6 +27,29 @@ That should not be attempted through a blanket 2.14x risk increase because it
 would likely push drawdown and correlation exposure outside the intended safety
 bounds.
 
+## Available-data backtest result
+
+A first available-data replay has been added:
+
+- `research/V11_AVAILABLE_DATA_BACKTEST_REPORT.md`
+- `research/v11_available_data_backtest_results.json`
+
+Because the raw V8/V9/V10 accepted/rejected candidate ledgers are not present in
+this branch, this is a **risk-reweighted aggregate replay estimate**, not a raw
+execution backtest.
+
+Result:
+
+- estimated V11 base-risk net profit: **$1,099.40**
+- estimated ending balance: **$6,099.40**
+- estimated return: **21.99%**
+- estimated weekly equivalent: **$21.14/week**
+- difference versus V10: **-$115.25**
+- estimated V10 profit retained: **90.51%**
+
+Decision: V11 base-risk policy remains profitable but is not yet a $50/week
+system. The next required step is a raw candidate-ledger walk-forward test.
+
 ## Added in this branch
 
 ### `mt5_ai_bridge/strategy_engine_v11.py`
