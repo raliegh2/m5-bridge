@@ -1,12 +1,14 @@
-# V12 Final $3,201.58 Demo Controls
+# V12 Final $3,201.58 Supervised Research Controls
 
-Status: **DEMO-ONLY SAFETY AND EXECUTION LAYER**
+Status: **PROPOSAL-ONLY RESEARCH LAYER**
 
 This branch ports the final research portfolio limits into broker-independent,
-unit-tested code. It does **not** make the generic `bridge.py` strategy equivalent
-to the named V12 signal engines. A named-engine signal adapter must call
-`FinalDemoExecutor`; orders sent through the legacy `place_market_order` path do
-not qualify as the final V12 model.
+unit-tested code. It does not submit broker orders.
+
+Named engines send a signal to `FinalV12Adapter`. The adapter reads MT5 account
+and symbol data, calculates broker-aware volume, applies every risk rule, and
+returns an exact proposal for human review. Any trade is entered manually by the
+researcher outside this software.
 
 ## Backtest-exact immutable limits
 
@@ -40,33 +42,33 @@ Disabled engines:
 - `GBPUSD_SWING_CORE`
 - `GBPJPY_SWING_RETEST`
 
-Adaptive multipliers are exactly `1.00`, `0.60`, `0.35` recovery probe, or
-`0.00` blocked. The rolling guard uses 16 trades, a 12-trade minimum, a 45-day
-cooldown, and one reduced-risk recovery probe.
+Adaptive multipliers are `1.00`, `0.60`, `0.35` recovery probe, or `0.00`
+blocked. The guard uses 16 trades, a 12-trade minimum, a 45-day cooldown, and
+one reduced-risk recovery probe.
 
-## Additional demo safety overlays
+## Research safety overlays
 
-These were not part of the historical backtest and may change live trade count,
-but they are required to prevent unsafe demo execution:
-
-- Demo-account verification before every order
 - 1.50% daily-equity drawdown stop
 - 5.00% peak-equity drawdown stop
 - Broker-native pip-value sizing
-- Volume rounded **down**, never up
+- Volume rounded down, never up
 - Spread ceilings per symbol
-- Duplicate-order lock for the same signal
+- Duplicate-proposal lock
 - Persistent daily baseline, peak equity, cooldown, probe, and position-risk state
 - Fail closed when manual or unregistered positions are open
-- Fail closed when stop distance, pip value, symbol data, or ticket data is missing
+- Fail closed when stop distance, pip value, symbol data, or account data is missing
+- Explicit review callback required for every proposal
+- No broker order submission
 
-## Safe workflow
+## Workflow
 
-1. Copy `.env.v12-final-demo.example` to `.env` and enter demo credentials.
-2. Add all five symbols to MT5 Market Watch.
-3. Run `python v12_final_preflight.py`.
-4. Route every named V12 signal through `FinalDemoExecutor.place()`.
-5. Record every closed trade in R using `FinalDemoExecutor.record_closed_trade()`.
-6. Do not start the legacy generic `bridge.py` and assume it reproduces this model.
+1. Copy `.env.v12-final-demo.example` to `.env` and enter MT5 credentials.
+2. Set `MODE=APPROVAL`.
+3. Add all five symbols to MT5 Market Watch.
+4. Run `python v12_final_preflight.py`.
+5. Route named V12 signals through `FinalV12Adapter.submit()`.
+6. Review the calculated proposal.
+7. Enter a trade manually in MT5 only if you independently choose to do so.
+8. Record closed outcomes in R with `FinalV12Adapter.record_closed_trade()`.
 
-The risk layer deliberately refuses live accounts and unknown strategy engines.
+The legacy generic `bridge.py` remains blocked whenever `V12_FINAL_PROFILE` is selected.
