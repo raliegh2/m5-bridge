@@ -12,9 +12,6 @@ from mt5_ai_bridge.v12_final_state import StateStore
 class Client:
     ORDER_TYPE_BUY = 0
     ORDER_TYPE_SELL = 1
-    TRADE_ACTION_DEAL = 1
-    ORDER_TIME_GTC = 0
-    TRADE_RETCODE_DONE = 10009
 
     def __init__(self, positions=None, server="Broker-Research", spread=0.00010):
         self._positions = positions or []
@@ -51,10 +48,7 @@ class Client:
 
     def order_send(self, request):
         self.sent.append(request)
-        return SimpleNamespace(retcode=10009, order=9001, comment="Done")
-
-    def last_error(self):
-        return (0, "ok")
+        raise AssertionError("proposal-only executor must never call order_send")
 
 
 def request(**overrides):
@@ -72,12 +66,12 @@ def request(**overrides):
     return FinalExecutionRequest(**data)
 
 
-def test_executor_requires_approval_callback(tmp_path) -> None:
+def test_executor_requires_review_callback(tmp_path) -> None:
     with pytest.raises(ValueError):
         FinalResearchExecutor(Client(), None, StateStore(str(tmp_path / "state.json")))
 
 
-def test_executor_places_profile_compliant_approved_order(tmp_path) -> None:
+def test_executor_returns_approved_proposal_without_sending_order(tmp_path) -> None:
     reviewed = []
 
     def approve(summary):
@@ -88,14 +82,15 @@ def test_executor_places_profile_compliant_approved_order(tmp_path) -> None:
     executor = FinalResearchExecutor(client, approve, StateStore(str(tmp_path / "state.json")))
     result = executor.place(request())
     assert result.ok
-    assert result.ticket == 9001
+    assert result.code == "APPROVED_PROPOSAL"
+    assert result.ticket is None
     assert result.volume == 0.02
+    assert result.proposal is not None
     assert len(reviewed) == 1
-    assert reviewed[0].engine == "AUDUSD_TREND_PULLBACK"
-    assert len(client.sent) == 1
+    assert not client.sent
 
 
-def test_executor_declines_when_user_does_not_approve(tmp_path) -> None:
+def test_executor_declines_proposal_when_user_does_not_approve(tmp_path) -> None:
     client = Client()
     executor = FinalResearchExecutor(client, lambda summary: False,
                                      StateStore(str(tmp_path / "state.json")))
@@ -111,6 +106,8 @@ def test_executor_does_not_filter_by_account_server(tmp_path) -> None:
                                      StateStore(str(tmp_path / "state.json")))
     result = executor.place(request())
     assert result.ok
+    assert result.code == "APPROVED_PROPOSAL"
+    assert not client.sent
 
 
 def test_executor_rejects_manual_unregistered_position(tmp_path) -> None:
@@ -131,7 +128,7 @@ def test_executor_rejects_wide_spread(tmp_path) -> None:
     assert result.code == "SPREAD_TOO_WIDE"
 
 
-def test_executor_rejects_disabled_engine_before_order_send(tmp_path) -> None:
+def test_executor_rejects_disabled_engine(tmp_path) -> None:
     client = Client()
     executor = FinalResearchExecutor(client, lambda summary: True,
                                      StateStore(str(tmp_path / "state.json")))
