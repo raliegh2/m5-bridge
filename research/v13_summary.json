@@ -1,0 +1,9 @@
+{
+  "branch": "v13-v12-final-plus-v11-intraday",
+  "base": "v12-final-demo-risk-controls",
+  "v12_final_profit": 3201.58,
+  "v11_intraday_profit": 1046.89,
+  "combined_estimate": 4248.47,
+  "increase_percent": 32.70,
+  "status": "research_estimate_only"
+}
