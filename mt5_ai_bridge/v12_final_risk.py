@@ -1,19 +1,18 @@
-"""Immutable risk profile for the final V12 five-symbol demo strategy.
+"""Immutable risk profile for the final V12 five-symbol supervised strategy.
 
 This module ports the portfolio constraints used by the $3,201.58 research
-scenario into a broker-independent pre-trade gate.  Backtest-exact controls are
-kept separate from additional demo safety overlays so later configuration
-cannot silently increase risk.
+scenario into a broker-independent pre-trade gate. Account type is not used as
+an approval criterion; instead every order must pass an explicit human approval
+step in the execution layer.
 
-The gate is intentionally fail-closed: unknown symbols, engines, setups,
-missing stop data, excessive actual risk, duplicate orders, and non-demo
-accounts are rejected.
+The gate remains fail-closed for unknown symbols, engines, setups, missing stop
+data, excessive actual risk, duplicate orders, and portfolio-limit violations.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Iterable, Mapping, Optional
+from typing import Mapping, Optional
 
 
 PROFILE_ID = "V12_FINAL_3201_58"
@@ -86,7 +85,7 @@ class BacktestExactLimits:
 
 
 @dataclass(frozen=True)
-class DemoSafetyLimits:
+class ResearchSafetyLimits:
     daily_drawdown_percent: float = 1.50
     total_drawdown_percent: float = 5.00
     actual_risk_rounding_tolerance_percent: float = 0.02
@@ -131,7 +130,6 @@ class PortfolioSnapshot:
     peak_equity: float
     open_risk: tuple[OpenRisk, ...] = ()
     recent_order_keys: frozenset[str] = frozenset()
-    is_demo_account: bool = False
     now: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -162,10 +160,8 @@ def _expected_risk(intent: OrderIntent, rule: EngineRule) -> Optional[float]:
             return None
     elif not _close(intent.guard_multiplier, 1.0):
         return None
-
     if intent.guard_multiplier <= 0:
         return 0.0
-
     matches = [
         base * intent.guard_multiplier
         for base in rule.allowed_risk_percent
@@ -185,16 +181,12 @@ def validate_order(
     intent: OrderIntent,
     snapshot: PortfolioSnapshot,
     exact: BacktestExactLimits = BacktestExactLimits(),
-    safety: DemoSafetyLimits = DemoSafetyLimits(),
+    safety: ResearchSafetyLimits = ResearchSafetyLimits(),
 ) -> GateDecision:
-    """Validate one proposed order against the final strategy profile."""
-    if not snapshot.is_demo_account:
-        return GateDecision(False, "DEMO_ONLY", "Final V12 profile is demo-account only.")
     if intent.symbol not in ALLOWED_SYMBOLS:
         return GateDecision(False, "SYMBOL_NOT_ALLOWED", f"{intent.symbol} is not in the five-symbol profile.")
     if intent.engine in DISABLED_ENGINES:
         return GateDecision(False, "ENGINE_DISABLED", f"{intent.engine} is disabled by the final model.")
-
     rule = ENGINE_RULES.get(intent.engine)
     if rule is None:
         return GateDecision(False, "ENGINE_NOT_ALLOWED", f"Unknown engine: {intent.engine}.")
@@ -231,7 +223,6 @@ def validate_order(
         return GateDecision(False, "SPREAD_TOO_WIDE", f"Spread exceeds {spread_limit:g} pips.", expected, actual)
     if not intent.order_key or intent.order_key in snapshot.recent_order_keys:
         return GateDecision(False, "DUPLICATE_ORDER", "Duplicate or missing order key.", expected, actual)
-
     if len(snapshot.open_risk) >= exact.max_positions:
         return GateDecision(False, "MAX_POSITIONS", "Five-position portfolio limit reached.", expected, actual)
 
@@ -263,7 +254,6 @@ def make_order_key(symbol: str, engine: str, setup: str, side: str, signal_time:
 
 
 def validate_profile() -> None:
-    """Raise if an accidental edit makes the immutable profile inconsistent."""
     if set(ENGINE_RULES) & set(DISABLED_ENGINES):
         raise RuntimeError("An engine cannot be both allowed and disabled.")
     if {rule.symbol for rule in ENGINE_RULES.values()} - set(ALLOWED_SYMBOLS):
