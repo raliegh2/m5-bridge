@@ -1,0 +1,41 @@
+name: V12 weak-engine optimization
+
+on:
+  pull_request:
+    branches:
+      - v12-plus-profitable-symbols
+    paths:
+      - "research/v12_weak_engine_optimization.py"
+      - "research/v12_weak_engine_optimization_v2.py"
+      - "tests/test_v12_weak_engine_optimization.py"
+      - ".github/workflows/v12-weak-engine-optimization.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy pytest
+      - name: Compile research code
+        run: python -m compileall -q research tests
+      - name: Run focused regression tests
+        run: PYTHONPATH=research python -m pytest -q tests/test_v12_weak_engine_optimization.py
+      - name: Run corrected weak-engine optimization backtest
+        run: python research/v12_weak_engine_optimization_v2.py
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-weak-engine-optimization-results
+          path: research/v12_weak_engine_optimization_v2_output/
+          if-no-files-found: error
+          retention-days: 30
