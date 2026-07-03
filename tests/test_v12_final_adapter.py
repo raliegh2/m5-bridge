@@ -11,9 +11,6 @@ from mt5_ai_bridge.v12_final_adapter import FinalV12Adapter, NamedEngineSignal
 class Client:
     ORDER_TYPE_BUY = 0
     ORDER_TYPE_SELL = 1
-    TRADE_ACTION_DEAL = 1
-    ORDER_TIME_GTC = 0
-    TRADE_RETCODE_DONE = 10009
 
     def __init__(self):
         self.account = SimpleNamespace(
@@ -49,10 +46,7 @@ class Client:
 
     def order_send(self, request):
         self.sent.append(request)
-        return SimpleNamespace(retcode=10009, order=777, comment="Done")
-
-    def last_error(self):
-        return (0, "ok")
+        raise AssertionError("proposal adapter must not submit broker orders")
 
 
 def signal(**overrides):
@@ -75,7 +69,7 @@ def test_signal_requires_timezone_aware_time() -> None:
         signal(signal_time=datetime(2026, 7, 3))
 
 
-def test_adapter_routes_approved_named_signal(tmp_path) -> None:
+def test_adapter_returns_approved_proposal(tmp_path) -> None:
     reviewed = []
 
     def approve(summary):
@@ -90,13 +84,15 @@ def test_adapter_routes_approved_named_signal(tmp_path) -> None:
     )
     result = adapter.submit(signal())
     assert result.ok
-    assert result.ticket == 777
+    assert result.code == "APPROVED_PROPOSAL"
+    assert result.ticket is None
+    assert result.proposal is not None
     assert len(reviewed) == 1
     assert reviewed[0].symbol == "AUDUSD"
-    assert len(client.sent) == 1
+    assert not client.sent
 
 
-def test_adapter_never_sends_declined_signal(tmp_path) -> None:
+def test_adapter_returns_declined_result_without_broker_submission(tmp_path) -> None:
     client = Client()
     adapter = FinalV12Adapter(
         client,
