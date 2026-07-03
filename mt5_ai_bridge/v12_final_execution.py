@@ -1,27 +1,19 @@
-"""Demo-only order executor for the final V12 strategy profile.
+"""Supervised order executor for the final V12 strategy profile.
 
-The named V12 signal engines must route orders through ``FinalDemoExecutor``.
-It derives volume from the exact engine risk, reads broker-native pip value,
-enforces the immutable portfolio gate, rejects unregistered/manual positions,
-and persists every accepted order before another signal can be admitted.
+Every named V12 signal must route through ``FinalResearchExecutor``. Account type
+is not used as a gate, but unattended execution is prohibited: an explicit
+approval callback must return True for every order after the full risk check.
 """
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Callable, Optional
 
 from .enums import OrderSide
 from .execution import pip_size
-from .v12_final_risk import (
-    ENGINE_RULES,
-    GateDecision,
-    OrderIntent,
-    PortfolioSnapshot,
-    make_order_key,
-    validate_order,
-)
+from .v12_final_risk import ENGINE_RULES, OrderIntent, PortfolioSnapshot, make_order_key, validate_order
 from .v12_final_state import StateStore, StoredPosition
 
 
@@ -38,6 +30,21 @@ class FinalExecutionRequest:
 
 
 @dataclass(frozen=True)
+class ApprovalSummary:
+    symbol: str
+    engine: str
+    setup: str
+    side: str
+    volume: float
+    stop_pips: float
+    target_pips: float
+    risk_percent: float
+    spread_pips: float
+    account_login: Optional[int]
+    account_server: str
+
+
+@dataclass(frozen=True)
 class ExecutionResult:
     ok: bool
     code: str
@@ -47,10 +54,17 @@ class ExecutionResult:
     risk_percent: float = 0.0
 
 
-class FinalDemoExecutor:
-    def __init__(self, client, state: Optional[StateStore] = None,
+ApprovalCallback = Callable[[ApprovalSummary], bool]
+
+
+class FinalResearchExecutor:
+    def __init__(self, client, approval_callback: ApprovalCallback,
+                 state: Optional[StateStore] = None,
                  max_deviation_points: int = 10) -> None:
+        if approval_callback is None:
+            raise ValueError("An explicit approval callback is required.")
         self.client = client
+        self.approval_callback = approval_callback
         self.state = state or StateStore()
         self.max_deviation_points = int(max_deviation_points)
 
@@ -65,10 +79,8 @@ class FinalDemoExecutor:
         registered_tickets = {value.ticket for value in self.state.state.positions.values()}
         unknown = current_tickets - registered_tickets
         if unknown:
-            return ExecutionResult(
-                False, "UNREGISTERED_POSITION",
-                "Manual or unregistered positions are open; final-profile risk cannot be calculated.",
-            )
+            return ExecutionResult(False, "UNREGISTERED_POSITION",
+                                   "Manual or unregistered positions are open; portfolio risk cannot be calculated.")
         self.state.sync_open_tickets(current_tickets)
         self.state.update_equity(float(account.equity), now)
 
@@ -97,19 +109,13 @@ class FinalDemoExecutor:
         if pip_value <= 0:
             return ExecutionResult(False, "PIP_VALUE_UNAVAILABLE", "Broker-native pip value could not be calculated.")
 
-        volume = self._risk_volume(
-            balance=float(account.balance),
-            risk_percent=requested_risk,
-            stop_pips=request.stop_pips,
-            pip_value_per_lot=pip_value,
-            symbol_info=info,
-        )
+        volume = self._risk_volume(float(account.balance), requested_risk,
+                                   request.stop_pips, pip_value, info)
         if volume <= 0:
             return ExecutionResult(False, "VOLUME_TOO_SMALL", "Calculated volume is below the broker minimum.")
 
-        order_key = make_order_key(
-            request.symbol, request.engine, request.setup, request.side, request.signal_time
-        )
+        order_key = make_order_key(request.symbol, request.engine, request.setup,
+                                   request.side, request.signal_time)
         intent = OrderIntent(
             symbol=request.symbol,
             engine=request.engine,
@@ -130,13 +136,29 @@ class FinalDemoExecutor:
             peak_equity=self.state.state.peak_equity,
             open_risk=self.state.open_risk(),
             recent_order_keys=frozenset(self.state.state.recent_orders),
-            is_demo_account=self._is_demo_account(account),
             now=now,
         )
         gate = validate_order(intent, snapshot)
         if not gate.ok:
             return ExecutionResult(False, gate.code, gate.message, volume=volume,
                                    risk_percent=gate.actual_risk_percent)
+
+        approval = ApprovalSummary(
+            symbol=request.symbol,
+            engine=request.engine,
+            setup=request.setup,
+            side=request.side.upper(),
+            volume=volume,
+            stop_pips=request.stop_pips,
+            target_pips=request.target_pips,
+            risk_percent=gate.actual_risk_percent,
+            spread_pips=spread_pips,
+            account_login=getattr(account, "login", None),
+            account_server=str(getattr(account, "server", "")),
+        )
+        if not self.approval_callback(approval):
+            return ExecutionResult(False, "USER_DECLINED", "Order was declined during supervised review.",
+                                   volume=volume, risk_percent=gate.actual_risk_percent)
 
         stop = price - request.stop_pips * pip if side is OrderSide.BUY else price + request.stop_pips * pip
         target = price + request.target_pips * pip if side is OrderSide.BUY else price - request.target_pips * pip
@@ -177,7 +199,7 @@ class FinalDemoExecutor:
             risk_percent=requested_risk,
         ))
         self.state.mark_order_opened(request.engine, multiplier)
-        return ExecutionResult(True, "FILLED", "Final-profile demo order placed.", ticket,
+        return ExecutionResult(True, "FILLED", "Supervised final-profile order placed.", ticket,
                                volume, gate.actual_risk_percent)
 
     def record_closed_trade(self, engine: str, r_multiple: float,
@@ -207,14 +229,6 @@ class FinalDemoExecutor:
             return 0.0
         return round(min(floored, maximum), 8)
 
-    def _is_demo_account(self, account) -> bool:
-        demo_constant = getattr(self.client, "ACCOUNT_TRADE_MODE_DEMO", None)
-        trade_mode = getattr(account, "trade_mode", None)
-        if demo_constant is not None and trade_mode is not None:
-            return trade_mode == demo_constant
-        server = str(getattr(account, "server", "")).lower()
-        return "demo" in server
-
     @staticmethod
     def _ticket(result) -> Optional[int]:
         for name in ("position", "order", "deal"):
@@ -231,3 +245,7 @@ class FinalDemoExecutor:
     @staticmethod
     def _comment(engine: str, setup: str) -> str:
         return f"V12:{engine}:{setup}"[:31]
+
+
+# Backward-compatible import name; behavior is now supervised research only.
+FinalDemoExecutor = FinalResearchExecutor
