@@ -34,6 +34,7 @@ from mt5_ai_bridge.config import load_settings  # noqa: E402
 from mt5_ai_bridge.execution import pip_size  # noqa: E402
 from mt5_ai_bridge.mt5_client import create_client  # noqa: E402
 from mt5_ai_bridge.v12_final_adapter import FinalV12Adapter, NamedEngineSignal  # noqa: E402
+from mt5_ai_bridge.v12_final_mode import AccountModeStore  # noqa: E402
 
 SYMBOLS = ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY")
 AUDUSD_PARAMS = study.AUDUSDParams(15.0, 0.30, 0.25)
@@ -272,10 +273,13 @@ def main() -> None:
     settings = load_settings()
     client = create_client()
     connect(client, settings)
+    mode_store = AccountModeStore(os.getenv(
+        "V12_FINAL_ACCOUNT_MODE_PATH", "v12_final_account_mode.json"))
     adapter = FinalV12Adapter(
         client,
         state_path=os.getenv("V12_FINAL_STATE_PATH", "v12_final_research_state.json"),
         max_deviation_points=int(os.getenv("V12_FINAL_MAX_DEVIATION_POINTS", "10")),
+        account_mode_provider=mode_store.get,
     )
     try:
         while True:

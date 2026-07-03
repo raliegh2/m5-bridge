@@ -1,14 +1,20 @@
-# V12 Final $3,201.58 Automatic Demo Controls
+# V12 Final $3,201.58 Automatic Account Controls
 
-Status: **AUTOMATIC EXECUTION, CONFIRMED DEMO ACCOUNTS ONLY**
+Status: **AUTOMATIC EXECUTION, EXPLICIT DEMO/LIVE ACCOUNT SELECTION**
 
 `v12_final_runner.py` reads closed H1, H4, and D1 candles, rebuilds the frozen
 V12 candidate families, applies the unchanged portfolio risk layer, and routes
 qualified signals to `MetaTrader5.order_send()`. Every attempt is written to
 `v12_final_executions.jsonl`.
 
-The executor fails closed unless `account_info().trade_mode` equals MT5's
-`ACCOUNT_TRADE_MODE_DEMO`. A server-name guess is never treated as proof.
+Startup asks whether the connected account is DEMO or LIVE. The executor fails
+closed unless `account_info().trade_mode` matches that selection. A server-name
+guess is never treated as proof. Once selected, execution is automatic and has
+no per-order approval prompt.
+
+The mode can be changed while running either from the dashboard buttons or by
+typing `MODE DEMO` / `MODE LIVE` in the bot terminal. The persisted selection
+is shared by the scanner, dashboard, preflight, and executor.
 
 ## Frozen portfolio controls
 
@@ -50,5 +56,7 @@ python v12_final_runner.py --interval 60
 python research/v12_final_runner_parity_backtest.py
 ```
 
-The preflight sends no order. The generic `bridge.py` remains blocked whenever
+The preferred `python v12_final_bot.py` entry point asks for account mode,
+starts the scanner and dashboard together, and opens the dashboard browser.
+Preflight sends no order. The generic `bridge.py` remains blocked whenever
 `V12_FINAL_PROFILE` is selected.

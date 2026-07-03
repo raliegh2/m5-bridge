@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Callable, Optional
 
 from .enums import OrderSide
 from .execution import pip_size
@@ -66,7 +66,8 @@ class ExecutionResult:
 class FinalMT5Executor:
     def __init__(self, client, approval_callback=None,
                  state: Optional[StateStore] = None,
-                 max_deviation_points: int = 10) -> None:
+                 max_deviation_points: int = 10,
+                 account_mode_provider: Optional[Callable[[], str]] = None) -> None:
         # Retained for source compatibility with the former supervised
         # executor. Automatic demo execution intentionally ignores callbacks.
         if isinstance(approval_callback, StateStore) and state is None:
@@ -74,16 +75,25 @@ class FinalMT5Executor:
         self.client = client
         self.state = state or StateStore()
         self.max_deviation_points = int(max_deviation_points)
+        self.account_mode_provider = account_mode_provider or (lambda: "DEMO")
 
     def _account(self):
         account = self.client.account_info()
         if account is None:
             return None, ExecutionResult(
                 False, "ACCOUNT_UNAVAILABLE", "MT5 account information is unavailable.")
-        demo_mode = getattr(self.client, "ACCOUNT_TRADE_MODE_DEMO", 0)
-        if getattr(account, "trade_mode", None) != demo_mode:
+        selected = str(self.account_mode_provider()).strip().upper()
+        expected = {
+            "DEMO": getattr(self.client, "ACCOUNT_TRADE_MODE_DEMO", 0),
+            "LIVE": getattr(self.client, "ACCOUNT_TRADE_MODE_REAL", 2),
+        }.get(selected)
+        if expected is None:
             return None, ExecutionResult(
-                False, "DEMO_REQUIRED", "V12 automatic execution is restricted to demo accounts.")
+                False, "ACCOUNT_MODE_INVALID", "Selected account mode must be DEMO or LIVE.")
+        if getattr(account, "trade_mode", None) != expected:
+            return None, ExecutionResult(
+                False, "ACCOUNT_MODE_MISMATCH",
+                f"Selected {selected}, but the connected MT5 account has a different trade mode.")
         return account, None
 
     def _positions(self, **kwargs):

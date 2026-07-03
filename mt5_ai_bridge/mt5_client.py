@@ -39,6 +39,7 @@ class RealMT5Client:
         self.POSITION_TYPE_BUY = mt5.POSITION_TYPE_BUY
         self.POSITION_TYPE_SELL = mt5.POSITION_TYPE_SELL
         self.ACCOUNT_TRADE_MODE_DEMO = getattr(mt5, "ACCOUNT_TRADE_MODE_DEMO", 0)
+        self.ACCOUNT_TRADE_MODE_REAL = getattr(mt5, "ACCOUNT_TRADE_MODE_REAL", 2)
 
     # -- connection ---------------------------------------------------------
     def initialize(self) -> bool:

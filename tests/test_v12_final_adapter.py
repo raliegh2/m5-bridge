@@ -21,6 +21,7 @@ class Client:
     TRADE_RETCODE_PLACED = 10008
     TRADE_RETCODE_DONE_PARTIAL = 10010
     ACCOUNT_TRADE_MODE_DEMO = 0
+    ACCOUNT_TRADE_MODE_REAL = 2
 
     def __init__(self, trade_mode=0):
         self.account = SimpleNamespace(login=123, server="Demo", balance=5000.0,
@@ -62,8 +63,18 @@ def test_adapter_routes_signal_to_automatic_demo_executor(tmp_path) -> None:
     assert len(client.sent) == 1
 
 
-def test_adapter_blocks_live_account(tmp_path) -> None:
+def test_adapter_blocks_mode_mismatch(tmp_path) -> None:
     client = Client(trade_mode=2)
     result = FinalV12Adapter(client, state_path=str(tmp_path / "s.json")).submit(signal())
-    assert not result.ok and result.code == "DEMO_REQUIRED"
+    assert not result.ok and result.code == "ACCOUNT_MODE_MISMATCH"
     assert not client.sent
+
+
+def test_adapter_routes_matching_live_account_without_approval(tmp_path) -> None:
+    client = Client(trade_mode=2)
+    result = FinalV12Adapter(
+        client, state_path=str(tmp_path / "s.json"),
+        account_mode_provider=lambda: "LIVE",
+    ).submit(signal())
+    assert result.ok and result.code == "ORDER_FILLED"
+    assert len(client.sent) == 1

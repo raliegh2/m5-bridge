@@ -58,12 +58,14 @@ class FinalV12Adapter:
 
     def __init__(self, client, state_path: str = "v12_final_research_state.json",
                  approval_callback: Optional[Callable[[ApprovalSummary], bool]] = None,
-                 max_deviation_points: int = 10) -> None:
+                 max_deviation_points: int = 10,
+                 account_mode_provider: Optional[Callable[[], str]] = None) -> None:
         self.executor = FinalMT5Executor(
             client=client,
             approval_callback=approval_callback,
             state=StateStore(state_path),
             max_deviation_points=max_deviation_points,
+            account_mode_provider=account_mode_provider,
         )
 
     def submit(self, signal: NamedEngineSignal,

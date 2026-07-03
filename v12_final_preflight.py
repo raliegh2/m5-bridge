@@ -1,10 +1,10 @@
-"""Safe preflight for the final V12 automatic demo profile.
+"""Safe preflight for the final V12 automatic DEMO/LIVE profile.
 
 Run with:  python v12_final_preflight.py
 
 Connects to MT5, checks all five symbols and broker-native pip values, confirms
-open positions can be reconciled, verifies AUTO mode and a demo account, and
-exits without sending an order.
+open positions can be reconciled, verifies AUTO mode and the selected account
+type, and exits without sending an order.
 """
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from mt5_ai_bridge.enums import Mode
 from mt5_ai_bridge.execution import pip_size
 from mt5_ai_bridge.mt5_client import create_client
 from mt5_ai_bridge.v12_final_execution import FinalMT5Executor
+from mt5_ai_bridge.v12_final_mode import AccountModeStore
 from mt5_ai_bridge.v12_final_risk import ALLOWED_SYMBOLS, PROFILE_ID, validate_profile
 from mt5_ai_bridge.v12_final_state import StateStore
 
@@ -25,18 +26,23 @@ def main() -> None:
     settings = load_settings()
     client = create_client()
     state = StateStore(os.getenv("V12_FINAL_STATE_PATH", "v12_final_research_state.json"))
+    mode_store = AccountModeStore(os.getenv(
+        "V12_FINAL_ACCOUNT_MODE_PATH", "v12_final_account_mode.json"))
     errors = []
     try:
         connect(client, settings)
         account = client.account_info()
         if account is None:
             raise RuntimeError("account_info() returned None")
-        if getattr(account, "trade_mode", None) != client.ACCOUNT_TRADE_MODE_DEMO:
-            errors.append("Connected MT5 account is not a confirmed demo account.")
         if settings.mode is not Mode.AUTO:
-            errors.append("MODE must be AUTO for V12 automatic demo execution.")
+            errors.append("MODE must be AUTO for V12 automatic execution.")
 
-        reconciled = FinalMT5Executor(client, state=state).reconcile_open_positions(account)
+        executor = FinalMT5Executor(
+            client, state=state, account_mode_provider=mode_store.get)
+        _checked_account, account_error = executor._account()
+        if account_error:
+            errors.append(account_error.message)
+        reconciled = executor.reconcile_open_positions(account)
         if not reconciled.ok:
             errors.append(reconciled.message)
 
@@ -60,6 +66,7 @@ def main() -> None:
                       f"pip_value={abs(float(one_pip)):.4f}")
 
         print(f"Profile : {PROFILE_ID}")
+        print(f"Selected: {mode_store.get()}")
         print(f"Account : login={account.login} server={getattr(account, 'server', '')} "
               f"balance={account.balance} equity={account.equity}")
         if errors:
@@ -67,7 +74,7 @@ def main() -> None:
             for error in errors:
                 print(f"- {error}")
             raise SystemExit(1)
-        print("\nPREFLIGHT PASSED: automatic demo execution and broker inputs are ready.")
+        print(f"\nPREFLIGHT PASSED: automatic {mode_store.get()} execution is ready.")
         print("No order was sent.")
     finally:
         client.shutdown()

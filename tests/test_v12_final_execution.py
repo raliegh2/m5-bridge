@@ -24,6 +24,7 @@ class Client:
     TRADE_RETCODE_DONE = 10009
     TRADE_RETCODE_DONE_PARTIAL = 10010
     ACCOUNT_TRADE_MODE_DEMO = 0
+    ACCOUNT_TRADE_MODE_REAL = 2
 
     def __init__(self, positions=None, spread=0.00010, trade_mode=0,
                  retcode=10009):
@@ -89,11 +90,21 @@ def position(ticket=42, magic=None, volume=0.02, sl=1.09510):
     )
 
 
-def test_executor_rejects_non_demo_account(tmp_path) -> None:
+def test_executor_rejects_account_mode_mismatch(tmp_path) -> None:
     client = Client(trade_mode=2)
     result = FinalMT5Executor(client, state=StateStore(str(tmp_path / "s.json"))).place(request())
-    assert not result.ok and result.code == "DEMO_REQUIRED"
+    assert not result.ok and result.code == "ACCOUNT_MODE_MISMATCH"
     assert not client.sent
+
+
+def test_executor_automatically_trades_matching_live_account(tmp_path) -> None:
+    client = Client(trade_mode=2)
+    result = FinalMT5Executor(
+        client, state=StateStore(str(tmp_path / "s.json")),
+        account_mode_provider=lambda: "LIVE",
+    ).place(request())
+    assert result.ok and result.code == "ORDER_FILLED"
+    assert len(client.sent) == 1
 
 
 def test_executor_sends_complete_native_order_and_persists_ticket(tmp_path) -> None:

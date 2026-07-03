@@ -1,13 +1,13 @@
-# Final V12 Automatic Demo Runner
+# Final V12 Automatic DEMO/LIVE Runner
 
 The runner evaluates the frozen five-symbol strategy using completed H1, H4,
 and D1 candles. Qualified signals pass through the unchanged V12 risk gates and
-then through the demo-only MT5 executor.
+then through the selected-account MT5 executor.
 
 ## Files
 
 - `v12_final_runner.py` — continuous scanner and execution router
-- `v12_final_preflight.py` — demo/account/symbol/reconciliation validation
+- `v12_final_preflight.py` — selected-account/symbol/reconciliation validation
 - `mt5_ai_bridge/v12_final_execution.py` — order, recovery, close, and modify layer
 - `research/v12_final_runner_parity_backtest.py` — historical parity check
 - `v12_final_executions.jsonl` — generated execution-attempt log
@@ -16,12 +16,16 @@ then through the demo-only MT5 executor.
 
 ## Start safely
 
-Ensure MT5 is open and logged into a demo account, then:
+Ensure MT5 is open and logged into the intended account, then use the preferred
+combined bot/dashboard launcher:
 
 ```powershell
-python v12_final_preflight.py
-python v12_final_runner.py --once
+python v12_final_bot.py
 ```
+
+Choose `DEMO` or `LIVE` at startup. During runtime, use the dashboard account
+mode buttons or type `MODE DEMO` / `MODE LIVE` in the terminal. The selected
+mode must match the actual connected account or order execution is blocked.
 
 If preflight passes, continuous scanning can be started with:
 
