@@ -1,0 +1,4 @@
+symbol,selected,reason
+GBPUSD,False,no RSI/EMA/order-flow setup passed lax risk gate
+GBPJPY,False,no RSI/EMA/order-flow setup passed lax risk gate
+EURUSD,False,M1 median step 5.00 minutes; excluded
