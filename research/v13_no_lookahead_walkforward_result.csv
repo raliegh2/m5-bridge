@@ -1,0 +1,13 @@
+metric,value
+starting_balance,5000.00
+ending_balance,4797.95
+net_profit,-202.05
+return_percent,-4.04
+trades,214
+wins,120
+losses,94
+win_rate_percent,56.07
+profit_factor,0.770
+max_drawdown_percent,5.06
+avg_trade,-0.94
+decision,FAILED_ROBUST_PROFITABILITY_GATE_KEEP_INTRADAY_DISABLED
