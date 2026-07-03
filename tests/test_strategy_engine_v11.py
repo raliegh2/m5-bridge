@@ -1,3 +1,5 @@
+import pytest
+
 from mt5_ai_bridge.strategy_engine_v11 import (
     SetupDiagnostics,
     V11_PROFILE,
@@ -5,9 +7,13 @@ from mt5_ai_bridge.strategy_engine_v11 import (
 )
 
 
-def test_v11_profile_defaults_are_research_safe():
+def test_v11_profile_defaults_are_intraday_research_safe():
     V11_PROFILE.validate()
     assert V11_PROFILE.mode == "READ_ONLY"
+    assert V11_PROFILE.intraday_only is True
+    assert V11_PROFILE.allow_overnight_positions is False
+    assert V11_PROFILE.force_flat_hour_utc == 20
+    assert V11_PROFILE.max_positions == 3
     assert V11_PROFILE.max_open_risk_percent == 0.90
     assert V11_PROFILE.aligned_gbp_cap_percent == 0.60
     assert V11_PROFILE.mixed_gbp_cap_percent == 0.45
@@ -21,6 +27,12 @@ def test_v11_engine_aliases_and_risk_tiers():
     assert V11_PROFILE.risk_for("GBPUSD_SATELLITE_V3", quality_score=0.90) == 0.40
     assert V11_PROFILE.risk_for("EURUSD_SATELLITE_V7", quality_score=0.85) == 0.40
     assert V11_PROFILE.risk_for("GBPJPY_SATELLITE_V7", quality_score=0.70) == 0.25
+
+
+def test_v11_rejects_swing_engines():
+    with pytest.raises(KeyError):
+        V11_PROFILE.risk_for("GBPUSD_SWING_V6")
+    assert all("SWING" not in policy.engine for policy in V11_PROFILE.risk_policies)
 
 
 def test_v11_quality_gate_uses_engine_specific_thresholds():
