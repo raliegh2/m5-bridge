@@ -1,0 +1,35 @@
+{
+  "baseline": {
+    "starting_balance": 5000.0,
+    "ending_balance": 4773.0,
+    "net_result": -227.0,
+    "return_percent": -4.54,
+    "trades": 112,
+    "profit_factor": 0.811,
+    "max_drawdown_percent": 8.47,
+    "total_r": -13.015634611904895
+  },
+  "guarded": {
+    "starting_balance": 5000.0,
+    "ending_balance": 5058.563951066211,
+    "net_result": 58.5639510662113,
+    "return_percent": 1.1712790213242261,
+    "trades": 65,
+    "wins": 29,
+    "losses": 36,
+    "win_rate": 0.4461538461538462,
+    "profit_factor": 1.0914103968205413,
+    "max_drawdown_percent": 2.7300861331664135,
+    "total_r": 3.4848916241879078,
+    "skipped_trades": 47
+  },
+  "guard": {
+    "risk_per_trade_percent": 0.35,
+    "daily_stop_R": -1.5,
+    "rolling_window_trades": 8,
+    "rolling_disable_threshold_R": -0.5,
+    "cooldown_months": 3,
+    "total_dd_stop_percent": 8.8
+  },
+  "decision": "research_patch_requires_forward_validation"
+}
