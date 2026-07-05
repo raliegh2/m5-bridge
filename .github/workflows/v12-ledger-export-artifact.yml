@@ -11,6 +11,16 @@ on:
       - 'research/v12_targeted_weak_engine_optimization.py'
       - 'research/v13_expanded_assets_backtest.py'
       - 'v12_final_runner.py'
+  pull_request:
+    branches:
+      - v12-final-demo-risk-controls
+    paths:
+      - '.github/workflows/v12-ledger-export-artifact.yml'
+      - 'research/v12_final_ledger_export.py'
+      - 'research/v12_plus_validated_assets_backtest.py'
+      - 'research/v12_targeted_weak_engine_optimization.py'
+      - 'research/v13_expanded_assets_backtest.py'
+      - 'v12_final_runner.py'
   workflow_dispatch:
 
 permissions:
