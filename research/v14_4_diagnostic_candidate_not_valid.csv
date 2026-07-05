@@ -1,0 +1,2 @@
+name,why_not_valid,train_signals,train_pf_r,confirm_signals,confirm_pf_r,locked_signals,locked_accepted_trades,locked_net_result,locked_profit_factor,locked_conservative_stacked_dd_percent
+post_locked_diagnostic_candidate_not_valid,"bucket set was identified after inspecting locked-test diagnostics, so it cannot be called valid on this split",680,1.2689166563708905,628,1.2053162042606733,975,975,1601.8455916062103,1.267437856269806,8.182881443846501
