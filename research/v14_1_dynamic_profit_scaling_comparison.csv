@@ -1,0 +1,6 @@
+scenario,starting_balance,ending_balance,net_result,return_percent,trades,profit_factor,max_dd_percent,conservative_stacked_dd_percent
+V12 Final aggregate only,5000.00,8201.58,3201.58,64.03,918,1.606,4.93,5.25
+Prior V14 risk-capped ICT satellite,5000.00,7591.19,2591.19,51.82,11649,1.120,4.32,9.57
+V14.1 ICT dynamic profit-scaling satellite,5000.00,7695.19,2695.19,53.90,11649,1.125,4.21,9.46
+V14.1 combined estimate,5000.00,10896.77,5896.77,117.94,12567,,4.93,9.46
+V14.1 uncapped dynamic satellite reference,5000.00,7698.83,2698.83,53.98,11649,1.123,4.37,9.62
