@@ -1,0 +1,13 @@
+{
+  "active_risk": 0.45,
+  "dd_tiers": [
+    [
+      8.0,
+      0.05,
+      "dd_throttle"
+    ]
+  ],
+  "hard_dd": 9.7,
+  "label": "under10_target_r0.45_t8.0_tr0.05_hard9.7_cap1.25",
+  "max_open_cap": 1.25
+}
