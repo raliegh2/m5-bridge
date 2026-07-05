@@ -1,0 +1,4 @@
+symbol,selected,decision,setup,train_r,train_pf,train_trades,confirm_r,confirm_pf,confirm_trades,test_r,test_pf,test_trades,test_win_rate,reason
+GBPUSD,True,Selected,"Inverted/fade sweep_rsi; 30-bar liquidity sweep; 1.5R target; 0.7 ATR stop; 90-minute max hold",0.2883668869,0.9989016642,182,9.1349359107,1.5048822147,37,-13.0156346119,0.8111846511,112,0.375,
+GBPJPY,False,Not selected,Best candidate failed train/confirmation gate,-45.5681059003,0.6227816521,211,4.6068672784,1.2987345091,30,,,,,no_ict_setup_passed_train_confirm_gate
+EURUSD,False,Excluded,Uploaded M1 file is 5-minute spacing,,,,,,,,,,,not_true_m1
