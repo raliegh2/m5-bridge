@@ -1,0 +1,47 @@
+name: V12 final ledger export artifact
+
+on:
+  push:
+    branches:
+      - v13-v12-final-plus-v11-intraday
+    paths:
+      - '.github/workflows/v12-ledger-export-artifact.yml'
+      - 'research/v12_final_ledger_export.py'
+      - 'research/v12_plus_validated_assets_backtest.py'
+      - 'research/v12_targeted_weak_engine_optimization.py'
+      - 'research/v13_expanded_assets_backtest.py'
+      - 'v12_final_runner.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  export-v12-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pandas numpy
+      - name: Export V12 final ledger
+        run: python research/v12_final_ledger_export.py
+      - name: Show summary
+        run: cat research/v12_final_ledger_output/v12_final_ledger_summary.json
+      - name: Upload V12 ledger artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v12-final-ledger-output
+          path: |
+            research/v12_final_ledger_output/v12_final_trade_ledger.csv
+            research/v12_final_ledger_output/v12_final_equity_curve.csv
+            research/v12_final_ledger_output/v12_final_accepted.csv
+            research/v12_final_ledger_output/v12_final_rejected.csv
+            research/v12_final_ledger_output/v12_final_candidates.csv
+            research/v12_final_ledger_output/v12_final_ledger_summary.json
