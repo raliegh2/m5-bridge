@@ -1,0 +1,30 @@
+{
+  "status": "completed_uploaded_data_no_lookahead_research_replay",
+  "data": {
+    "GBPUSD": {"m1_median_step_minutes": 1.0, "usable_rows": 3721516, "start": "2016-07-04 00:01:00", "end": "2026-07-03 17:48:00", "decision": "tested"},
+    "GBPJPY": {"m1_median_step_minutes": 1.0, "usable_rows": 3721448, "start": "2016-07-04 00:01:00", "end": "2026-07-03 17:48:00", "decision": "tested"},
+    "EURUSD": {"m1_median_step_minutes": 5.0, "decision": "excluded_uploaded_m1_file_not_true_m1"}
+  },
+  "validation": {
+    "train": "2016-07-04 to 2021-12-31",
+    "confirmation": "2022-01-01 to 2022-12-31",
+    "out_of_sample": "2023-01-01 to 2026-07-03",
+    "selection_uses_test_period": false
+  },
+  "portfolio_result": {
+    "starting_balance": 5000.0,
+    "ending_balance": 4773.002078245997,
+    "net_profit": -226.99792175400307,
+    "return_percent": -4.539958435080062,
+    "trades": 112,
+    "wins": 42,
+    "losses": 70,
+    "win_rate": 0.375,
+    "profit_factor": 0.8111846510808803,
+    "max_drawdown_percent": 8.470939600110214,
+    "risk_per_trade_percent": 0.35,
+    "daily_stop_percent": 1.35,
+    "total_dd_stop_percent": 9.0
+  },
+  "decision": "failed_oos_keep_ict_intraday_disabled"
+}
