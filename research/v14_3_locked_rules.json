@@ -1,0 +1,34 @@
+{
+  "version": "V14.3_LOCKED_EDGE_FILTERED_RESEARCH",
+  "locked_on": "2026-07-05",
+  "v12_role": "master_protected_engine",
+  "ict_role": "satellite_intraday_module",
+  "edge_filters": {
+    "exclude": [
+      {"symbol": "GBPJPY", "setup_family": "breakout_fade"},
+      {"symbol": "GBPUSD", "setup_family": "sweep_reclaim_15"},
+      {"weekday": "Tuesday"},
+      {"entry_hour": 7},
+      {"entry_hour": 13}
+    ]
+  },
+  "risk_governor": {
+    "active_ict_risk_percent": 0.40,
+    "micro_ict_risk_percent": 0.05,
+    "micro_risk_trigger_combined_dd_percent": 8.25,
+    "hard_stop_trigger_combined_dd_percent": 9.50,
+    "v12_stress_dd_reserve_percent": 5.25,
+    "max_ict_open_risk_percent": 0.75,
+    "max_combined_open_risk_percent": 1.25
+  },
+  "validation": {
+    "historical_data_cutoff": "2026-07-03",
+    "forward_test_start": "2026-07-06",
+    "minimum_weeks": 8,
+    "minimum_accepted_ict_trades": 200,
+    "pass_pf_min": 1.10,
+    "pass_net_r_min": 0.0,
+    "pass_max_combined_dd_percent": 9.50,
+    "future_data_usage_allowed": false
+  }
+}
