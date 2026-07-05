@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "profile": "V12_FINAL_3201_58",
+  "common_start": "2012-11-26T20:00:00+00:00",
+  "common_end": "2022-03-04T20:00:00+00:00",
+  "candidate_count": 1537,
+  "accepted_count": 918,
+  "rejected_count": 619,
+  "summary": {
+    "start": "2012-11-26T20:00:00+00:00",
+    "end": "2022-03-04T20:00:00+00:00",
+    "starting_balance": 5000.0,
+    "ending_balance": 8201.580257713134,
+    "gross_income": 8481.058508429602,
+    "gross_loss": 5279.478250716474,
+    "net_profit": 3201.5802577131344,
+    "return_percent": 64.03160515426269,
+    "average_monthly_profit": 28.78821243549292,
+    "trades": 918,
+    "profit_factor": 1.606419821367508,
+    "max_drawdown_percent": 4.929405124404266,
+    "stress_drawdown_percent": 5.253622442987053,
+    "rejections": {
+      "guard:cooldown": 285,
+      "symbol_cap": 232,
+      "guard:probe_in_flight": 49,
+      "guard:new_cooldown": 34,
+      "max_positions": 14,
+      "gbp_cap": 5
+    }
+  },
+  "missing_candidates": 0,
+  "extra_candidates": 0,
+  "outputs": {
+    "ledger": "C:\\Users\\ralie\\mt5-ai-bridge\\research\\v12_final_ledger_output\\v12_final_trade_ledger.csv",
+    "equity_curve": "C:\\Users\\ralie\\mt5-ai-bridge\\research\\v12_final_ledger_output\\v12_final_equity_curve.csv",
+    "accepted": "C:\\Users\\ralie\\mt5-ai-bridge\\research\\v12_final_ledger_output\\v12_final_accepted.csv",
+    "rejected": "C:\\Users\\ralie\\mt5-ai-bridge\\research\\v12_final_ledger_output\\v12_final_rejected.csv",
+    "candidates": "C:\\Users\\ralie\\mt5-ai-bridge\\research\\v12_final_ledger_output\\v12_final_candidates.csv",
+    "summary": "C:\\Users\\ralie\\mt5-ai-bridge\\research\\v12_final_ledger_output\\v12_final_ledger_summary.json"
+  }
+}
