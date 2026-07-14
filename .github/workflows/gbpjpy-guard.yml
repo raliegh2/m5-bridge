@@ -1,4 +1,4 @@
-name: GBPJPY loss guard
+name: Final five-symbol validation
 
 on:
   pull_request:
@@ -6,6 +6,9 @@ on:
       - v13-v12-final-plus-v11-intraday
     paths:
       - "GBPJPY_GUARD_IMPLEMENTATION.md"
+      - "final_five_symbol_runner.py"
+      - "mt5_ai_bridge/final_engine_registry.py"
+      - "mt5_ai_bridge/symbol_diagnostics.py"
       - "mt5_ai_bridge/mt5_client.py"
       - "mt5_ai_bridge/gbpjpy_guard.py"
       - "mt5_ai_bridge/gbpjpy_guarded_execution.py"
@@ -13,6 +16,8 @@ on:
       - "mt5_ai_bridge/v12_final_adapter.py"
       - "mt5_ai_bridge/v13_v12_plus_v11_intraday_profile.py"
       - "research/v14_7_gbpjpy_guarded_combined_replay.py"
+      - "tests/test_final_engine_registry.py"
+      - "tests/test_symbol_diagnostics.py"
       - "tests/test_gbpjpy_guard.py"
       - "tests/test_gbpjpy_guarded_execution.py"
       - "tests/test_v13_v12_plus_v11_intraday_profile.py"
@@ -34,9 +39,12 @@ jobs:
           python-version: "3.12"
       - name: Install test dependencies
         run: python -m pip install --upgrade pip pytest python-dotenv pandas numpy
-      - name: Compile guard code
+      - name: Compile final bot code
         run: >-
           python -m compileall -q
+          final_five_symbol_runner.py
+          mt5_ai_bridge/final_engine_registry.py
+          mt5_ai_bridge/symbol_diagnostics.py
           mt5_ai_bridge/mt5_client.py
           mt5_ai_bridge/gbpjpy_guard.py
           mt5_ai_bridge/gbpjpy_guarded_execution.py
@@ -44,15 +52,14 @@ jobs:
           mt5_ai_bridge/v12_final_adapter.py
           mt5_ai_bridge/v13_v12_plus_v11_intraday_profile.py
           research/v14_7_gbpjpy_guarded_combined_replay.py
-          tests/test_gbpjpy_guard.py
-          tests/test_gbpjpy_guarded_execution.py
-          tests/test_v14_7_gbpjpy_guarded_replay.py
-      - name: Run focused guard tests
+      - name: Run focused final-bot tests
         id: pytest
         shell: bash
         run: |
           set +e
           python -m pytest -q \
+            tests/test_final_engine_registry.py \
+            tests/test_symbol_diagnostics.py \
             tests/test_gbpjpy_guard.py \
             tests/test_gbpjpy_guarded_execution.py \
             tests/test_v13_v12_plus_v11_intraday_profile.py \
@@ -67,6 +74,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gbpjpy-guard-pytest-output
+          name: final-five-symbol-pytest-output
           path: pytest-output.txt
           if-no-files-found: error
