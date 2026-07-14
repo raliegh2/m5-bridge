@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - v13-v12-final-plus-v11-intraday
+      - fix-gbpjpy-loss-guard
     paths:
       - "GBPJPY_GUARD_IMPLEMENTATION.md"
       - "final_five_symbol_runner.py"
@@ -24,6 +25,7 @@ on:
       - "tests/test_v13_v12_plus_v11_intraday_profile.py"
       - "tests/test_v14_7_gbpjpy_guarded_replay.py"
       - ".github/workflows/gbpjpy-guard.yml"
+      - "research/combined_backtest_trigger.md"
   workflow_dispatch:
 
 permissions:
@@ -72,16 +74,20 @@ jobs:
           status=$?
           cat pytest-output.txt
           exit $status
-      - name: Run repository-history final five-symbol replay
+      - name: Run V12-only repository-history replay
         run: python research/final_five_symbol_10y_backtest.py
+      - name: Run chronological V12 plus ICT combined replay
+        run: python research/v14_7_gbpjpy_guarded_combined_replay.py 2>&1 | tee combined-v14-7.log
       - name: Upload final validation artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: final-five-symbol-10y-validation
+          name: final-five-symbol-combined-validation
           path: |
             pytest-output.txt
+            combined-v14-7.log
             research/final_five_symbol_10y_output/
             research/v12_plus_validated_assets_output/
+            research/v14_7_gbpjpy_guarded_combined_out/
           if-no-files-found: warn
           retention-days: 90
