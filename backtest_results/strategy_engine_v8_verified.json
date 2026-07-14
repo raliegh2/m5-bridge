@@ -1,0 +1,72 @@
+{
+  "initial_balance": 5000.0,
+  "ending_balance": 5805.464663644254,
+  "realized_drawdown_percent": 3.001961449495753,
+  "open_risk_stress_drawdown_percent": 3.4869516422482767,
+  "portfolio": {
+    "trades": 217,
+    "net_profit": 805.4646636442538,
+    "return_percent": 16.10929327288508,
+    "profit_factor": 1.5945919295280293,
+    "win_rate": 0.43317972350230416,
+    "average_trade": 3.7118187264712157,
+    "maximum_win": 88.2619304053696,
+    "maximum_loss": -29.738670738499994,
+    "maximum_drawdown_percent": 3.001961449495753
+  },
+  "engine_summary": [
+    {
+      "engine": "EURUSD_SATELLITE_V7",
+      "trades": 22,
+      "net_profit": 136.1115469780581,
+      "return_percent": 2.722230939561162,
+      "profit_factor": 2.0616303084107974,
+      "win_rate": 0.5,
+      "average_trade": 6.186888499002641,
+      "maximum_win": 27.38869449555427,
+      "maximum_loss": -17.102975083215764,
+      "maximum_drawdown_percent": 0.9591511176665427
+    },
+    {
+      "engine": "GBPJPY_SATELLITE_V7",
+      "trades": 18,
+      "net_profit": 151.47069146702023,
+      "return_percent": 3.0294138293404047,
+      "profit_factor": 3.560667999438886,
+      "win_rate": 0.5555555555555556,
+      "average_trade": 8.415038414834457,
+      "maximum_win": 27.15768736958205,
+      "maximum_loss": -15.364267846104507,
+      "maximum_drawdown_percent": 0.5840193729310488
+    },
+    {
+      "engine": "GBPUSD_SATELLITE_V2",
+      "trades": 170,
+      "net_profit": 413.48125021609576,
+      "return_percent": 8.269625004321915,
+      "profit_factor": 1.3634840918940632,
+      "win_rate": 0.3941176470588235,
+      "average_trade": 2.432242648329975,
+      "maximum_win": 41.337651326955125,
+      "maximum_loss": -16.096746452441597,
+      "maximum_drawdown_percent": 2.3154083802617196
+    },
+    {
+      "engine": "GBPUSD_SWING_V6",
+      "trades": 7,
+      "net_profit": 104.40117498307976,
+      "return_percent": 2.088023499661595,
+      "profit_factor": 4.510620091298193,
+      "win_rate": 0.8571428571428571,
+      "average_trade": 14.914453569011394,
+      "maximum_win": 88.2619304053696,
+      "maximum_loss": -29.738670738499994,
+      "maximum_drawdown_percent": 0.5802453931560927
+    }
+  ],
+  "rejected_candidates": 7,
+  "rejection_reasons": {
+    "max_open_risk": 7
+  },
+  "methodology": "Synchronized trade-ledger replay using exact reserved risk and R outcomes; stress equity marks every open position at its full reserved loss."
+}
