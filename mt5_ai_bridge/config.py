@@ -54,6 +54,12 @@ class Settings:
     trail_enabled: bool
     trail_start_pips: float
     trail_distance_pips: float
+    break_even_trigger: float
+    break_even_buffer_pips: float
+    partial_profit_trigger: float
+    partial_profit_lock_ratio: float
+    trailing_start: float
+    trailing_distance_atr: float
 
     # ATR-based (volatility-adaptive) stops
     atr_enabled: bool
@@ -181,6 +187,12 @@ def load_settings(dotenv: bool = True) -> Settings:
         trail_enabled=_get_bool("TRAIL_ENABLED", True),
         trail_start_pips=_get_float("TRAIL_START_PIPS", 20),
         trail_distance_pips=_get_float("TRAIL_DISTANCE_PIPS", 15),
+        break_even_trigger=_get_float("BREAK_EVEN_TRIGGER", 1.0),
+        break_even_buffer_pips=_get_float("BREAK_EVEN_BUFFER_PIPS", 0.5),
+        partial_profit_trigger=_get_float("PARTIAL_PROFIT_TRIGGER", 0.75),
+        partial_profit_lock_ratio=_get_float("PARTIAL_PROFIT_LOCK_RATIO", 0.35),
+        trailing_start=_get_float("TRAILING_START", 0.85),
+        trailing_distance_atr=_get_float("TRAILING_DISTANCE_ATR", 1.50),
         atr_enabled=_get_bool("ATR_ENABLED", True),
         atr_period=_get_int("ATR_PERIOD", 14),
         atr_sl_mult=_get_float("ATR_SL_MULT", 2.0),
