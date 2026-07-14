@@ -22,7 +22,9 @@ The adapter creates two state files by default:
 - `v12_final_research_state.json`
 - `v12_final_research_state_gbpjpy_guard.json`
 
-A closed GBPJPY trade must be recorded through:
+When an SL or TP closes GBPJPY in MT5, the executor detects the missing stored ticket, reads its deal history, calculates the realized R multiple, and updates the guard before permitting another GBPJPY entry. If the close cannot be reconciled, GBPJPY fails closed instead of opening a new trade.
+
+A manually managed close can also be recorded through:
 
 ```python
 adapter.record_closed_trade(
@@ -34,12 +36,16 @@ adapter.record_closed_trade(
 
 The `symbol` argument is optional for engines already registered in the V12 engine map.
 
+## Research replay
+
+`research/v14_7_gbpjpy_guarded_combined_replay.py` applies the same corrected GBPJPY limits to the V14.6 combined replay while leaving other symbols unchanged.
+
 ## Validation
 
 Run:
 
 ```powershell
-python -m pytest tests\test_gbpjpy_guard.py tests\test_gbpjpy_guarded_execution.py tests\test_v13_v12_plus_v11_intraday_profile.py -q
+python -m pytest tests\test_gbpjpy_guard.py tests\test_gbpjpy_guarded_execution.py tests\test_v13_v12_plus_v11_intraday_profile.py tests\test_v14_7_gbpjpy_guarded_replay.py -q
 ```
 
 Keep the bot on a demo account. Confirm that the guard state file updates after each closed GBPJPY trade, and review at least 30 new GBPJPY signals before considering any less restrictive settings.
