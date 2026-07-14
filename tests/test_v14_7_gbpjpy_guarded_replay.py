@@ -52,3 +52,29 @@ def test_v147_blocks_overlapping_gbpjpy_and_reduces_post_loss_risk():
     reasons = set(skipped["skip_reason"])
     assert "GBPJPY_ONE_POSITION_LIMIT" in reasons
     assert "SYMBOL_BLOCK_REST_DAY" in reasons
+
+
+def test_v147_blocks_gbpjpy_outside_utc_session_without_affecting_gbpusd():
+    v12 = pd.DataFrame()
+    ict = pd.DataFrame([
+        {
+            "trade_id": 1,
+            "symbol": "GBPJPY",
+            "entry_time": datetime(2026, 7, 14, 3, 0, tzinfo=UTC),
+            "exit_time": datetime(2026, 7, 14, 4, 0, tzinfo=UTC),
+            "r": 1.0,
+        },
+        {
+            "trade_id": 2,
+            "symbol": "GBPUSD",
+            "entry_time": datetime(2026, 7, 14, 3, 0, tzinfo=UTC),
+            "exit_time": datetime(2026, 7, 14, 4, 0, tzinfo=UTC),
+            "r": 1.0,
+        },
+    ])
+
+    replay = V147CombinedReplay(v12, ict, V147Config())
+    trades, skipped, _events, _summary = replay.run()
+
+    assert list(trades["symbol"]) == ["GBPUSD"]
+    assert list(skipped["skip_reason"]) == ["GBPJPY_SESSION_BLOCK"]
