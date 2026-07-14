@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from mt5_ai_bridge.gbpjpy_guard import GBPJPYGuardStore
-from mt5_ai_bridge.gbpjpy_guarded_execution import GBPJPYGuardedExecutor
+from mt5_ai_bridge.gbpjpy_strict_execution import GBPJPYStrictExecutor
 from mt5_ai_bridge.v12_final_execution import ENGINE_MAGIC, FinalExecutionRequest
 from mt5_ai_bridge.v12_final_state import StateStore
 
@@ -25,7 +25,7 @@ class Client:
     ACCOUNT_TRADE_MODE_DEMO = 0
     ACCOUNT_TRADE_MODE_REAL = 2
 
-    def __init__(self, positions=None):
+    def __init__(self, positions=None, spread=0.020):
         self._positions = list(positions or [])
         self._account = SimpleNamespace(
             balance=5000.0,
@@ -34,7 +34,7 @@ class Client:
             server="Broker-Demo",
             trade_mode=0,
         )
-        self._tick = SimpleNamespace(bid=217.000, ask=217.020)
+        self._tick = SimpleNamespace(bid=217.000, ask=217.000 + spread)
         self._info = SimpleNamespace(
             digits=3,
             point=0.001,
@@ -85,8 +85,8 @@ class Client:
         return (0, "ok")
 
 
-def request(at: datetime) -> FinalExecutionRequest:
-    return FinalExecutionRequest(
+def request(at: datetime, **overrides) -> FinalExecutionRequest:
+    data = dict(
         symbol="GBPJPY",
         engine="GBPJPY_SWING_CORE",
         setup="H4_DONCHIAN_BREAKOUT",
@@ -96,6 +96,8 @@ def request(at: datetime) -> FinalExecutionRequest:
         target_pips=100.0,
         signal_time=at,
     )
+    data.update(overrides)
+    return FinalExecutionRequest(**data)
 
 
 def open_position():
@@ -113,7 +115,7 @@ def open_position():
 
 def executor(tmp_path, client=None):
     client = client or Client()
-    return GBPJPYGuardedExecutor(
+    return GBPJPYStrictExecutor(
         client,
         state=StateStore(str(tmp_path / "state.json")),
         gbpjpy_guard=GBPJPYGuardStore(str(tmp_path / "guard.json")),
@@ -200,3 +202,47 @@ def test_missing_close_history_fails_closed(tmp_path):
 
     assert not result.ok
     assert result.code == "GBPJPY_CLOSE_UNRECONCILED"
+
+
+def test_gbpjpy_outside_london_new_york_window_is_blocked(tmp_path):
+    bot, client = executor(tmp_path)
+    at = datetime(2026, 7, 14, 3, 0, tzinfo=UTC)
+
+    result = bot.place(request(at), now=at)
+
+    assert not result.ok
+    assert result.code == "GBPJPY_SESSION_BLOCK"
+    assert not client.sent
+
+
+def test_gbpjpy_wide_spread_is_blocked(tmp_path):
+    bot, client = executor(tmp_path, Client(spread=0.040))
+    at = datetime(2026, 7, 14, 9, 0, tzinfo=UTC)
+
+    result = bot.place(request(at), now=at)
+
+    assert not result.ok
+    assert result.code == "GBPJPY_SPREAD_BLOCK"
+    assert not client.sent
+
+
+def test_gbpjpy_low_reward_risk_is_blocked(tmp_path):
+    bot, client = executor(tmp_path)
+    at = datetime(2026, 7, 14, 9, 0, tzinfo=UTC)
+
+    result = bot.place(request(at, target_pips=60.0), now=at)
+
+    assert not result.ok
+    assert result.code == "GBPJPY_REWARD_RISK_BLOCK"
+    assert not client.sent
+
+
+def test_gbpjpy_stop_outside_guarded_range_is_blocked(tmp_path):
+    bot, client = executor(tmp_path)
+    at = datetime(2026, 7, 14, 9, 0, tzinfo=UTC)
+
+    result = bot.place(request(at, stop_pips=10.0), now=at)
+
+    assert not result.ok
+    assert result.code == "GBPJPY_STOP_RANGE_BLOCK"
+    assert not client.sent
