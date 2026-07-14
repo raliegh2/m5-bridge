@@ -8,22 +8,11 @@ on:
     paths:
       - "GBPJPY_GUARD_IMPLEMENTATION.md"
       - "final_five_symbol_runner.py"
-      - "mt5_ai_bridge/final_engine_registry.py"
-      - "mt5_ai_bridge/symbol_diagnostics.py"
-      - "mt5_ai_bridge/mt5_client.py"
-      - "mt5_ai_bridge/gbpjpy_guard.py"
-      - "mt5_ai_bridge/gbpjpy_guarded_execution.py"
-      - "mt5_ai_bridge/gbpjpy_strict_execution.py"
-      - "mt5_ai_bridge/v12_final_adapter.py"
-      - "mt5_ai_bridge/v13_v12_plus_v11_intraday_profile.py"
+      - "mt5_ai_bridge/**"
+      - "research/build_v14_3_selected_ict_ledger.py"
       - "research/final_five_symbol_10y_backtest.py"
       - "research/v14_7_gbpjpy_guarded_combined_replay.py"
-      - "tests/test_final_engine_registry.py"
-      - "tests/test_symbol_diagnostics.py"
-      - "tests/test_gbpjpy_guard.py"
-      - "tests/test_gbpjpy_guarded_execution.py"
-      - "tests/test_v13_v12_plus_v11_intraday_profile.py"
-      - "tests/test_v14_7_gbpjpy_guarded_replay.py"
+      - "tests/**"
       - ".github/workflows/gbpjpy-guard.yml"
       - "research/combined_backtest_trigger.md"
   workflow_dispatch:
@@ -45,19 +34,7 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --upgrade pip pytest python-dotenv pandas numpy yfinance
       - name: Compile final bot code
-        run: >-
-          python -m compileall -q
-          final_five_symbol_runner.py
-          mt5_ai_bridge/final_engine_registry.py
-          mt5_ai_bridge/symbol_diagnostics.py
-          mt5_ai_bridge/mt5_client.py
-          mt5_ai_bridge/gbpjpy_guard.py
-          mt5_ai_bridge/gbpjpy_guarded_execution.py
-          mt5_ai_bridge/gbpjpy_strict_execution.py
-          mt5_ai_bridge/v12_final_adapter.py
-          mt5_ai_bridge/v13_v12_plus_v11_intraday_profile.py
-          research/final_five_symbol_10y_backtest.py
-          research/v14_7_gbpjpy_guarded_combined_replay.py
+        run: python -m compileall -q final_five_symbol_runner.py mt5_ai_bridge research/build_v14_3_selected_ict_ledger.py research/final_five_symbol_10y_backtest.py research/v14_7_gbpjpy_guarded_combined_replay.py
       - name: Run focused final-bot tests
         shell: bash
         run: |
@@ -69,6 +46,12 @@ jobs:
         run: |
           set -o pipefail
           python research/final_five_symbol_10y_backtest.py 2>&1 | tee v12-baseline.log
+      - name: Rebuild selected ICT ledger
+        if: always()
+        shell: bash
+        run: |
+          set -o pipefail
+          python research/build_v14_3_selected_ict_ledger.py 2>&1 | tee ict-ledger-build.log
       - name: Run chronological V12 plus ICT combined replay
         if: always()
         shell: bash
@@ -83,9 +66,11 @@ jobs:
           path: |
             pytest-output.txt
             v12-baseline.log
+            ict-ledger-build.log
             combined-v14-7.log
             research/final_five_symbol_10y_output/
             research/v12_plus_validated_assets_output/
+            research/v14_3_under10_target_out/selected_under10_target_trades.csv
             research/v14_7_gbpjpy_guarded_combined_out/
           if-no-files-found: warn
           retention-days: 90
