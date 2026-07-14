@@ -1,8 +1,8 @@
 """Persistent GBPJPY-specific risk and loss-cluster protection.
 
-The guard is deliberately independent from signal generation.  Any execution
+The guard is deliberately independent from signal generation. Any execution
 adapter can ask it whether a new GBPJPY order is allowed and what maximum risk
-percentage may be used.  State is written atomically so restarting the bot does
+percentage may be used. State is written atomically so restarting the bot does
 not clear a same-day stop or an active cooldown.
 """
 from __future__ import annotations
@@ -39,6 +39,8 @@ class GBPJPYGuardConfig:
             raise ValueError("max_daily_losses must be at least one")
         if self.rolling_window_trades < 2:
             raise ValueError("rolling_window_trades must be at least two")
+        if self.rolling_net_r_stop >= 0 or self.daily_net_r_stop >= 0:
+            raise ValueError("GBPJPY loss-stop thresholds must be negative R values")
         if self.cooldown_hours <= 0:
             raise ValueError("cooldown_hours must be positive")
         if not 0 < self.win_pressure_recovery < 1:
