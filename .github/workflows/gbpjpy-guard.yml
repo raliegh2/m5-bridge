@@ -8,6 +8,7 @@ on:
       - "mt5_ai_bridge/mt5_client.py"
       - "mt5_ai_bridge/gbpjpy_guard.py"
       - "mt5_ai_bridge/gbpjpy_guarded_execution.py"
+      - "mt5_ai_bridge/gbpjpy_strict_execution.py"
       - "mt5_ai_bridge/v12_final_adapter.py"
       - "mt5_ai_bridge/v13_v12_plus_v11_intraday_profile.py"
       - "research/v14_7_gbpjpy_guarded_combined_replay.py"
@@ -38,6 +39,7 @@ jobs:
           mt5_ai_bridge/mt5_client.py
           mt5_ai_bridge/gbpjpy_guard.py
           mt5_ai_bridge/gbpjpy_guarded_execution.py
+          mt5_ai_bridge/gbpjpy_strict_execution.py
           mt5_ai_bridge/v12_final_adapter.py
           mt5_ai_bridge/v13_v12_plus_v11_intraday_profile.py
           research/v14_7_gbpjpy_guarded_combined_replay.py
