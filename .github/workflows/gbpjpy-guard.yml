@@ -5,6 +5,7 @@ on:
     branches:
       - v13-v12-final-plus-v11-intraday
     paths:
+      - "GBPJPY_GUARD_IMPLEMENTATION.md"
       - "mt5_ai_bridge/mt5_client.py"
       - "mt5_ai_bridge/gbpjpy_guard.py"
       - "mt5_ai_bridge/gbpjpy_guarded_execution.py"
