@@ -42,7 +42,9 @@ The `symbol` argument is optional for engines already registered in the V12 engi
 
 ## Validation
 
-Run:
+The `GBPJPY loss guard` GitHub Actions workflow compiles the modified modules and runs the focused guard, execution, adapter, and replay tests.
+
+To run the same checks locally:
 
 ```powershell
 python -m pytest tests\test_gbpjpy_guard.py tests\test_gbpjpy_guarded_execution.py tests\test_v13_v12_plus_v11_intraday_profile.py tests\test_v14_7_gbpjpy_guarded_replay.py -q
