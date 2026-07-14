@@ -27,6 +27,12 @@ class GBPJPYGuardConfig:
     cooldown_hours: float = 4.0
     daily_net_r_stop: float = -2.0
     win_pressure_recovery: float = 0.50
+    session_start_hour_utc: int = 7
+    session_end_hour_utc: int = 20
+    max_spread_pips: float = 3.0
+    min_reward_risk: float = 1.50
+    min_stop_pips: float = 15.0
+    max_stop_pips: float = 150.0
 
     def validate(self) -> None:
         if self.normal_risk_cap_percent <= 0:
@@ -45,6 +51,18 @@ class GBPJPYGuardConfig:
             raise ValueError("cooldown_hours must be positive")
         if not 0 < self.win_pressure_recovery < 1:
             raise ValueError("win_pressure_recovery must be between zero and one")
+        if not 0 <= self.session_start_hour_utc <= 23:
+            raise ValueError("session_start_hour_utc must be between 0 and 23")
+        if not 1 <= self.session_end_hour_utc <= 24:
+            raise ValueError("session_end_hour_utc must be between 1 and 24")
+        if self.session_start_hour_utc >= self.session_end_hour_utc:
+            raise ValueError("GBPJPY session must be a same-day UTC window")
+        if self.max_spread_pips <= 0:
+            raise ValueError("max_spread_pips must be positive")
+        if self.min_reward_risk < 1.0:
+            raise ValueError("min_reward_risk must be at least 1.0")
+        if not 0 < self.min_stop_pips < self.max_stop_pips:
+            raise ValueError("GBPJPY stop bounds are invalid")
 
 
 @dataclass
@@ -165,6 +183,10 @@ class GBPJPYGuardStore:
             else "GBPJPY is allowed at the normal guarded risk cap.",
             cap,
         )
+
+    def in_session(self, now: Optional[datetime] = None) -> bool:
+        hour = self._utc(now).hour
+        return self.config.session_start_hour_utc <= hour < self.config.session_end_hour_utc
 
     def record_result(self, r_multiple: float,
                       now: Optional[datetime] = None) -> None:
