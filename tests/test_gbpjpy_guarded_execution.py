@@ -45,6 +45,7 @@ class Client:
         )
         self.sent = []
         self.next_ticket = 9000
+        self.deals = {}
 
     def account_info(self):
         return self._account
@@ -56,6 +57,9 @@ class Client:
         if "symbol" in kwargs:
             rows = [p for p in rows if p.symbol == kwargs["symbol"]]
         return rows
+
+    def history_deals_get(self, **kwargs):
+        return self.deals.get(int(kwargs["position"]), [])
 
     def symbol_info(self, _symbol):
         return self._info
@@ -163,3 +167,36 @@ def test_two_gbpjpy_losses_stop_new_orders_for_day(tmp_path):
     assert not result.ok
     assert result.code == "GBPJPY_DAILY_STOP"
     assert not client.sent
+
+
+def test_broker_closed_gbpjpy_is_reconciled_from_deal_history(tmp_path):
+    bot, client = executor(tmp_path)
+    start = datetime(2026, 7, 14, 9, 0, tzinfo=UTC)
+
+    first = bot.place(request(start), now=start)
+    assert first.ok and first.ticket is not None
+    client.deals[first.ticket] = [
+        SimpleNamespace(profit=-6.50, commission=0.0, swap=0.0, fee=0.0)
+    ]
+
+    next_time = start + timedelta(hours=2)
+    second = bot.place(request(next_time), now=next_time)
+
+    assert second.ok
+    assert bot.gbpjpy_guard.state.daily_losses == 1
+    assert client.sent[-1]["volume"] == 0.01
+
+
+def test_missing_close_history_fails_closed(tmp_path):
+    bot, _client = executor(tmp_path)
+    start = datetime(2026, 7, 14, 9, 0, tzinfo=UTC)
+
+    first = bot.place(request(start), now=start)
+    assert first.ok
+    result = bot.place(
+        request(start + timedelta(hours=2)),
+        now=start + timedelta(hours=2),
+    )
+
+    assert not result.ok
+    assert result.code == "GBPJPY_CLOSE_UNRECONCILED"
