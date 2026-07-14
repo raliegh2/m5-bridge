@@ -2,7 +2,7 @@
 
 Signal generators submit a fully specified ``NamedEngineSignal``. The adapter
 converts it into a broker-aware execution request and routes it through the
-GBPJPY-hardened executor. Non-GBPJPY orders retain the existing V12 behavior.
+strict GBPJPY executor. Non-GBPJPY orders retain the existing V12 behavior.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from .gbpjpy_guard import GBPJPYGuardConfig
-from .gbpjpy_guarded_execution import GBPJPYGuardedExecutor
+from .gbpjpy_strict_execution import GBPJPYStrictExecutor
 from .v12_final_execution import ApprovalSummary, ExecutionResult, FinalExecutionRequest
 from .v12_final_state import StateStore
 
@@ -52,7 +52,7 @@ def console_approval(summary: ApprovalSummary) -> bool:
 
 
 class FinalV12Adapter:
-    """Execution adapter with persistent GBPJPY loss-cluster protection."""
+    """Execution adapter with persistent GBPJPY loss and quality protection."""
 
     def __init__(self, client, state_path: str = "v12_final_research_state.json",
                  approval_callback: Optional[Callable[[ApprovalSummary], bool]] = None,
@@ -63,7 +63,7 @@ class FinalV12Adapter:
         guard_path = gbpjpy_guard_path or str(
             Path(state_path).with_name(Path(state_path).stem + "_gbpjpy_guard.json")
         )
-        self.executor = GBPJPYGuardedExecutor(
+        self.executor = GBPJPYStrictExecutor(
             client=client,
             approval_callback=approval_callback,
             state=StateStore(state_path),
