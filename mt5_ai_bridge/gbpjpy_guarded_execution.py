@@ -1,13 +1,14 @@
 """GBPJPY-hardened execution wrapper for the V12/V13 MT5 adapter.
 
-All non-GBPJPY orders use the existing executor unchanged.  GBPJPY orders gain
+All non-GBPJPY orders use the existing executor unchanged. GBPJPY orders gain
 one-position-only admission, persistent daily/cooldown stops, and broker-sized
-risk capped at 0.20% normally or 0.10% after a loss.  The original V12 gate is
-still authoritative and intentionally overestimates the proposed GBPJPY open
-risk when the guard reduces position size.
+risk capped at 0.20% normally or 0.10% after a loss. Closed GBPJPY positions
+are reconciled from MT5 deal history so the guard updates even when SL or TP
+closes a position outside the Python process.
 """
 from __future__ import annotations
 
+import math
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -52,6 +53,68 @@ class GBPJPYGuardedExecutor(FinalMT5Executor):
             gbpjpy_guard_path, gbpjpy_guard_config
         )
 
+    def reconcile_open_positions(self, account=None,
+                                 now: Optional[datetime] = None) -> ExecutionResult:
+        """Record broker-closed GBPJPY results before removing stored tickets."""
+        now = now or datetime.now(timezone.utc)
+        if account is None:
+            account, error = self._account()
+            if error:
+                return error
+
+        positions = self._positions()
+        current_tickets = {int(position.ticket) for position in positions}
+        missing_gbpjpy = [
+            stored for stored in self.state.state.positions.values()
+            if stored.symbol.upper() == "GBPJPY"
+            and int(stored.ticket) not in current_tickets
+        ]
+        for stored in missing_gbpjpy:
+            r_multiple = self._closed_position_r(
+                stored.ticket,
+                stored.risk_percent,
+                float(account.balance),
+            )
+            if r_multiple is None:
+                return ExecutionResult(
+                    False,
+                    "GBPJPY_CLOSE_UNRECONCILED",
+                    f"Closed GBPJPY ticket {stored.ticket} could not be reconciled "
+                    "from MT5 deal history; new GBPJPY entries remain blocked.",
+                )
+            self.record_closed_trade(
+                stored.engine,
+                r_multiple,
+                now=now,
+                symbol=stored.symbol,
+                ticket=stored.ticket,
+            )
+
+        return super().reconcile_open_positions(account)
+
+    def _closed_position_r(self, ticket: int, risk_percent: float,
+                           current_balance: float) -> Optional[float]:
+        history = getattr(self.client, "history_deals_get", None)
+        if history is None:
+            return None
+        try:
+            deals = list(history(position=int(ticket)) or [])
+        except (TypeError, ValueError):
+            return None
+        if not deals or current_balance <= 0 or risk_percent <= 0:
+            return None
+
+        pnl = 0.0
+        for deal in deals:
+            pnl += float(getattr(deal, "profit", 0.0) or 0.0)
+            pnl += float(getattr(deal, "commission", 0.0) or 0.0)
+            pnl += float(getattr(deal, "swap", 0.0) or 0.0)
+            pnl += float(getattr(deal, "fee", 0.0) or 0.0)
+        risk_dollars = current_balance * risk_percent / 100.0
+        if risk_dollars <= 0 or not math.isfinite(pnl):
+            return None
+        return pnl / risk_dollars
+
     def place(self, request: FinalExecutionRequest,
               now: Optional[datetime] = None) -> ExecutionResult:
         if request.symbol.upper() != "GBPJPY":
@@ -61,7 +124,7 @@ class GBPJPYGuardedExecutor(FinalMT5Executor):
         account, error = self._account()
         if error:
             return error
-        reconciled = self.reconcile_open_positions(account)
+        reconciled = self.reconcile_open_positions(account, now=now)
         if not reconciled.ok:
             return reconciled
         self.state.update_equity(float(account.equity), now)
@@ -141,8 +204,8 @@ class GBPJPYGuardedExecutor(FinalMT5Executor):
             request.symbol, request.engine, request.setup,
             request.side, request.signal_time,
         )
-        # Keep the tested profile risk in the V12 portfolio reservation.  The
-        # actual broker-sized risk is lower and is checked separately by the gate.
+        # Reserve the tested profile risk in the V12 portfolio gate. The actual
+        # broker-sized risk is lower and is checked separately by the same gate.
         intent = OrderIntent(
             symbol=request.symbol,
             engine=request.engine,
@@ -265,8 +328,19 @@ class GBPJPYGuardedExecutor(FinalMT5Executor):
 
     def record_closed_trade(self, engine: str, r_multiple: float,
                             now: Optional[datetime] = None,
-                            symbol: Optional[str] = None) -> None:
+                            symbol: Optional[str] = None,
+                            ticket: Optional[int] = None) -> None:
         super().record_closed_trade(engine, r_multiple, now)
         resolved_symbol = symbol or getattr(ENGINE_RULES.get(engine), "symbol", None)
-        if str(resolved_symbol or "").upper() == "GBPJPY":
-            self.gbpjpy_guard.record_result(r_multiple, now)
+        if str(resolved_symbol or "").upper() != "GBPJPY":
+            return
+        self.gbpjpy_guard.record_result(r_multiple, now)
+        if ticket is not None:
+            self.state.remove_position(ticket)
+            return
+        matching = [
+            stored.ticket for stored in self.state.state.positions.values()
+            if stored.symbol.upper() == "GBPJPY" and stored.engine == engine
+        ]
+        if len(matching) == 1:
+            self.state.remove_position(matching[0])
