@@ -42,3 +42,9 @@ def test_gbpjpy_profile_uses_corrected_risk_and_loss_controls():
     assert guard.normal_risk_cap_percent == 0.20
     assert guard.post_loss_risk_cap_percent == 0.10
     assert guard.cooldown_hours == 4.0
+    assert guard.session_start_hour_utc == 7
+    assert guard.session_end_hour_utc == 20
+    assert guard.max_spread_pips == 3.0
+    assert guard.min_reward_risk == 1.50
+    assert guard.min_stop_pips == 15.0
+    assert guard.max_stop_pips == 150.0
