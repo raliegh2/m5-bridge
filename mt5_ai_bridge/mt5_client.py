@@ -9,7 +9,6 @@ The ``MetaTrader5`` import is deliberately lazy (inside ``__init__``) so the
 package can be imported on machines where the library is not installed
 (e.g. CI / Linux), as long as a real client is never instantiated there.
 """
-
 from typing import Any
 
 
@@ -60,6 +59,10 @@ class RealMT5Client:
 
     def positions_get(self, **kwargs) -> Any:
         return self._mt5.positions_get(**kwargs)
+
+    def history_deals_get(self, **kwargs) -> Any:
+        """Return MT5 deal history, including closed-position outcomes."""
+        return self._mt5.history_deals_get(**kwargs)
 
     def symbols_get(self, *args, **kwargs) -> Any:
         """Return broker symbols for suffix/prefix resolution."""
