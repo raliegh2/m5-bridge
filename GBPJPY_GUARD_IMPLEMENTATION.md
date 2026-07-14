@@ -42,4 +42,4 @@ Run:
 python -m pytest tests\test_gbpjpy_guard.py tests\test_gbpjpy_guarded_execution.py tests\test_v13_v12_plus_v11_intraday_profile.py -q
 ```
 
-Keep the bot on a demo account and review at least 30 new GBPJPY signals before considering any less restrictive settings.
+Keep the bot on a demo account. Confirm that the guard state file updates after each closed GBPJPY trade, and review at least 30 new GBPJPY signals before considering any less restrictive settings.
