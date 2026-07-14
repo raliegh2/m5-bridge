@@ -1,21 +1,19 @@
-"""Named-engine adapter for automatic V12 demo-account execution.
+"""Named-engine adapter for automatic V12/V13 demo-account execution.
 
 Signal generators submit a fully specified ``NamedEngineSignal``. The adapter
 converts it into a broker-aware execution request and routes it through the
-demo-only automatic executor.
+GBPJPY-hardened executor. Non-GBPJPY orders retain the existing V12 behavior.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Callable, Optional
 
-from .v12_final_execution import (
-    ApprovalSummary,
-    ExecutionResult,
-    FinalExecutionRequest,
-    FinalMT5Executor,
-)
+from .gbpjpy_guard import GBPJPYGuardConfig
+from .gbpjpy_guarded_execution import GBPJPYGuardedExecutor
+from .v12_final_execution import ApprovalSummary, ExecutionResult, FinalExecutionRequest
 from .v12_final_state import StateStore
 
 
@@ -39,7 +37,7 @@ class NamedEngineSignal:
 
 def console_approval(summary: ApprovalSummary) -> bool:
     """Require an exact confirmation before returning an approved proposal."""
-    print("\nFINAL V12 SUPERVISED PROPOSAL REVIEW")
+    print("\nFINAL V12/V13 SUPERVISED PROPOSAL REVIEW")
     print(f"Account : {summary.account_login} @ {summary.account_server}")
     print(f"Signal  : {summary.symbol} {summary.side}")
     print(f"Engine  : {summary.engine}")
@@ -54,18 +52,25 @@ def console_approval(summary: ApprovalSummary) -> bool:
 
 
 class FinalV12Adapter:
-    """Automatic execution adapter used by named V12 signal engines."""
+    """Execution adapter with persistent GBPJPY loss-cluster protection."""
 
     def __init__(self, client, state_path: str = "v12_final_research_state.json",
                  approval_callback: Optional[Callable[[ApprovalSummary], bool]] = None,
                  max_deviation_points: int = 10,
-                 account_mode_provider: Optional[Callable[[], str]] = None) -> None:
-        self.executor = FinalMT5Executor(
+                 account_mode_provider: Optional[Callable[[], str]] = None,
+                 gbpjpy_guard_path: Optional[str] = None,
+                 gbpjpy_guard_config: GBPJPYGuardConfig = GBPJPYGuardConfig()) -> None:
+        guard_path = gbpjpy_guard_path or str(
+            Path(state_path).with_name(Path(state_path).stem + "_gbpjpy_guard.json")
+        )
+        self.executor = GBPJPYGuardedExecutor(
             client=client,
             approval_callback=approval_callback,
             state=StateStore(state_path),
             max_deviation_points=max_deviation_points,
             account_mode_provider=account_mode_provider,
+            gbpjpy_guard_path=guard_path,
+            gbpjpy_guard_config=gbpjpy_guard_config,
         )
 
     def submit(self, signal: NamedEngineSignal,
@@ -83,5 +88,8 @@ class FinalV12Adapter:
         return self.executor.place(request, now=now)
 
     def record_closed_trade(self, engine: str, r_multiple: float,
-                            now: Optional[datetime] = None) -> None:
-        self.executor.record_closed_trade(engine, r_multiple, now)
+                            now: Optional[datetime] = None,
+                            symbol: Optional[str] = None) -> None:
+        self.executor.record_closed_trade(
+            engine, r_multiple, now=now, symbol=symbol
+        )
