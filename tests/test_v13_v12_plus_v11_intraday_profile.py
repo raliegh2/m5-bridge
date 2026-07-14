@@ -29,3 +29,16 @@ def test_v13_adds_expected_v11_intraday_engines():
     assert V11_INTRADAY_ENGINE_RULES["GBPUSD_V11_INTRADAY"].symbol == "GBPUSD"
     assert V11_INTRADAY_ENGINE_RULES["EURUSD_V11_INTRADAY"].symbol == "EURUSD"
     assert V11_INTRADAY_ENGINE_RULES["GBPJPY_V11_INTRADAY"].symbol == "GBPJPY"
+
+
+def test_gbpjpy_profile_uses_corrected_risk_and_loss_controls():
+    rule = V11_INTRADAY_ENGINE_RULES["GBPJPY_V11_INTRADAY"]
+    guard = V13_COMBINED_PROFILE.gbpjpy_guard
+
+    assert rule.adaptive is True
+    assert set(rule.allowed_risk_percent) == {0.10, 0.20}
+    assert guard.max_open_positions == 1
+    assert guard.max_daily_losses == 2
+    assert guard.normal_risk_cap_percent == 0.20
+    assert guard.post_loss_risk_cap_percent == 0.10
+    assert guard.cooldown_hours == 4.0
