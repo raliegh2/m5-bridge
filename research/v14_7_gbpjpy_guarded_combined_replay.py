@@ -117,6 +117,16 @@ class V147CombinedReplay(CombinedReplay):
         )
 
 
+def _normalize_timestamps(frame: pd.DataFrame) -> pd.DataFrame:
+    """Normalize mixed source timestamps to comparable UTC-naive values."""
+    normalized = frame.copy()
+    for column in ("entry_time", "exit_time"):
+        normalized[column] = pd.to_datetime(
+            normalized[column], utc=True, errors="raise"
+        ).dt.tz_convert(None)
+    return normalized
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run V14.7 V12 + ICT replay with corrected GBPJPY guard"
@@ -127,11 +137,9 @@ def main() -> None:
     args = parser.parse_args()
 
     args.out.mkdir(parents=True, exist_ok=True)
-    replay = V147CombinedReplay(
-        load_v12(args.v12_ledger),
-        load_ict(args.ict_trades),
-        V147Config(),
-    )
+    v12 = _normalize_timestamps(load_v12(args.v12_ledger))
+    ict = _normalize_timestamps(load_ict(args.ict_trades))
+    replay = V147CombinedReplay(v12, ict, V147Config())
     trades, skipped, events, summary = replay.run()
     summary["model"] = "V14.7_GBPJPY_GUARDED"
     summary["gbpjpy_corrections"] = asdict(V147Config())
