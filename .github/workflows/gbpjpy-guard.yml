@@ -15,6 +15,7 @@ on:
       - "mt5_ai_bridge/gbpjpy_strict_execution.py"
       - "mt5_ai_bridge/v12_final_adapter.py"
       - "mt5_ai_bridge/v13_v12_plus_v11_intraday_profile.py"
+      - "research/final_five_symbol_10y_backtest.py"
       - "research/v14_7_gbpjpy_guarded_combined_replay.py"
       - "tests/test_final_engine_registry.py"
       - "tests/test_symbol_diagnostics.py"
@@ -29,16 +30,16 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  test-and-backtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install test dependencies
-        run: python -m pip install --upgrade pip pytest python-dotenv pandas numpy
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pytest python-dotenv pandas numpy yfinance
       - name: Compile final bot code
         run: >-
           python -m compileall -q
@@ -51,6 +52,7 @@ jobs:
           mt5_ai_bridge/gbpjpy_strict_execution.py
           mt5_ai_bridge/v12_final_adapter.py
           mt5_ai_bridge/v13_v12_plus_v11_intraday_profile.py
+          research/final_five_symbol_10y_backtest.py
           research/v14_7_gbpjpy_guarded_combined_replay.py
       - name: Run focused final-bot tests
         id: pytest
@@ -70,10 +72,16 @@ jobs:
           status=$?
           cat pytest-output.txt
           exit $status
-      - name: Upload pytest diagnostics
+      - name: Run repository-history final five-symbol replay
+        run: python research/final_five_symbol_10y_backtest.py
+      - name: Upload final validation artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: final-five-symbol-pytest-output
-          path: pytest-output.txt
-          if-no-files-found: error
+          name: final-five-symbol-10y-validation
+          path: |
+            pytest-output.txt
+            research/final_five_symbol_10y_output/
+            research/v12_plus_validated_assets_output/
+          if-no-files-found: warn
+          retention-days: 90
