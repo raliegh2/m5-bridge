@@ -84,6 +84,8 @@ class FakeClient:
 
 
 def signal() -> LiveSignal:
+    # Use a fixed candle timestamp so duplicate-key tests do not depend on OS clock
+    # resolution. Live strategy signals are candle-based and therefore stable.
     return LiveSignal(
         symbol="EURUSD",
         broker_symbol="EURUSD",
@@ -91,7 +93,7 @@ def signal() -> LiveSignal:
         setup="eurusd_ict_liquidity",
         mode="ICT",
         side="BUY",
-        signal_time=datetime.now(timezone.utc),
+        signal_time=datetime(2026, 7, 15, 12, 0, tzinfo=timezone.utc),
         requested_risk_percent=0.55,
         stop_pips=20.0,
         target_pips=40.0,
@@ -122,7 +124,7 @@ def config(tmp_path, mode="READ_ONLY", **kwargs) -> LiveRunnerConfig:
 def test_read_only_never_checks_or_sends(tmp_path) -> None:
     client = FakeClient()
     executor = SatelliteLiveExecutor(client, config(tmp_path))
-    result = executor.place(signal())
+    result = executor.place(signal(), now=datetime(2026, 7, 15, 12, 1, tzinfo=timezone.utc))
     assert result.ok
     assert result.code == "READ_ONLY_PROPOSAL"
     assert client.calls == []
@@ -132,20 +134,22 @@ def test_read_only_never_checks_or_sends(tmp_path) -> None:
 def test_read_only_duplicate_is_blocked(tmp_path) -> None:
     client = FakeClient()
     executor = SatelliteLiveExecutor(client, config(tmp_path))
-    assert executor.place(signal()).code == "READ_ONLY_PROPOSAL"
-    assert executor.place(signal()).code == "DUPLICATE_SIGNAL"
+    now = datetime(2026, 7, 15, 12, 1, tzinfo=timezone.utc)
+    assert executor.place(signal(), now=now).code == "READ_ONLY_PROPOSAL"
+    assert executor.place(signal(), now=now).code == "DUPLICATE_SIGNAL"
 
 
 def test_approval_requires_exact_yes_before_order_check(tmp_path) -> None:
     client = FakeClient()
+    now = datetime(2026, 7, 15, 12, 1, tzinfo=timezone.utc)
     declined = SatelliteLiveExecutor(client, config(tmp_path, "APPROVAL"), approval_callback=lambda _proposal: False)
-    assert declined.place(signal()).code == "APPROVAL_DECLINED"
+    assert declined.place(signal(), now=now).code == "APPROVAL_DECLINED"
     assert client.calls == []
 
     other_state = tmp_path / "approved.json"
     approved_config = LiveRunnerConfig(**{**config(tmp_path, "APPROVAL").__dict__, "state_path": str(other_state)})
     approved = SatelliteLiveExecutor(client, approved_config, approval_callback=lambda _proposal: True)
-    result = approved.place(signal())
+    result = approved.place(signal(), now=now)
     assert result.code == "ORDER_FILLED"
     assert client.calls == ["check", "send"]
 
@@ -153,22 +157,27 @@ def test_approval_requires_exact_yes_before_order_check(tmp_path) -> None:
 def test_auto_is_closed_without_both_gates(tmp_path) -> None:
     client = FakeClient()
     executor = SatelliteLiveExecutor(client, config(tmp_path, "AUTO"))
-    assert executor.place(signal()).code == "AUTO_GATE_CLOSED"
+    result = executor.place(
+        signal(),
+        now=datetime(2026, 7, 15, 12, 1, tzinfo=timezone.utc),
+    )
+    assert result.code == "AUTO_GATE_CLOSED"
     assert client.calls == []
 
 
 def test_auto_can_transmit_only_on_demo_with_both_gates(tmp_path) -> None:
     client = FakeClient()
+    now = datetime(2026, 7, 15, 12, 1, tzinfo=timezone.utc)
     gated = config(
         tmp_path, "AUTO", forward_gate_passed=True,
         allow_demo_auto=True, max_live_risk_percent=0.25,
     )
-    assert SatelliteLiveExecutor(client, gated).place(signal()).code == "ORDER_FILLED"
+    assert SatelliteLiveExecutor(client, gated).place(signal(), now=now).code == "ORDER_FILLED"
     assert client.calls == ["check", "send"]
 
     real_client = FakeClient(trade_mode=FakeClient.ACCOUNT_TRADE_MODE_REAL)
     real_executor = SatelliteLiveExecutor(real_client, config(tmp_path / "real", "APPROVAL"), approval_callback=lambda _p: True)
-    assert real_executor.place(signal()).code == "DEMO_ACCOUNT_REQUIRED"
+    assert real_executor.place(signal(), now=now).code == "DEMO_ACCOUNT_REQUIRED"
     assert real_client.calls == []
 
 
@@ -177,7 +186,10 @@ def test_drawdown_stop_blocks_before_broker_validation(tmp_path) -> None:
     executor = SatelliteLiveExecutor(client, config(tmp_path))
     executor.state.data["peak_equity"] = 6000.0
     executor.state.save()
-    result = executor.place(signal())
+    result = executor.place(
+        signal(),
+        now=datetime(2026, 7, 15, 12, 1, tzinfo=timezone.utc),
+    )
     assert result.code == "LIVE_DRAWDOWN_STOP"
     assert client.calls == []
 
