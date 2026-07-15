@@ -235,12 +235,15 @@ def test_auto_remains_demo_only(tmp_path) -> None:
 
 def test_ict_and_combined_admission_caps_match_research(tmp_path) -> None:
     client = FakeClient()
-    client.positions = [position(1), position(2)]
+    # Keep the existing ICT position on a different symbol so this test reaches
+    # the portfolio caps instead of correctly stopping first at EURUSD's
+    # one-open-ICT-position guard.
+    client.positions = [position(1, "AUDUSD"), position(2, "GBPUSD")]
     executor = ResearchParityLiveExecutor(client, config(tmp_path))
     executor.state.data["positions"] = {
         "1": {
             "ticket": 1,
-            "symbol": "EURUSD",
+            "symbol": "AUDUSD",
             "mode": "ICT",
             "admission_risk_percent": 1.40,
         },
