@@ -15,6 +15,7 @@ if not exist ".venv\Scripts\python.exe" (
 
 set "PYTHONPATH=%CD%;%CD%\research"
 set "V14_3_LEGACY_GBP_ICT_PROVIDER=v14_3_signals_research_parity"
+set "V14_3_LIVE_STATE_PATH=state/v14_3_research_parity_live_state.json"
 call ".venv\Scripts\activate.bat"
 
 echo Running exact V14.3 research-risk parity preflight...
