@@ -52,6 +52,7 @@ jobs:
               Path('research/v14_3_drawdown_limited_output/all_results.json').read_text()
           )
           results = payload['results']
+          selection = payload['selection']
           for result in results.values():
               current = result['current_five_symbol']
               improved = result['drawdown_limited']
@@ -67,7 +68,13 @@ jobs:
               assert improved['skip_reasons'].get('EQUITY_DRAWDOWN_PAUSE', 0) > 0
               for symbol, coverage in result['mode_coverage'].items():
                   assert coverage['v12_enabled'], (symbol, coverage)
-                  assert coverage['ict_enabled'], (symbol, coverage)
+                  if symbol in selection:
+                      expected_ict = bool(selection[symbol]['validation_passed'])
+                      assert coverage['ict_enabled'] == expected_ict, (
+                          symbol, expected_ict, coverage
+                      )
+                  else:
+                      assert coverage['ict_enabled'], (symbol, coverage)
 
           ten = results['exact_10_year_window']
           full = results['full_repository_history']
@@ -78,6 +85,8 @@ jobs:
           print('Exact 10-year improved max DD:', ten['drawdown_limited']['max_closed_drawdown_percent'])
           print('Exact 10-year improved stress DD:', ten['drawdown_limited']['stress_drawdown_percent'])
           print('Full-history improved net:', full['drawdown_limited']['net_profit'])
+          for symbol, report in selection.items():
+              print(symbol, 'ICT validation passed:', report['validation_passed'])
           PY
       - name: Upload complete validation output
         if: always()
