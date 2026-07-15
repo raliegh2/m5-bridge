@@ -30,7 +30,7 @@ if errorlevel 1 (
 
 echo.
 echo Starting V14.3 Satellite Trading Bot with live GBP ICT provider...
-python v14_3_satellite_bot_m1.py
+python v14_3_satellite_bot_windows.py
 
 if errorlevel 1 (
     echo.
