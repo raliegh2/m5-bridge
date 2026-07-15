@@ -13,10 +13,10 @@ from mt5_ai_bridge.v14_3_drawdown_governor import (
 
 def test_quality_v12_allocation_is_bounded() -> None:
     risk, tier = adjusted_v12_risk_percent("GBPUSD_V10_PRECISION", 0.50)
-    assert risk == pytest.approx(0.75)
-    assert tier == "V12_QUALITY_150"
+    assert risk == pytest.approx(0.775)
+    assert tier == "V12_QUALITY_155"
     capped, _ = adjusted_v12_risk_percent("GBPUSD_V10_PRECISION", 0.60)
-    assert capped == pytest.approx(0.75)
+    assert capped == pytest.approx(0.78)
 
 
 def test_unselected_v12_engine_is_unchanged() -> None:
