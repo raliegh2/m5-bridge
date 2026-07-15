@@ -28,9 +28,9 @@ POLICIES: dict[str, WeakSymbolPolicy] = {
     # AUDUSD's independently validated continuation profile was strongest on
     # the completed 08:00 UTC H4 signal. The 04:00 stream remains a micro probe.
     "AUDUSD": WeakSymbolPolicy(1.40, 0.35, 0.05, (8,)),
-    # USDJPY's safe-haven breakout quality hours are 00:00 and 16:00 UTC. Other
-    # completed H4 signals remain on micro risk so the engine stays observable.
-    "USDJPY": WeakSymbolPolicy(1.55, 0.25, 0.05, (0, 16)),
+    # USDJPY receives full allocation only in the cross-window positive
+    # completed-H4 quality hours. Other signals remain observable at micro risk.
+    "USDJPY": WeakSymbolPolicy(1.55, 0.25, 0.05, (0, 16, 20)),
 }
 
 
@@ -65,7 +65,7 @@ def adjusted_v12_risk_percent(row: dict[str, Any]) -> tuple[float, str]:
     if symbol == "USDJPY":
         policy = POLICIES["USDJPY"]
         if _hour(row["entry_time"]) in policy.quality_hours_utc:
-            return min(original * policy.full_risk_multiplier, policy.full_risk_cap), "USDJPY_00_16UTC_FULL"
+            return min(original * policy.full_risk_multiplier, policy.full_risk_cap), "USDJPY_00_16_20UTC_FULL"
         return min(original, policy.micro_risk_cap), "USDJPY_OTHER_HOUR_MICRO"
 
     return original, "UNCHANGED"
@@ -83,7 +83,7 @@ def apply_weak_symbol_profile(frame: pd.DataFrame) -> pd.DataFrame:
 def validate_profile() -> None:
     assert POLICIES["EURUSD_CORE"].full_risk_cap == 0.35
     assert POLICIES["AUDUSD"].quality_hours_utc == (8,)
-    assert POLICIES["USDJPY"].quality_hours_utc == (0, 16)
+    assert POLICIES["USDJPY"].quality_hours_utc == (0, 16, 20)
     assert all(policy.micro_risk_cap <= 0.05 for key, policy in POLICIES.items() if key != "EURUSD_CORE")
 
 
