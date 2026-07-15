@@ -1,8 +1,8 @@
 """Clean Windows entrypoint for the V14.3 satellite MT5 bot.
 
-This preserves the earlier bot's terminal structure: one compact updating status
-line, concise trade/signal announcements, an automatically launched dashboard,
-and no full JSON dump on every market scan.
+The terminal intentionally keeps one continuously updated status line instead of
+printing one line per market loop. Detailed signal, engine and rationale data stay
+in the browser dashboard and runtime diagnostics.
 
 The one-second target interval is configured in this file. The strategies still
 use completed H1/H4/D1 candles; the fast loop refreshes account state, dashboard
@@ -34,7 +34,7 @@ LOOKBACK_HOURS = 8
 DASHBOARD_HOST = os.getenv("V14_3_DASHBOARD_HOST", "127.0.0.1")
 DASHBOARD_PORT = int(os.getenv("V14_3_DASHBOARD_PORT", "8800"))
 SYMBOLS = ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY")
-STATUS_WIDTH = 190
+STATUS_WIDTH = 220
 
 
 def _money(value: Any) -> str:
@@ -60,49 +60,29 @@ def _clear_status_line() -> None:
     sys.stdout.flush()
 
 
-def _status_line(diagnostics: dict[str, Any]) -> str:
+def _status_line(
+    diagnostics: dict[str, Any],
+    trades_placed: int = 0,
+) -> str:
     account = diagnostics.get("account") or {}
     positions = diagnostics.get("positions") or []
     return (
         f"{_local_time()} | {diagnostics.get('execution_mode', 'UNKNOWN')} | "
-        f"ACTIVE | open {len(positions)} | "
-        f"balance {_money(account.get('balance'))} | "
-        f"equity {_money(account.get('equity'))} | "
+        f"ACTIVE | trades placed {int(trades_placed)} | open {len(positions)} | "
         f"P/L {_signed_money(account.get('floating_profit'))} | "
-        f"signals {int(diagnostics.get('candidate_count', 0) or 0)} | "
+        f"equity {_money(account.get('equity'))} | "
+        f"balance {_money(account.get('balance'))} | "
         f"scan {float(diagnostics.get('scan_latency_ms', 0.0) or 0.0):,.0f} ms"
     )
 
 
-def _print_status(diagnostics: dict[str, Any]) -> None:
-    line = _status_line(diagnostics)
+def _print_status(
+    diagnostics: dict[str, Any],
+    trades_placed: int,
+) -> None:
+    line = _status_line(diagnostics, trades_placed=trades_placed)
     sys.stdout.write("\r" + line[:STATUS_WIDTH].ljust(STATUS_WIDTH))
     sys.stdout.flush()
-
-
-def _decision_key(decision: dict[str, Any]) -> tuple[str, str, str, str]:
-    return (
-        str(decision.get("time", "")),
-        str(decision.get("symbol", "")),
-        str(decision.get("engine", "")),
-        str(decision.get("setup", "")),
-    )
-
-
-def _announce_new_decisions(
-    decisions: list[dict[str, Any]],
-    announced: set[tuple[str, str, str, str]],
-) -> None:
-    new_items = [item for item in reversed(decisions) if _decision_key(item) not in announced]
-    for item in new_items:
-        announced.add(_decision_key(item))
-        _clear_status_line()
-        risk = item.get("risk_percent", 0)
-        print(
-            f"[{_local_time()}] {item.get('symbol', 'UNKNOWN')} | "
-            f"{item.get('engine', 'UNKNOWN_ENGINE')} | {item.get('side', 'WAIT')} | "
-            f"{item.get('code', 'UNKNOWN')} | risk {risk}%"
-        )
 
 
 def _open_dashboard(url: str) -> None:
@@ -126,6 +106,7 @@ def _startup_banner(config: LiveRunnerConfig, dashboard_url: str) -> None:
     print(f" Symbols    : {', '.join(SYMBOLS)}")
     print(f" Scan target: {SCAN_INTERVAL_SECONDS:.0f} second")
     print(f" Dashboard  : {dashboard_url}")
+    print(" Terminal   : one continuously updated live status line")
     print(" Press Ctrl+C to stop the bot.")
     print("-" * 76)
 
@@ -140,7 +121,7 @@ def main() -> None:
         port=DASHBOARD_PORT,
     )
     recent_decisions: list[dict[str, Any]] = []
-    announced: set[tuple[str, str, str, str]] = set()
+    trades_placed = 0
 
     connect(client, settings)
     executor = SatelliteLiveExecutor(client, config)
@@ -155,6 +136,8 @@ def main() -> None:
         "decisions": [],
         "generation": {},
         "candidate_count": 0,
+        "orders_filled": 0,
+        "trades_placed_since_start": 0,
         "scan_latency_ms": 0,
         "next_scan_seconds": SCAN_INTERVAL_SECONDS,
     }
@@ -168,9 +151,9 @@ def main() -> None:
         next_scan = time.monotonic()
         while True:
             try:
-                # The lower-level runner retains detailed JSON output for debugging.
-                # This normal bot entrypoint suppresses that output and restores the
-                # compact terminal presentation used by earlier bot versions.
+                # Suppress the verbose lower-level runner output on every normal
+                # AUTO/READ_ONLY scan. Both stdout and stderr are captured so the
+                # terminal remains on one live status line.
                 if config.execution_mode == "APPROVAL":
                     diagnostics = scan_once(
                         client,
@@ -179,7 +162,10 @@ def main() -> None:
                         recent_decisions=recent_decisions,
                     )
                 else:
-                    with contextlib.redirect_stdout(io.StringIO()):
+                    with (
+                        contextlib.redirect_stdout(io.StringIO()),
+                        contextlib.redirect_stderr(io.StringIO()),
+                    ):
                         diagnostics = scan_once(
                             client,
                             executor,
@@ -187,10 +173,11 @@ def main() -> None:
                             recent_decisions=recent_decisions,
                         )
 
+                trades_placed += int(diagnostics.get("orders_filled", 0) or 0)
+                diagnostics["trades_placed_since_start"] = trades_placed
                 diagnostics["next_scan_seconds"] = SCAN_INTERVAL_SECONDS
                 dashboard.write(diagnostics)
-                _announce_new_decisions(recent_decisions, announced)
-                _print_status(diagnostics)
+                _print_status(diagnostics, trades_placed=trades_placed)
             except Exception as exc:  # noqa: BLE001
                 _clear_status_line()
                 print(f"[{_local_time()}] RUNNER ERROR | {type(exc).__name__}: {exc}")
@@ -205,6 +192,8 @@ def main() -> None:
                     "decisions": recent_decisions,
                     "generation": {},
                     "candidate_count": 0,
+                    "orders_filled": 0,
+                    "trades_placed_since_start": trades_placed,
                     "scan_latency_ms": 0,
                     "next_scan_seconds": SCAN_INTERVAL_SECONDS,
                 })
