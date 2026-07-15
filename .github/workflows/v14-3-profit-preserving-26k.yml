@@ -1,0 +1,79 @@
+name: V14.3 profit-preserving 26k backtest
+
+on:
+  pull_request:
+    branches:
+      - v14-3-production-risk-diagnostics
+    paths:
+      - "mt5_ai_bridge/v14_3_profit_preserving_profile.py"
+      - "research/v14_3_profit_preserving_backtest.py"
+      - "tests/test_v14_3_profit_preserving_profile.py"
+      - ".github/workflows/v14-3-profit-preserving-26k.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas matplotlib pytest
+      - name: Compile research implementation
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_3_profit_preserving_profile.py
+          research/v14_3_profit_preserving_backtest.py
+          tests/test_v14_3_profit_preserving_profile.py
+      - name: Run focused tests
+        run: python -m pytest -q tests/test_v14_3_profit_preserving_profile.py | tee v14-3-profit-tests.log
+      - name: Run chronological full-history and exact-ten-year replays
+        run: |
+          python research/v14_3_profit_preserving_backtest.py \
+            --v12-ledger research/v12_final_ledger_output/v12_final_trade_ledger.csv \
+            --ict-source research/v14_3_true_combined_v12_ict_output/true_combined_closed_trades.csv \
+            --out research/v14_3_profit_preserving_output \
+            | tee v14-3-profit-backtest.log
+      - name: Verify profit and drawdown gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          results = json.loads(Path('research/v14_3_profit_preserving_output/all_results.json').read_text())
+          reference = json.loads(Path('research/v14_3_true_combined_v12_ict_output/true_combined_summary.json').read_text())
+          full = results['full_repository_history']
+          ten = results['exact_10_year_window']
+          assert abs(full['baseline']['net_profit'] - reference['net_profit']) < 0.02
+          assert ten['optimized']['net_profit'] >= 26000.0, ten['optimized']['net_profit']
+          assert full['optimized']['net_profit'] >= 31000.0, full['optimized']['net_profit']
+          assert ten['optimized']['max_closed_drawdown_percent'] < 10.0
+          assert ten['optimized']['stress_drawdown_percent'] < 10.0
+          assert full['optimized']['max_closed_drawdown_percent'] < 10.0
+          assert full['optimized']['stress_drawdown_percent'] < 10.0
+          diagnostics = ten['diagnostics']
+          assert set(diagnostics) == {'GBPUSD','EURUSD','GBPJPY','AUDUSD','USDJPY'}
+          assert all(item['data_available'] for item in diagnostics.values())
+          print('Exact 10-year net profit:', ten['optimized']['net_profit'])
+          print('Full-history net profit:', full['optimized']['net_profit'])
+          print('Exact 10-year max DD:', ten['optimized']['max_closed_drawdown_percent'])
+          print('Exact 10-year stress DD:', ten['optimized']['stress_drawdown_percent'])
+          PY
+      - name: Upload backtest package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-3-profit-preserving-26k
+          path: |
+            research/v14_3_profit_preserving_output/
+            v14-3-profit-tests.log
+            v14-3-profit-backtest.log
+          if-no-files-found: error
+          retention-days: 90
