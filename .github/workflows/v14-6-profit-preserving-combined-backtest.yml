@@ -1,0 +1,43 @@
+name: V14.6 Profit Preserving Combined Backtest
+
+on:
+  push:
+    branches:
+      - v13-v12-final-plus-v11-intraday
+    paths:
+      - '.github/workflows/v14-6-profit-preserving-combined-backtest.yml'
+      - 'research/v14_6_profit_preserving_combined_replay.py'
+      - 'research/v12_final_ledger_output/v12_final_trade_ledger.csv'
+      - 'research/v14_3_under10_target_out/selected_under10_target_trades.csv'
+  workflow_dispatch:
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+
+      - name: Run V14.6 combined replay
+        run: |
+          python research/v14_6_profit_preserving_combined_replay.py \
+            --v12-ledger research/v12_final_ledger_output/v12_final_trade_ledger.csv \
+            --ict-trades research/v14_3_under10_target_out/selected_under10_target_trades.csv \
+            --out research/v14_6_profit_preserving_combined_out
+          cat research/v14_6_profit_preserving_combined_out/v14_6_profit_preserving_combined_summary.json
+
+      - name: Upload V14.6 outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-6-profit-preserving-combined-output
+          path: research/v14_6_profit_preserving_combined_out

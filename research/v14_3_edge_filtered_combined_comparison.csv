@@ -1,0 +1,6 @@
+scenario,starting_balance,ending_balance,net_result,return_percent,trades,profit_factor,max_dd_percent,conservative_stacked_dd_percent
+V12 Final aggregate only,5000.0,8201.58,3201.58,64.0316,918,1.606,4.93,5.25
+V14.2 strict profit-cushion combined,5000.0,10277.32,5277.32,105.55,9389,,4.93,9.25
+V14.3 edge-filtered ICT satellite only,5000.0,10509.9179565547,5509.9179565547,110.19835913109401,4303,1.2375657400401354,4.233617320946871,9.48361732094687
+V14.3 V12 plus edge-filtered ICT estimate,5000.0,13711.4979565547,8711.4979565547,174.22995913109398,5221,,4.93,9.48361732094687
+V14.3 edge filter 2024-2026 holdout reference,5000.0,7052.26,2052.26,41.05,3041,1.214,4.23,9.48

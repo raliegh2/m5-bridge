@@ -1,0 +1,68 @@
+{
+  "status": "AVAILABLE_DATA_RESEARCH_ESTIMATE_NOT_RAW_EXECUTION_BACKTEST",
+  "starting_balance": 5000.0,
+  "branch": "v13-v12-final-plus-v11-intraday",
+  "methodology": "Add V11 intraday-only available-data profit to V12 Final reported results. This is a capacity-unadjusted estimate because no merged chronological candidate ledger is available in the repo.",
+  "scenarios": {
+    "v12_max_history": {
+      "name": "V12 Final optimized maximum-history",
+      "basis": "PR #33 final report; five-symbol optimized maximum-history result",
+      "net_profit": 3201.58,
+      "trades": 918,
+      "profit_factor": 1.606,
+      "max_drawdown_percent": 4.93,
+      "stress_drawdown_percent": 5.25,
+      "ending_balance": 8201.58,
+      "return_percent": 64.0316
+    },
+    "v12_one_year": {
+      "name": "V12 Final optimized one-year window",
+      "basis": "PR #33 final report; optimized 1y window",
+      "net_profit": 289.65,
+      "trades": null,
+      "profit_factor": 1.485,
+      "max_drawdown_percent": 3.79,
+      "stress_drawdown_percent": 4.5,
+      "ending_balance": 5289.65,
+      "return_percent": 5.793
+    },
+    "v11_intraday_one_year_estimate": {
+      "name": "V11 intraday-only available-data estimate",
+      "basis": "PR #35 intraday-only available-data estimate; approximately one-year synchronized replay",
+      "net_profit": 1046.89,
+      "trades": 132,
+      "profit_factor": null,
+      "max_drawdown_percent": null,
+      "stress_drawdown_percent": null,
+      "ending_balance": 6046.89,
+      "return_percent": 20.9378
+    }
+  },
+  "combined_estimates": {
+    "max_history_additive_upper_bound": {
+      "base": "V12 Final optimized maximum-history",
+      "combined_net_profit": 4248.47,
+      "combined_ending_balance": 9248.47,
+      "combined_return_percent": 84.9694,
+      "profit_increase_dollars": 1046.89,
+      "profit_increase_percent_vs_base": 32.6992,
+      "note": "Uses V12 maximum-history result plus V11 approximately one-year intraday estimate; useful only as an upper-bound/additive research estimate."
+    },
+    "rough_one_year_comparison": {
+      "base": "V12 Final optimized one-year window",
+      "combined_net_profit": 1336.54,
+      "combined_ending_balance": 6336.54,
+      "combined_return_percent": 26.7308,
+      "profit_increase_dollars": 1046.89,
+      "profit_increase_percent_vs_base": 361.4328,
+      "note": "Closer in duration, but still not a same-ledger chronological replay."
+    }
+  },
+  "required_real_backtest": [
+    "Export or regenerate V12 Final accepted and rejected candidate ledgers.",
+    "Export or regenerate V11 intraday accepted and rejected candidate ledgers for the same timestamps.",
+    "Merge all candidates by entry_time and replay through the V12 Final/V13 risk governor.",
+    "Measure accepted/rejected trades, opportunity cost, symbol caps, GBP caps, max positions, PF, drawdown and stress drawdown."
+  ],
+  "decision": "Available data suggests adding V11 intraday can increase gross research profit, but the exact increase cannot be approved until a merged chronological replay proves V11 does not consume capacity from stronger V12 trades."
+}

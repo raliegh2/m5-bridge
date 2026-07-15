@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "GBPUSD": {
+      "freq": 1.0,
+      "rows": 3721516,
+      "start": "2016-07-04 00:01:00",
+      "end": "2026-07-03 17:48:00"
+    },
+    "GBPJPY": {
+      "freq": 1.0,
+      "rows": 3721448,
+      "start": "2016-07-04 00:01:00",
+      "end": "2026-07-03 17:48:00"
+    },
+    "EURUSD": {
+      "freq": 5.0,
+      "rows": 745177,
+      "start": "2016-07-04 00:00:00",
+      "end": "2026-07-03 17:45:00"
+    }
+  },
+  "summary": {
+    "starting_balance": 5000.0,
+    "ending_balance": 5000.0,
+    "net_profit": 0,
+    "return_percent": 0,
+    "trades": 0,
+    "wins": 0,
+    "losses": 0,
+    "win_rate": 0,
+    "profit_factor": 0,
+    "max_drawdown_percent": 0,
+    "avg_r": 0,
+    "total_r": 0
+  },
+  "decision": "M5-trend/M1-entry system did not pass the robust profitability gate; keep intraday disabled."
+}

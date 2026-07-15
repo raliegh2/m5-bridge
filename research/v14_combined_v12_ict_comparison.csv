@@ -1,0 +1,5 @@
+scenario,starting_balance,ending_balance,net_result,return_percent,trades,profit_factor,max_dd_percent,conservative_stress_dd_percent,note
+V12 Final only,5000,8201.58,3201.58,64.0316,918,1.606,4.93,5.25,Existing final protected engine result
+ICT low_dd_active_gap60 only,5000,10819.143091286767,5819.143091286767,116.38286182573536,11649,1.1136316739026473,7.939712903320408,7.939712903320408,New high-activity low-DD ICT module
+V12 + ICT full-size estimate,5000,14020.723091286767,9020.723091286767,180.41446182573534,12567,,7.939712903320408,13.189712903320409,Additive net result; exact DD needs V12 ledger
+V12 + ICT risk-capped estimate,5000,11316.473251067811,6316.473251067811,126.32946502135623,12567,,4.93,9.5,ICT risk scaled to 0.535x to target stacked DD under 9.50%

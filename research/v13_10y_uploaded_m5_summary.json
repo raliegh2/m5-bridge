@@ -1,0 +1,28 @@
+{
+  "status": "UPLOADED_M5_DATA_BACKTEST_PROTOTYPE_NOT_OFFICIAL_V11_SIGNAL_REPLAY",
+  "test_window": {
+    "start": "2016-07-03",
+    "end": "2026-07-03"
+  },
+  "timeframe": "M5",
+  "symbols": ["GBPUSD", "EURUSD", "GBPJPY"],
+  "starting_balance": 5000.0,
+  "ending_balance": 1171.7666672994856,
+  "net_profit": -3828.2333327005144,
+  "return_percent": -76.5646666540103,
+  "candidates": 23007,
+  "accepted_trades": 4007,
+  "rejected_trades": 19000,
+  "wins": 1324,
+  "losses": 2683,
+  "win_rate": 0.33042176191664585,
+  "profit_factor": 0.8079192440020289,
+  "max_drawdown_percent": 78.46373136651843,
+  "v12_comparison": {
+    "v12_final_max_history_profit": 3201.58,
+    "uploaded_intraday_profit": -3828.2333327005144,
+    "combined_additive_estimate": -626.6533327005144,
+    "increase_vs_v12_percent": -119.57200089521655
+  },
+  "decision": "This reconstructed M5 intraday prototype failed and should not be promoted. A true test needs the actual V11 signal generator or accepted/rejected candidate ledger."
+}

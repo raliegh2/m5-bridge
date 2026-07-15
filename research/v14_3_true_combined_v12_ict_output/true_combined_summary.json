@@ -1,0 +1,38 @@
+{
+  "starting_balance": 5000.0,
+  "ending_balance": 26508.237192519624,
+  "net_profit": 21508.237192519624,
+  "return_percent": 430.1647438503925,
+  "closed_trades": 5221,
+  "skipped_ict_trades": 0,
+  "gross_profit": 153979.89572467082,
+  "gross_loss": 132471.65853215125,
+  "profit_factor": 1.1623610471163495,
+  "max_closed_drawdown_percent": 9.044951430904344,
+  "stress_drawdown_percent": 9.0904289551889,
+  "settings": {
+    "ict_active_risk_percent": 0.45,
+    "ict_throttle_dd_percent": 8.0,
+    "ict_throttle_risk_percent": 0.05,
+    "ict_hard_dd_percent": 9.7,
+    "max_ict_open_risk_percent": 1.25,
+    "max_combined_open_risk_percent": 2.75
+  },
+  "by_engine_group": {
+    "ICT": {
+      "trades": 4303,
+      "net": 18306.656934806415,
+      "gross_profit": 145498.83721624123,
+      "gross_loss": 127192.18028143479,
+      "profit_factor": 1.14392910707482
+    },
+    "V12": {
+      "trades": 918,
+      "net": 3201.5802577131285,
+      "gross_profit": 8481.058508429602,
+      "gross_loss": 5279.478250716474,
+      "profit_factor": 1.606419821367508
+    }
+  },
+  "skip_reasons": {}
+}

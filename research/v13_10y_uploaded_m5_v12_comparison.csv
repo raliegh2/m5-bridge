@@ -1,0 +1,4 @@
+scenario,net_profit,ending_balance,return_percent,increase_vs_v12_dollars,increase_vs_v12_percent,note
+V12 Final max-history only,3201.58,8201.58,64.0316,0,0,Existing V12 max-history research result
+Uploaded-data V11/V13 intraday only,-3828.2333327005144,1171.7666672994856,-76.5646666540103,,,M5 2016-07-03 to 2026-07-03 prototype intraday replay
+V12 Final + uploaded-data intraday additive estimate,-626.6533327005144,4373.346667299486,-12.533066654010288,-3828.2333327005144,-119.57200089521655,Capacity-unadjusted additive comparison

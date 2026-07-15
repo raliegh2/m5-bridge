@@ -1,0 +1,45 @@
+{
+  "v12_final": {
+    "name": "V12 Final protected engine",
+    "start": 5000.0,
+    "net": 3201.58,
+    "ending": 8201.58,
+    "return_pct": 64.0316,
+    "trades": 918,
+    "pf": 1.606,
+    "max_dd_pct": 4.93,
+    "stress_dd_pct": 5.25
+  },
+  "ict_low_dd_active_gap60": {
+    "name": "V13 ICT low_dd_active_gap60",
+    "start": 5000.0,
+    "net": 5819.143091286767,
+    "ending": 10819.143091286767,
+    "return_pct": 116.38286182573536,
+    "trades": 11649,
+    "pf": 1.1136316739026473,
+    "max_dd_pct": 7.939712903320408,
+    "active_trades": 3743,
+    "micro_trades": 7906,
+    "avg_risk_pct": 0.1167550862734998
+  },
+  "combined_full_size_estimate": {
+    "starting_balance": 5000.0,
+    "ending_balance": 14020.723091286767,
+    "net_result": 9020.723091286767,
+    "return_percent": 180.41446182573534,
+    "trades": 12567,
+    "isolated_max_component_dd_percent": 7.939712903320408,
+    "conservative_stacked_stress_dd_percent": 13.189712903320409,
+    "increase_vs_v12_profit_percent": 181.7584783540242
+  },
+  "combined_risk_capped_estimate": {
+    "ict_risk_scale": 0.5352838385658302,
+    "starting_balance": 5000.0,
+    "ending_balance": 11316.473251067811,
+    "net_result": 6316.473251067811,
+    "return_percent": 126.32946502135623,
+    "estimated_conservative_stacked_dd_percent": 9.5
+  },
+  "limitation": "Exact merged chronological replay requires V12 trade ledger."
+}

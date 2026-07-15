@@ -1,0 +1,152 @@
+{
+  "status": "TRUE_SYNCHRONIZED_10Y_RESEARCH_REPLAY",
+  "methodology": "Raw M15/M30/H1 V11 candidates plus exact V12 candidates; chronological shared-capacity replay; V11 outcomes include 0.05R cost.",
+  "common_start": "2012-11-26T20:00:00+00:00",
+  "common_end": "2022-03-04T20:00:00+00:00",
+  "v12_final_only": {
+    "start": "2012-11-26T20:00:00+00:00",
+    "end": "2022-03-04T20:00:00+00:00",
+    "starting_balance": 5000.0,
+    "ending_balance": 8201.580257713134,
+    "gross_income": 8481.058508429602,
+    "gross_loss": 5279.478250716474,
+    "net_profit": 3201.5802577131344,
+    "return_percent": 64.03160515426269,
+    "average_monthly_profit": 28.78821243549292,
+    "trades": 918,
+    "profit_factor": 1.606419821367508,
+    "max_drawdown_percent": 4.929405124404266,
+    "stress_drawdown_percent": 5.253622442987053,
+    "rejections": {
+      "guard:cooldown": 285,
+      "symbol_cap": 232,
+      "guard:probe_in_flight": 49,
+      "guard:new_cooldown": 34,
+      "max_positions": 14,
+      "gbp_cap": 5
+    }
+  },
+  "v11_intraday_only": {
+    "start": "2012-11-26T20:00:00+00:00",
+    "end": "2022-03-04T20:00:00+00:00",
+    "starting_balance": 5000.0,
+    "ending_balance": 4456.211247773583,
+    "gross_income": 915.8318188655403,
+    "gross_loss": 1459.620571091955,
+    "net_profit": -543.7887522264173,
+    "return_percent": -10.875775044528346,
+    "average_monthly_profit": -4.8896809884465515,
+    "trades": 241,
+    "profit_factor": 0.6274451299219485,
+    "max_drawdown_percent": 11.1388042754186,
+    "stress_drawdown_percent": 11.272096069005471,
+    "rejections": {
+      "guard:cooldown": 2196,
+      "guard:new_cooldown": 126,
+      "guard:probe_in_flight": 17
+    }
+  },
+  "v13_combined": {
+    "start": "2012-11-26T20:00:00+00:00",
+    "end": "2022-03-04T20:00:00+00:00",
+    "starting_balance": 5000.0,
+    "ending_balance": 7388.926720608033,
+    "gross_income": 9667.97032989627,
+    "gross_loss": 7279.043609288232,
+    "net_profit": 2388.926720608033,
+    "return_percent": 47.77853441216067,
+    "average_monthly_profit": 21.480932661301924,
+    "trades": 1198,
+    "profit_factor": 1.328192390214521,
+    "max_drawdown_percent": 5.977056423905114,
+    "stress_drawdown_percent": 6.4534681173499795,
+    "rejections": {
+      "guard:cooldown": 2442,
+      "symbol_cap": 236,
+      "guard:new_cooldown": 152,
+      "guard:probe_in_flight": 63,
+      "max_positions": 16,
+      "gbp_cap": 10
+    }
+  },
+  "combined_improvement_vs_v12": -812.6535371051013,
+  "v11_raw_candidates": 2586,
+  "v11_accepted": 241,
+  "v11_rejected": 2339,
+  "v12_trades_displaced_by_v11": 0,
+  "combined_attribution": [
+    {
+      "engine": "AUDUSD_TREND_PULLBACK",
+      "trades": 198,
+      "net_profit": 455.7364792054767,
+      "profit_factor": 1.351420321601133
+    },
+    {
+      "engine": "EURUSD_SWING_CORE",
+      "trades": 122,
+      "net_profit": 380.19383883371523,
+      "profit_factor": 1.450110858294707
+    },
+    {
+      "engine": "EURUSD_SWING_RETEST",
+      "trades": 35,
+      "net_profit": 24.761365480373374,
+      "profit_factor": 1.2558790143741982
+    },
+    {
+      "engine": "EURUSD_V11_INTRADAY",
+      "trades": 59,
+      "net_profit": -270.8321087230275,
+      "profit_factor": 0.44404980174502706
+    },
+    {
+      "engine": "GBPJPY_SWING_CORE",
+      "trades": 180,
+      "net_profit": 364.615909687043,
+      "profit_factor": 1.566468145695448
+    },
+    {
+      "engine": "GBPJPY_V11_INTRADAY",
+      "trades": 111,
+      "net_profit": -197.67132593352815,
+      "profit_factor": 0.82191854939506
+    },
+    {
+      "engine": "GBPUSD_SWING_RETEST",
+      "trades": 152,
+      "net_profit": 57.122378736019414,
+      "profit_factor": 1.0789829631127654
+    },
+    {
+      "engine": "GBPUSD_V10_PRECISION",
+      "trades": 117,
+      "net_profit": 1503.5049341463123,
+      "profit_factor": 2.8595231157005414
+    },
+    {
+      "engine": "GBPUSD_V11_INTRADAY",
+      "trades": 110,
+      "net_profit": -129.16799429612732,
+      "profit_factor": 0.8272065662403769
+    },
+    {
+      "engine": "USDJPY_SAFE_HAVEN_BREAKOUT",
+      "trades": 114,
+      "net_profit": 200.66324347178022,
+      "profit_factor": 1.3854111792721227
+    }
+  ],
+  "combined_rejections": {
+    "guard:cooldown": 2442,
+    "symbol_cap": 236,
+    "guard:new_cooldown": 152,
+    "guard:probe_in_flight": 63,
+    "max_positions": 16,
+    "gbp_cap": 10
+  },
+  "limitations": [
+    "M15 OHLC cannot resolve tick order inside a candle; stop-first ordering is conservative.",
+    "Costs are represented by a fixed 0.05R deduction on V11 trades.",
+    "Public-source timestamps and prices may differ from the target broker feed."
+  ]
+}
