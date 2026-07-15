@@ -72,13 +72,13 @@ def main() -> None:
     )
     start = latest - pd.DateOffset(years=10)
     governor = DrawdownGovernor(
-        soft_start_percent=8.50,
-        medium_start_percent=9.10,
-        defensive_start_percent=9.45,
-        hard_stop_percent=9.90,
-        soft_multiplier=0.99,
-        medium_multiplier=0.90,
-        defensive_multiplier=0.68,
+        soft_start_percent=7.50,
+        medium_start_percent=8.50,
+        defensive_start_percent=9.00,
+        hard_stop_percent=9.60,
+        soft_multiplier=0.98,
+        medium_multiplier=0.82,
+        defensive_multiplier=0.50,
         minimum_risk_percent=0.025,
     )
     results = {
