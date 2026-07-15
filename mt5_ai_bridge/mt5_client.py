@@ -17,7 +17,7 @@ class RealMT5Client:
     """Thin wrapper around the live MetaTrader5 terminal."""
 
     def __init__(self) -> None:
-        import MetaTrader5 as mt5  # lazy: only needed for live trading
+        import MetaTrader5 as mt5
 
         self._mt5 = mt5
         self.ORDER_TYPE_BUY = mt5.ORDER_TYPE_BUY
@@ -48,6 +48,9 @@ class RealMT5Client:
     def last_error(self) -> Any:
         return self._mt5.last_error()
 
+    def terminal_info(self) -> Any:
+        return self._mt5.terminal_info()
+
     def account_info(self) -> Any:
         return self._mt5.account_info()
 
@@ -55,7 +58,6 @@ class RealMT5Client:
         return self._mt5.positions_get(**kwargs)
 
     def history_deals_get(self, date_from, date_to, **kwargs) -> Any:
-        """Return closed deals so persisted risk state survives restarts."""
         return self._mt5.history_deals_get(date_from, date_to, **kwargs)
 
     def symbols_get(self, *args, **kwargs) -> Any:
