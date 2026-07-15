@@ -40,12 +40,15 @@ def test_audusd_08utc_is_full_and_04utc_is_micro() -> None:
 
 
 def test_usdjpy_quality_hours_are_full_and_other_hours_are_micro() -> None:
-    midnight, _ = adjusted_v12_risk_percent(row("USDJPY", "USDJPY_SAFE_HAVEN_BREAKOUT", 0, 0.20))
+    midnight, midnight_tier = adjusted_v12_risk_percent(row("USDJPY", "USDJPY_SAFE_HAVEN_BREAKOUT", 0, 0.20))
     sixteen, _ = adjusted_v12_risk_percent(row("USDJPY", "USDJPY_SAFE_HAVEN_BREAKOUT", 16, 0.20))
+    twenty, _ = adjusted_v12_risk_percent(row("USDJPY", "USDJPY_SAFE_HAVEN_BREAKOUT", 20, 0.20))
     other, tier = adjusted_v12_risk_percent(row("USDJPY", "USDJPY_SAFE_HAVEN_BREAKOUT", 12, 0.20))
     assert midnight == 0.25
     assert sixteen == 0.25
+    assert twenty == 0.25
     assert other == 0.05
+    assert midnight_tier == "USDJPY_00_16_20UTC_FULL"
     assert tier == "USDJPY_OTHER_HOUR_MICRO"
 
 
