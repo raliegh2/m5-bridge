@@ -6,13 +6,13 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class DrawdownGovernor:
-    soft_start_percent: float = 7.0
-    medium_start_percent: float = 8.5
-    defensive_start_percent: float = 9.0
-    hard_stop_percent: float = 9.95
-    soft_multiplier: float = 0.99
-    medium_multiplier: float = 0.90
-    defensive_multiplier: float = 0.50
+    soft_start_percent: float = 9.0
+    medium_start_percent: float = 9.5
+    defensive_start_percent: float = 9.75
+    hard_stop_percent: float = 9.99
+    soft_multiplier: float = 0.995
+    medium_multiplier: float = 0.95
+    defensive_multiplier: float = 0.80
     minimum_risk_percent: float = 0.025
 
     def multiplier(self, drawdown_percent: float) -> float:
