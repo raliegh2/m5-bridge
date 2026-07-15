@@ -16,6 +16,10 @@ venv/
 *.sqlite3
 logs/
 *.log
+*.jsonl
+v14_3_satellite_live_diagnostics.json
+state/v14_3_satellite_dashboard.json
+state/v14_3_satellite_live_state.json
 
 # Generated dashboard
 dashboard.html
