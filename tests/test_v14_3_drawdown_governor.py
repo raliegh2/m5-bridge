@@ -4,15 +4,15 @@ from mt5_ai_bridge.v14_3_drawdown_governor import DrawdownGovernor, validate_gov
 def test_multiplier_tiers() -> None:
     governor = DrawdownGovernor()
     assert governor.multiplier(0.0) == 1.0
-    assert governor.multiplier(3.5) == 0.90
-    assert governor.multiplier(5.0) == 0.72
-    assert governor.multiplier(6.5) == 0.45
-    assert governor.multiplier(8.5) == 0.0
+    assert governor.multiplier(5.5) == 0.97
+    assert governor.multiplier(7.0) == 0.88
+    assert governor.multiplier(8.0) == 0.65
+    assert governor.multiplier(9.25) == 0.0
 
 
 def test_apply_never_increases_risk() -> None:
     governor = DrawdownGovernor()
-    for drawdown in (0.0, 3.5, 5.0, 6.5, 8.5):
+    for drawdown in (0.0, 5.5, 7.0, 8.0, 9.25):
         assert governor.apply(0.20, drawdown) <= 0.20
 
 
