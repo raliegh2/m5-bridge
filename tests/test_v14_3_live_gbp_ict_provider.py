@@ -145,6 +145,28 @@ def test_live_provider_reads_completed_m1_only_and_returns_valid_payloads(
         lambda: pd.Timestamp("2026-07-15 12:05:00", tz="UTC"),
     )
     monkeypatch.setenv("V14_3_GBP_ICT_LOOKBACK_MINUTES", "90")
+
+    # The raw detector is covered independently above. Keep this integration test
+    # deterministic across Windows/Linux and focus it on completed-bar retrieval,
+    # provider filtering, payload construction, and engine naming.
+    def deterministic_candidates(symbol, candles, _config):
+        candle = candles.iloc[-1]
+        return pd.DataFrame([{
+            "entry_time": pd.Timestamp(candle["time"]),
+            "symbol": symbol,
+            "setup": "sweep_reclaim_60",
+            "direction": -1,
+            "priority": 0.0,
+            "candle_high": float(candle["high"]),
+            "candle_low": float(candle["low"]),
+            "signal_atr": float(candle["high"] - candle["low"]),
+        }])
+
+    monkeypatch.setattr(
+        "v14_3_signals.generate_raw_candidates",
+        deterministic_candidates,
+    )
+
     client = FakeProviderClient()
     signals = build_live_signals(client)
 
