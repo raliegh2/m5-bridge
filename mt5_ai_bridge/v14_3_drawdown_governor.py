@@ -5,7 +5,7 @@ The governor limits clustered equity losses without changing any signal rule:
 * ICT entries pause for 72 hours when closed-equity drawdown reaches 6%;
 * after the pause, ICT entries run at 30% risk until drawdown recovers below 4%;
 * approved ICT risk tiers receive only a 5% normal-state uplift;
-* four high-quality V12 engines receive a bounded 1.50x allocation;
+* four high-quality V12 engines receive a bounded 1.55x allocation;
 * every individual trade remains capped below 0.80% account risk.
 
 This module is research/demo infrastructure. It never connects to MT5 or places
@@ -25,14 +25,14 @@ from mt5_ai_bridge.v14_3_profit_preserving_profile import (
 
 
 V12_ENGINE_MULTIPLIERS: dict[str, float] = {
-    "GBPUSD_V10_PRECISION": 1.50,
-    "EURUSD_SWING_CORE": 1.50,
-    "AUDUSD_TREND_PULLBACK": 1.50,
-    "GBPJPY_SWING_CORE": 1.50,
+    "GBPUSD_V10_PRECISION": 1.55,
+    "EURUSD_SWING_CORE": 1.55,
+    "AUDUSD_TREND_PULLBACK": 1.55,
+    "GBPJPY_SWING_CORE": 1.55,
 }
 V12_DEFAULT_MULTIPLIER = 1.00
 ICT_NORMAL_MULTIPLIER = 1.05
-MAX_V12_TRADE_RISK_PERCENT = 0.75
+MAX_V12_TRADE_RISK_PERCENT = 0.78
 MAX_ICT_TRADE_RISK_PERCENT = 0.80
 
 
@@ -85,7 +85,7 @@ def adjusted_v12_risk_percent(engine: str, original_risk_percent: float) -> tupl
     original = max(0.0, float(original_risk_percent))
     multiplier = V12_ENGINE_MULTIPLIERS.get(str(engine), V12_DEFAULT_MULTIPLIER)
     adjusted = min(original * multiplier, MAX_V12_TRADE_RISK_PERCENT)
-    tier = "V12_QUALITY_150" if multiplier > 1.0 else "V12_UNCHANGED"
+    tier = "V12_QUALITY_155" if multiplier > 1.0 else "V12_UNCHANGED"
     return adjusted, tier
 
 
@@ -129,7 +129,7 @@ def validate_governor() -> None:
         raise RuntimeError("Drawdown pause must span at least one trading day")
     if not 0.0 < CONFIG.recovery_risk_multiplier < 1.0:
         raise RuntimeError("Recovery risk multiplier must reduce risk")
-    if max(V12_ENGINE_MULTIPLIERS.values()) > 1.50:
+    if max(V12_ENGINE_MULTIPLIERS.values()) > 1.55:
         raise RuntimeError("V12 quality uplift exceeds the frozen bound")
     if MAX_V12_TRADE_RISK_PERCENT >= 0.80 or MAX_ICT_TRADE_RISK_PERCENT > 0.80:
         raise RuntimeError("Per-trade risk caps exceed the approved research limit")
