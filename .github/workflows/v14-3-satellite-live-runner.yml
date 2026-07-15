@@ -10,6 +10,7 @@ on:
       - "v14_3_satellite_preflight.py"
       - "v14_3_satellite_bot.py"
       - "v14_3_satellite_bot_m1.py"
+      - "v14_3_satellite_bot_windows.py"
       - "v14_3_signals.py"
       - "Start-V14-3-Satellite.bat"
       - "mt5_ai_bridge/v14_3_live_execution.py"
@@ -18,6 +19,7 @@ on:
       - "tests/test_v14_3_satellite_live_runner.py"
       - "tests/test_v14_3_satellite_bot.py"
       - "tests/test_v14_3_live_gbp_ict_provider.py"
+      - "tests/test_v14_3_windows_dashboard.py"
       - ".github/workflows/v14-3-satellite-live-runner.yml"
       - ".env.v14-3-satellite-live.example"
   workflow_dispatch:
@@ -45,6 +47,7 @@ jobs:
           v14_3_satellite_preflight.py
           v14_3_satellite_bot.py
           v14_3_satellite_bot_m1.py
+          v14_3_satellite_bot_windows.py
           v14_3_signals.py
           mt5_ai_bridge/v14_3_live_execution.py
           mt5_ai_bridge/v14_3_live_signals.py
@@ -52,6 +55,7 @@ jobs:
           tests/test_v14_3_satellite_live_runner.py
           tests/test_v14_3_satellite_bot.py
           tests/test_v14_3_live_gbp_ict_provider.py
+          tests/test_v14_3_windows_dashboard.py
       - name: Run live-runner safety and provider tests
         run: >-
           python -m pytest -q
@@ -59,6 +63,7 @@ jobs:
           tests/test_v14_3_satellite_symbol_profile.py
           tests/test_v14_3_satellite_bot.py
           tests/test_v14_3_live_gbp_ict_provider.py
+          tests/test_v14_3_windows_dashboard.py
           | tee live-runner-tests.log
       - name: Re-run enhanced full-history and exact-ten-year replay
         run: |
@@ -90,6 +95,9 @@ jobs:
           assert 'copy_rates_from_pos' in provider
           assert '"M1"' in provider
           assert 'def _future_outcome' not in provider
+          windows_launcher = Path('v14_3_satellite_bot_windows.py').read_text()
+          assert 'except PermissionError' in windows_launcher
+          assert 'os.replace' in windows_launcher
           print('Full-history enhanced net:', full['net_profit'])
           print('Exact 10-year enhanced net:', ten['net_profit'])
           print('Exact 10-year max DD:', ten['max_closed_drawdown_percent'])
