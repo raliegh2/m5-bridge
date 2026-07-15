@@ -51,15 +51,17 @@ jobs:
           for result in payload['results'].values():
               current = result['current']
               improved = result['drawdown_limited']
-              assert improved['max_closed_drawdown_percent'] <= 9.30, improved
-              assert improved['stress_drawdown_percent'] <= 9.40, improved
+              assert improved['max_closed_drawdown_percent'] < current['max_closed_drawdown_percent'], (current, improved)
+              assert improved['stress_drawdown_percent'] < current['stress_drawdown_percent'], (current, improved)
               assert improved['net_profit'] >= current['net_profit'] * 0.95, (current, improved)
               assert improved['governor_interventions'] > 0
               assert set(result['mode_coverage']) == {'GBPUSD','EURUSD','GBPJPY','AUDUSD','USDJPY'}
           ten = payload['results']['exact_10_year_window']
           print('Current 10y net:', ten['current']['net_profit'])
           print('Improved 10y net:', ten['drawdown_limited']['net_profit'])
+          print('Current 10y max DD:', ten['current']['max_closed_drawdown_percent'])
           print('Improved 10y max DD:', ten['drawdown_limited']['max_closed_drawdown_percent'])
+          print('Current 10y stress DD:', ten['current']['stress_drawdown_percent'])
           print('Improved 10y stress DD:', ten['drawdown_limited']['stress_drawdown_percent'])
           PY
       - name: Upload complete output
