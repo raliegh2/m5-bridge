@@ -133,7 +133,11 @@ class FakeProviderClient:
     ):
         self.calls.append((symbol, timeframe, start, count))
         frame = self.frames[symbol].tail(count).copy()
-        frame["time"] = frame["time"].astype("int64") // 10**9
+        # Convert each timestamp explicitly to Unix seconds. Avoid relying on the
+        # underlying datetime64 unit, which can be ns or us across pandas builds.
+        frame["time"] = frame["time"].map(
+            lambda value: int(pd.Timestamp(value).timestamp())
+        )
         return frame.to_records(index=False)
 
 
