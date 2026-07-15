@@ -19,12 +19,14 @@ on:
       - "Start-V14-3-Satellite.bat"
       - "mt5_ai_bridge/v14_3_live_execution.py"
       - "mt5_ai_bridge/v14_3_research_parity_execution.py"
+      - "mt5_ai_bridge/v14_3_mt5_broker_compat.py"
       - "mt5_ai_bridge/v14_3_live_signals.py"
       - "mt5_ai_bridge/mt5_client.py"
       - "tests/test_v14_3_satellite_live_runner.py"
       - "tests/test_v14_3_satellite_bot.py"
       - "tests/test_v14_3_live_gbp_ict_provider.py"
       - "tests/test_v14_3_research_parity_execution.py"
+      - "tests/test_v14_3_mt5_broker_compat.py"
       - "tests/test_v14_3_windows_dashboard.py"
       - ".github/workflows/v14-3-satellite-live-runner.yml"
       - ".env.v14-3-satellite-live.example"
@@ -60,12 +62,14 @@ jobs:
           v14_3_signals_research_parity.py
           mt5_ai_bridge/v14_3_live_execution.py
           mt5_ai_bridge/v14_3_research_parity_execution.py
+          mt5_ai_bridge/v14_3_mt5_broker_compat.py
           mt5_ai_bridge/v14_3_live_signals.py
           mt5_ai_bridge/mt5_client.py
           tests/test_v14_3_satellite_live_runner.py
           tests/test_v14_3_satellite_bot.py
           tests/test_v14_3_live_gbp_ict_provider.py
           tests/test_v14_3_research_parity_execution.py
+          tests/test_v14_3_mt5_broker_compat.py
           tests/test_v14_3_windows_dashboard.py
       - name: Run live-runner safety, provider and parity tests
         run: >-
@@ -75,6 +79,7 @@ jobs:
           tests/test_v14_3_satellite_bot.py
           tests/test_v14_3_live_gbp_ict_provider.py
           tests/test_v14_3_research_parity_execution.py
+          tests/test_v14_3_mt5_broker_compat.py
           tests/test_v14_3_windows_dashboard.py
           | tee live-runner-tests.log
       - name: Re-run enhanced full-history and exact-ten-year replay
@@ -116,6 +121,9 @@ jobs:
           assert 'order_check(request)' in execution
           assert execution.index('order_check(request)') < execution.index('order_send(request)')
           assert 'DEMO_ACCOUNT_REQUIRED' in execution
+          compatibility = Path('mt5_ai_bridge/v14_3_mt5_broker_compat.py').read_text()
+          assert 'SYMBOL_FILLING_IOC_FLAG' in compatibility
+          assert 'detected_clock_offset_seconds' in compatibility
           provider = Path('v14_3_signals.py').read_text()
           assert 'copy_rates_from_pos' in provider
           assert '"M1"' in provider
