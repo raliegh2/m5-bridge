@@ -14,6 +14,7 @@ if not exist ".venv\Scripts\python.exe" (
 )
 
 set "PYTHONPATH=%CD%;%CD%\research"
+set "V14_3_LEGACY_GBP_ICT_PROVIDER=v14_3_signals"
 call ".venv\Scripts\activate.bat"
 
 echo Running MT5 preflight checks...
@@ -28,8 +29,8 @@ if errorlevel 1 (
 )
 
 echo.
-echo Starting V14.3 Satellite Trading Bot...
-python v14_3_satellite_bot.py
+echo Starting V14.3 Satellite Trading Bot with live GBP ICT provider...
+python v14_3_satellite_bot_windows.py
 
 if errorlevel 1 (
     echo.
