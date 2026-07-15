@@ -1,0 +1,85 @@
+name: V14.3 satellite live runner validation
+
+on:
+  pull_request:
+    branches:
+      - v14-3-satellite-symbol-profit
+    paths:
+      - "v14_3_satellite_live_runner.py"
+      - "v14_3_satellite_preflight.py"
+      - "mt5_ai_bridge/v14_3_live_execution.py"
+      - "mt5_ai_bridge/v14_3_live_signals.py"
+      - "mt5_ai_bridge/mt5_client.py"
+      - "tests/test_v14_3_satellite_live_runner.py"
+      - ".github/workflows/v14-3-satellite-live-runner.yml"
+      - ".env.v14-3-satellite-live.example"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest python-dotenv
+      - name: Compile live and research modules
+        run: >-
+          python -m py_compile
+          v14_3_satellite_live_runner.py
+          v14_3_satellite_preflight.py
+          mt5_ai_bridge/v14_3_live_execution.py
+          mt5_ai_bridge/v14_3_live_signals.py
+          mt5_ai_bridge/mt5_client.py
+          tests/test_v14_3_satellite_live_runner.py
+      - name: Run live-runner safety tests
+        run: python -m pytest -q tests/test_v14_3_satellite_live_runner.py tests/test_v14_3_satellite_symbol_profile.py | tee live-runner-tests.log
+      - name: Re-run enhanced full-history and exact-ten-year replay
+        run: |
+          python research/v14_3_satellite_symbol_profit_backtest_v2.py \
+            --v12-ledger research/v12_final_ledger_output/v12_final_trade_ledger.csv \
+            --ict-source research/v14_3_true_combined_v12_ict_output/true_combined_closed_trades.csv \
+            --out research/v14_3_satellite_live_parity_output \
+            | tee live-runner-backtest-parity.log
+      - name: Verify enhanced-result parity and live safety gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path('research/v14_3_satellite_live_parity_output/all_results.json').read_text())
+          full = payload['results']['full_repository_history']['enhanced']
+          ten = payload['results']['exact_10_year_window']['enhanced']
+          assert abs(full['net_profit'] - 48377.58) < 0.10, full['net_profit']
+          assert abs(ten['net_profit'] - 34690.84) < 0.10, ten['net_profit']
+          assert ten['max_closed_drawdown_percent'] <= 9.90
+          assert ten['stress_drawdown_percent'] <= 9.90
+          text = Path('.env.v14-3-satellite-live.example').read_text()
+          assert 'V14_3_EXECUTION_MODE=READ_ONLY' in text
+          assert 'V14_3_ALLOW_DEMO_AUTO=false' in text
+          assert 'V14_3_FORWARD_GATE_PASSED=false' in text
+          execution = Path('mt5_ai_bridge/v14_3_live_execution.py').read_text()
+          assert 'order_check(request)' in execution
+          assert execution.index('order_check(request)') < execution.index('order_send(request)')
+          print('Full-history enhanced net:', full['net_profit'])
+          print('Exact 10-year enhanced net:', ten['net_profit'])
+          print('Exact 10-year max DD:', ten['max_closed_drawdown_percent'])
+          PY
+      - name: Upload validation package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-3-satellite-live-runner-validation
+          path: |
+            research/v14_3_satellite_live_parity_output/
+            live-runner-tests.log
+            live-runner-backtest-parity.log
+          if-no-files-found: error
+          retention-days: 90
