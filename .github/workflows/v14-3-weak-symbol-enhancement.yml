@@ -55,15 +55,18 @@ jobs:
               assert result['enhanced']['max_closed_drawdown_percent'] < 10.0
               assert result['enhanced']['stress_drawdown_percent'] < 10.0
               assert set(result['diagnostics']) == {'GBPUSD','EURUSD','GBPJPY','AUDUSD','USDJPY'}
-          for symbol in ('EURUSD','AUDUSD','USDJPY'):
-              assert ten['target_symbols'][symbol]['enhanced_net'] > ten['target_symbols'][symbol]['current_net'], (symbol, ten['target_symbols'][symbol])
+              for symbol in ('EURUSD','AUDUSD','USDJPY'):
+                  stats = result['target_symbols'][symbol]
+                  assert stats['enhanced_net'] > stats['current_net'], (result['case'], symbol, stats)
           assert ten['target_symbols']['USDJPY']['enhanced_net'] > 0.0
           assert ten['enhanced']['net_profit'] >= 26680.0
           assert full['enhanced']['net_profit'] >= 33049.0
           print('Exact 10-year enhanced profit:', ten['enhanced']['net_profit'])
           print('Full-history enhanced profit:', full['enhanced']['net_profit'])
-          for symbol in ('EURUSD','AUDUSD','USDJPY'):
-              print(symbol, ten['target_symbols'][symbol])
+          for result in (ten, full):
+              print(result['case'])
+              for symbol in ('EURUSD','AUDUSD','USDJPY'):
+                  print(symbol, result['target_symbols'][symbol])
           PY
       - name: Upload complete output
         if: always()
