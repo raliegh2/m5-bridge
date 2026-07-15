@@ -6,8 +6,11 @@ on:
       - v14-3-weak-symbol-enhancement
     paths:
       - "mt5_ai_bridge/v14_3_all_symbol_ict.py"
+      - "mt5_ai_bridge/v14_3_all_symbol_ict_admission.py"
       - "research/v14_3_five_symbol_ict_10y_backtest.py"
+      - "research/v14_3_five_symbol_ict_10y_backtest_v2.py"
       - "tests/test_v14_3_all_symbol_ict.py"
+      - "tests/test_v14_3_all_symbol_ict_admission.py"
       - ".github/workflows/v14-3-five-symbol-ict-10y.yml"
   workflow_dispatch:
 
@@ -31,13 +34,20 @@ jobs:
         run: >-
           python -m py_compile
           mt5_ai_bridge/v14_3_all_symbol_ict.py
+          mt5_ai_bridge/v14_3_all_symbol_ict_admission.py
           research/v14_3_five_symbol_ict_10y_backtest.py
+          research/v14_3_five_symbol_ict_10y_backtest_v2.py
           tests/test_v14_3_all_symbol_ict.py
+          tests/test_v14_3_all_symbol_ict_admission.py
       - name: Run focused tests
-        run: python -m pytest -q tests/test_v14_3_all_symbol_ict.py | tee five-symbol-ict-tests.log
+        run: >-
+          python -m pytest -q
+          tests/test_v14_3_all_symbol_ict.py
+          tests/test_v14_3_all_symbol_ict_admission.py
+          | tee five-symbol-ict-tests.log
       - name: Generate all-symbol ICT and run chronological replays
         run: |
-          python research/v14_3_five_symbol_ict_10y_backtest.py \
+          python research/v14_3_five_symbol_ict_10y_backtest_v2.py \
             --v12-ledger research/v12_final_ledger_output/v12_final_trade_ledger.csv \
             --ict-source research/v14_3_true_combined_v12_ict_output/true_combined_closed_trades.csv \
             --out research/v14_3_five_symbol_ict_output \
@@ -53,7 +63,11 @@ jobs:
           for symbol in ('EURUSD','AUDUSD','USDJPY'):
               report = selection[symbol]
               assert report['candidate_count'] > 0, (symbol, report)
-              assert report['validation_passed'], (symbol, report['profiles'][report['selected']]['validation'])
+              assert report['validation_passed'], (symbol, report['profiles'][report['selected']])
+              segments = report['profiles'][report['selected']]
+              for key in ('early_development','confirmation','validation'):
+                  assert segments[key]['net_r'] > 0, (symbol, key, segments[key])
+                  assert segments[key]['profit_factor'] >= 1.02, (symbol, key, segments[key])
           for result in results.values():
               enhanced = result['five_symbol_ict']
               current = result['current']
@@ -64,6 +78,7 @@ jobs:
                   assert coverage['v12_enabled'], (symbol, coverage)
                   assert coverage['ict_enabled'], (symbol, coverage)
           ten = results['exact_10_year_window']
+          assert ten['five_symbol_ict']['net_profit'] >= 28037.0
           print('Current exact ten-year profit:', ten['current']['net_profit'])
           print('Five-symbol ICT exact ten-year profit:', ten['five_symbol_ict']['net_profit'])
           print('Five-symbol ICT exact ten-year PF:', ten['five_symbol_ict']['profit_factor'])
