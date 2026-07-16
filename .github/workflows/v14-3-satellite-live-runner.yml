@@ -10,6 +10,7 @@ on:
       - "v14_3_satellite_live_runner.py"
       - "v14_3_satellite_preflight.py"
       - "v14_3_research_parity_preflight.py"
+      - "v14_3_reconcile_live_state.py"
       - "v14_3_satellite_bot.py"
       - "v14_3_satellite_bot_m1.py"
       - "v14_3_satellite_bot_windows.py"
@@ -56,6 +57,7 @@ jobs:
           v14_3_satellite_live_runner.py
           v14_3_satellite_preflight.py
           v14_3_research_parity_preflight.py
+          v14_3_reconcile_live_state.py
           v14_3_satellite_bot.py
           v14_3_satellite_bot_m1.py
           v14_3_satellite_bot_windows.py
