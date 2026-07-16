@@ -23,17 +23,23 @@ PARITY_TRADE_RISK_CEILING_PERCENT = 0.80
 V14_5_PROMOTED_RISK_PERCENT = 0.75
 V14_5_OBSERVATION_RISK_PERCENT = 0.025
 
+# V14.5.1 (July 2026): the continuous regeneration from broker data
+# (research/v14_6_swing_regeneration.py) showed AUDUSD_TREND_PULLBACK
+# failed the same promotion rule out-of-sample 2022-2026 (-0.09R/trade,
+# PF 0.83), so it is demoted to observation. EURUSD_SWING_CORE remains
+# promoted on the full out-of-sample window but was negative 2023-2026
+# (-0.07R/trade); the live V14.4 expectancy tracker governs it at runtime.
 PROMOTED_V12_ENGINES: frozenset[str] = frozenset(
     {
         "GBPUSD_V10_PRECISION",
         "GBPJPY_SWING_CORE",
-        "AUDUSD_TREND_PULLBACK",
         "EURUSD_SWING_CORE",
     }
 )
 
 DEMOTED_V12_ENGINES: frozenset[str] = frozenset(
     {
+        "AUDUSD_TREND_PULLBACK",
         "GBPUSD_SWING_RETEST",
         "EURUSD_SWING_RETEST",
         "USDJPY_SAFE_HAVEN_BREAKOUT",
