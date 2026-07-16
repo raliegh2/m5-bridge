@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   research-backtest:
@@ -25,6 +25,8 @@ jobs:
       PYTHONHASHSEED: "0"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -98,6 +100,16 @@ jobs:
           print('target_gap', payload['target_gap'])
           print('attribution', payload['attribution'])
           PY
+      - name: Persist compact research results
+        if: github.event_name == 'pull_request'
+        run: |
+          cp research/v14_6_five_symbol_dual_engine_output/BACKTEST_REPORT.md research/V14_6_FIVE_SYMBOL_RESULTS.md
+          cp research/v14_6_five_symbol_dual_engine_output/v14_6_results.json research/v14_6_five_symbol_results.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/V14_6_FIVE_SYMBOL_RESULTS.md research/v14_6_five_symbol_results.json
+          git commit -m "Record V14.6 five-symbol retail-target results" || exit 0
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
       - name: Upload complete research package
         if: always()
         uses: actions/upload-artifact@v4
