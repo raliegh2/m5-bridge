@@ -1,42 +1,109 @@
 # V14.6.1 workflow status
 
-- Backtest outcome: failure
-- Validation outcome: failure
-- Commit: 00f28dfddfe66a20fd3ed22b3ba9fca72ca30030
+- Backtest outcome: success
+- Validation outcome: success
+- Commit: 02bcb15f27eba7507d20bf78409cefc714ad3e41
 
 ```text
-Traceback (most recent call last):
-  File "/home/runner/work/m5-bridge/m5-bridge/research/v14_6_1_intraday_ict_trend_backtest.py", line 428, in <module>
-    main()
-  File "/home/runner/work/m5-bridge/m5-bridge/research/v14_6_1_intraday_ict_trend_backtest.py", line 297, in main
-    swing_all = base.build_continuous_swing_candidates()
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/m5-bridge/m5-bridge/research/v14_6_five_symbol_dual_engine_target.py", line 280, in build_continuous_swing_candidates
-    symbol: live.prepare_v12_frames(
-            ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/m5-bridge/m5-bridge/mt5_ai_bridge/v14_3_live_signals.py", line 70, in prepare_v12_frames
-    h1 = _frame(client.copy_rates_from_pos(broker_symbol, "H1", 1, h1_count))
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/m5-bridge/m5-bridge/research/v14_6_swing_regeneration.py", line 81, in copy_rates_from_pos
-    frame = self._load(symbol, timeframe)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/m5-bridge/m5-bridge/research/v14_6_swing_regeneration.py", line 69, in _load
-    frame = pd.read_csv(self.data_dir / f"{symbol}_{timeframe}.csv")
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 873, in read_csv
-    return _read(filepath_or_buffer, kwds)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 300, in _read
-    parser = TextFileReader(filepath_or_buffer, **kwds)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1645, in __init__
-    self._engine = self._make_engine(f, self.engine)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1904, in _make_engine
-    self.handles = get_handle(
-                   ^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/pandas/io/common.py", line 930, in get_handle
-    handle = open(
-             ^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/work/m5-bridge/m5-bridge/research/data_v14_6/GBPUSD_H1.csv'
+{
+  "window": {
+    "start": "2012-03-05T00:00:00+00:00",
+    "end": "2022-03-05T00:00:00+00:00"
+  },
+  "target_symbol_results": {
+    "GBPUSD": {
+      "validated": false,
+      "base_risk_percent": null,
+      "components": [],
+      "component_count": 0,
+      "evidence": null,
+      "activity": {
+        "trading_days": 48,
+        "average_entries_per_active_day": 1.4583,
+        "p95_entries_per_active_day": 2.0,
+        "maximum_entries_per_day": 2,
+        "days_with_multiple_entries": 22
+      },
+      "candidate_count": 1239
+    },
+    "GBPJPY": {
+      "validated": false,
+      "base_risk_percent": null,
+      "components": [],
+      "component_count": 0,
+      "evidence": null,
+      "activity": {
+        "trading_days": 36,
+        "average_entries_per_active_day": 2.9167,
+        "p95_entries_per_active_day": 3.0,
+        "maximum_entries_per_day": 3,
+        "days_with_multiple_entries": 36
+      },
+      "candidate_count": 1029
+    },
+    "AUDUSD": {
+      "validated": false,
+      "base_risk_percent": null,
+      "components": [],
+      "component_count": 0,
+      "evidence": null,
+      "activity": {
+        "trading_days": 104,
+        "average_entries_per_active_day": 1.375,
+        "p95_entries_per_active_day": 2.0,
+        "maximum_entries_per_day": 2,
+        "days_with_multiple_entries": 39
+      },
+      "candidate_count": 831
+    }
+  },
+  "coverage": {
+    "active_swing_symbols": [
+      "AUDUSD",
+      "EURUSD",
+      "GBPJPY",
+      "GBPUSD"
+    ],
+    "active_ict_symbols": [
+      "EURUSD",
+      "USDJPY"
+    ],
+    "all_three_failed_ict_symbols_fixed": false,
+    "all_ten_sleeves_active": false
+  },
+  "baseline_v14_6": {
+    "swing_scale": 0.9,
+    "ict_scale": 1.5,
+    "net_profit": 6282.968223828464,
+    "ending_balance": 11282.968223828464,
+    "return_percent": 125.6593644765693,
+    "profit_factor": 1.9769245609508357,
+    "max_closed_drawdown_percent": 8.505177779530758,
+    "stress_drawdown_percent": 9.417577531124506,
+    "closed_trades": 405,
+    "skipped_trades": 42,
+    "target_reached": false,
+    "safe": true,
+    "governor_interventions": 10
+  },
+  "best_safe_portfolio": {
+    "swing_scale": 0.9,
+    "ict_scale": 2.0,
+    "net_profit": 6383.035643406654,
+    "ending_balance": 11383.035643406654,
+    "return_percent": 127.66071286813307,
+    "profit_factor": 1.9356097038938038,
+    "max_closed_drawdown_percent": 8.659772788672973,
+    "stress_drawdown_percent": 9.469459106535764,
+    "closed_trades": 405,
+    "skipped_trades": 42,
+    "safe": true,
+    "target_reached": false,
+    "governor_interventions": 13
+  },
+  "profit_improvement_vs_v14_6": 100.07,
+  "target_reached": false,
+  "target_gap": 27616.96,
+  "output": "/home/runner/work/m5-bridge/m5-bridge/research/v14_6_1_intraday_ict_output"
+}
 ```
