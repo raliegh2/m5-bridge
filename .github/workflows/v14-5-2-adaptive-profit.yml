@@ -1,14 +1,15 @@
-name: V14.5.2 adaptive-profit research
+name: V14.5.2 robust profit-filter backtest
 
 on:
   pull_request:
     branches:
       - v14-4-live-profit-guard
     paths:
-      - "research/v14_5_2_adaptive_profit_research.py"
       - "mt5_ai_bridge/v14_5_cost_robust_profile.py"
-      - "research/v14_6_swing_regeneration.py"
-      - "research/data_v14_6/**"
+      - "mt5_ai_bridge/v14_5_2_profit_filter_profile.py"
+      - "research/v14_5_2_profit_filter_backtest.py"
+      - "tests/test_v14_5_2_profit_filter_profile.py"
+      - "research/v12_final_ledger_output/v12_final_trade_ledger.csv"
       - "research/v14_3_true_combined_v12_ict_output/true_combined_closed_trades.csv"
       - ".github/workflows/v14-5-2-adaptive-profit.yml"
   workflow_dispatch:
@@ -17,7 +18,7 @@ permissions:
   contents: read
 
 jobs:
-  research-and-backtest:
+  test-and-backtest:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -28,73 +29,89 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: python -m pip install --upgrade pip pandas numpy matplotlib
-      - name: Compile research
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest
+      - name: Compile implementation
         run: >-
           python -m py_compile
           mt5_ai_bridge/v14_5_cost_robust_profile.py
-          research/v14_6_swing_regeneration.py
-          research/v14_5_2_adaptive_profit_research.py
-      - name: Run development, validation and exact-ten-year backtests
+          mt5_ai_bridge/v14_5_2_profit_filter_profile.py
+          research/v14_5_2_profit_filter_backtest.py
+          tests/test_v14_5_2_profit_filter_profile.py
+      - name: Run focused tests
+        run: python -m pytest -q tests/test_v14_5_2_profit_filter_profile.py
+      - name: Run split-validation and exact-ten-year backtests
         run: |
           set -o pipefail
-          mkdir -p research/v14_5_2_adaptive_profit_output
-          python research/v14_5_2_adaptive_profit_research.py 2>&1 \
-            | tee research/v14_5_2_adaptive_profit_output/backtest_stdout.log
-      - name: Validate preserved protections and profitability
+          mkdir -p research/v14_5_2_profit_filter_output
+          python research/v14_5_2_profit_filter_backtest.py 2>&1 \
+            | tee research/v14_5_2_profit_filter_output/backtest_stdout.log
+      - name: Validate higher profitability and preserved risk
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
 
-          root = Path('research/v14_5_2_adaptive_profit_output')
+          root = Path('research/v14_5_2_profit_filter_output')
           payload = json.loads((root / 'v14_5_2_results.json').read_text())
-          constraints = payload['preserved_constraints']
-          assert constraints['max_trade_risk_percent'] == 0.75
-          assert constraints['observation_risk_percent'] == 0.025
-          assert constraints['max_combined_open_risk_percent'] == 3.25
-          assert payload['promoted_engines'] == [
-              'EURUSD_SWING_CORE',
-              'GBPJPY_SWING_CORE',
-              'GBPUSD_V10_PRECISION',
-          ]
-
-          selection = payload['selection_research']
-          for segment in ('development', 'validation'):
-              old = selection[f'static_{segment}']
-              new = selection[f'selected_{segment}']
-              assert new['net_profit'] >= old['net_profit'], (segment, old, new)
-              assert new['profit_factor'] >= old['profit_factor'], (segment, old, new)
-              assert new['max_drawdown_percent'] <= old['max_drawdown_percent'] + 0.50, (segment, old, new)
-
           results = payload['results']
-          old_demo = results['ten_year/v14_5_1/demo_cost']
-          new_demo = results['ten_year/v14_5_2/demo_cost']
-          old_retail = results['ten_year/v14_5_1/retail_cost']
-          new_retail = results['ten_year/v14_5_2/retail_cost']
-          assert new_demo['net_profit'] > old_demo['net_profit'], (old_demo, new_demo)
-          assert new_demo['profit_factor'] >= old_demo['profit_factor'], (old_demo, new_demo)
-          assert new_demo['max_drawdown_percent'] <= old_demo['max_drawdown_percent'] + 0.50, (old_demo, new_demo)
-          assert new_retail['net_profit'] >= old_retail['net_profit'], (old_retail, new_retail)
+
+          assert payload['models']['v14_5_2']['same_engines_and_limits'] is True
+          assert set(payload['filter_counts']) == {
+              'EURUSD_16UTC_OBSERVATION',
+              'EURUSD_MONDAY_OBSERVATION',
+              'GBPJPY_TUESDAY_OBSERVATION',
+          }
+          assert all(count > 0 for count in payload['filter_counts'].values())
+
+          for reason, evidence in payload['filter_evidence'].items():
+              development = evidence['development_demo_cost']
+              validation = evidence['validation_demo_cost']
+              assert development['trades'] > 0, (reason, development)
+              assert validation['trades'] > 0, (reason, validation)
+              assert development['sum_r'] < 0, (reason, development)
+              assert validation['sum_r'] < 0, (reason, validation)
+              assert development['profit_factor'] < 1.0, (reason, development)
+              assert validation['profit_factor'] < 1.0, (reason, validation)
+
+          for window in ('development', 'validation'):
+              old = results[f'{window}/v14_5_1/demo_cost']['summary']
+              new = results[f'{window}/v14_5_2/demo_cost']['summary']
+              assert new['net_profit'] > old['net_profit'], (window, old, new)
+              assert new['profit_factor'] > old['profit_factor'], (window, old, new)
+              assert new['max_closed_drawdown_percent'] < old['max_closed_drawdown_percent'], (window, old, new)
+              assert new['stress_drawdown_percent'] < old['stress_drawdown_percent'], (window, old, new)
+
+          for cost in ('zero_cost', 'demo_cost', 'retail_cost'):
+              old = results[f'exact_10_year/v14_5_1/{cost}']['summary']
+              new = results[f'exact_10_year/v14_5_2/{cost}']['summary']
+              assert new['net_profit'] > old['net_profit'], (cost, old, new)
+              assert new['profit_factor'] > old['profit_factor'], (cost, old, new)
+              assert new['max_closed_drawdown_percent'] < old['max_closed_drawdown_percent'], (cost, old, new)
+              assert new['stress_drawdown_percent'] < old['stress_drawdown_percent'], (cost, old, new)
+              print(cost, {
+                  'v14_5_1_net': old['net_profit'],
+                  'v14_5_2_net': new['net_profit'],
+                  'profit_delta': round(new['net_profit'] - old['net_profit'], 2),
+                  'v14_5_1_pf': old['profit_factor'],
+                  'v14_5_2_pf': new['profit_factor'],
+                  'v14_5_1_dd': old['max_closed_drawdown_percent'],
+                  'v14_5_2_dd': new['max_closed_drawdown_percent'],
+              })
 
           for expected in (
               'BACKTEST_REPORT.md',
               'comparison_summary.csv',
-              'top_candidates.csv',
-              'ten_year_demo_profit.png',
-              'ten_year_demo_equity.png',
+              'yearly_profit_equity.csv',
+              'exact_10_year_demo_profit.png',
+              'exact_10_year_demo_drawdown.png',
           ):
               assert (root / expected).exists(), expected
-
-          print('selected_params', payload['selected_params'])
-          print('demo_cost', {'v14_5_1': old_demo, 'v14_5_2': new_demo})
-          print('retail_cost', {'v14_5_1': old_retail, 'v14_5_2': new_retail})
           PY
-      - name: Upload complete research package
+      - name: Upload complete V14.5.2 package
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v14-5-2-adaptive-profit-backtest
-          path: research/v14_5_2_adaptive_profit_output/
+          name: v14-5-2-profit-filter-backtest
+          path: research/v14_5_2_profit_filter_output/
           if-no-files-found: error
           retention-days: 90
