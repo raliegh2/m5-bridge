@@ -37,8 +37,9 @@ jobs:
           research/v14_5_2_adaptive_profit_research.py
       - name: Run development, validation and exact-ten-year backtests
         run: |
+          set -o pipefail
           mkdir -p research/v14_5_2_adaptive_profit_output
-          python research/v14_5_2_adaptive_profit_research.py \
+          python research/v14_5_2_adaptive_profit_research.py 2>&1 \
             | tee research/v14_5_2_adaptive_profit_output/backtest_stdout.log
       - name: Validate preserved protections and profitability
         run: |
