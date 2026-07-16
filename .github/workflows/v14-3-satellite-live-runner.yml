@@ -19,6 +19,7 @@ on:
       - "Start-V14-3-Satellite.bat"
       - "mt5_ai_bridge/v14_3_live_execution.py"
       - "mt5_ai_bridge/v14_3_research_parity_execution.py"
+      - "mt5_ai_bridge/v14_3_position_reconciliation.py"
       - "mt5_ai_bridge/v14_3_mt5_broker_compat.py"
       - "mt5_ai_bridge/v14_3_live_signals.py"
       - "mt5_ai_bridge/mt5_client.py"
@@ -26,6 +27,7 @@ on:
       - "tests/test_v14_3_satellite_bot.py"
       - "tests/test_v14_3_live_gbp_ict_provider.py"
       - "tests/test_v14_3_research_parity_execution.py"
+      - "tests/test_v14_3_position_reconciliation.py"
       - "tests/test_v14_3_mt5_broker_compat.py"
       - "tests/test_v14_3_windows_dashboard.py"
       - ".github/workflows/v14-3-satellite-live-runner.yml"
@@ -62,6 +64,7 @@ jobs:
           v14_3_signals_research_parity.py
           mt5_ai_bridge/v14_3_live_execution.py
           mt5_ai_bridge/v14_3_research_parity_execution.py
+          mt5_ai_bridge/v14_3_position_reconciliation.py
           mt5_ai_bridge/v14_3_mt5_broker_compat.py
           mt5_ai_bridge/v14_3_live_signals.py
           mt5_ai_bridge/mt5_client.py
@@ -69,6 +72,7 @@ jobs:
           tests/test_v14_3_satellite_bot.py
           tests/test_v14_3_live_gbp_ict_provider.py
           tests/test_v14_3_research_parity_execution.py
+          tests/test_v14_3_position_reconciliation.py
           tests/test_v14_3_mt5_broker_compat.py
           tests/test_v14_3_windows_dashboard.py
       - name: Run live-runner safety, provider and parity tests
@@ -79,6 +83,7 @@ jobs:
           tests/test_v14_3_satellite_bot.py
           tests/test_v14_3_live_gbp_ict_provider.py
           tests/test_v14_3_research_parity_execution.py
+          tests/test_v14_3_position_reconciliation.py
           tests/test_v14_3_mt5_broker_compat.py
           tests/test_v14_3_windows_dashboard.py
           | tee live-runner-tests.log
@@ -121,6 +126,9 @@ jobs:
           assert 'order_check(request)' in execution
           assert execution.index('order_check(request)') < execution.index('order_send(request)')
           assert 'DEMO_ACCOUNT_REQUIRED' in execution
+          reconciliation = Path('mt5_ai_bridge/v14_3_position_reconciliation.py').read_text()
+          assert 'position_identifier' in reconciliation
+          assert 'processed_closed_positions' in reconciliation
           compatibility = Path('mt5_ai_bridge/v14_3_mt5_broker_compat.py').read_text()
           assert 'SYMBOL_FILLING_IOC_FLAG' in compatibility
           assert 'detected_clock_offset_seconds' in compatibility
