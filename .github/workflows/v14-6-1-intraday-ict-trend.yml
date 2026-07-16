@@ -6,15 +6,15 @@ on:
       - v14-6-five-symbol-dual-engine
     paths:
       - "mt5_ai_bridge/v14_6_1_intraday_ict_trend.py"
-      - "research/v14_6_1_intraday_ict_trend_backtest.py"
+      - "research/v14_6_1_intraday_ict_ensemble_backtest.py"
       - "tests/test_v14_6_1_intraday_ict_trend.py"
       - "research/v14_6_five_symbol_dual_engine_target.py"
-      - "research/data_v14_6/**"
       - ".github/workflows/v14-6-1-intraday-ict-trend.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   research-backtest:
@@ -32,21 +32,40 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: python -m pip install --upgrade pip pandas numpy matplotlib pytest
+      - name: Restore V14.6 candidate fixture
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p research/v14_6_candidate_fixture
+          if [ ! -s research/v14_6_candidate_fixture/all_swing_candidates.csv ] || \
+             [ ! -s research/v14_6_candidate_fixture/all_wide_ict_candidates.csv ]; then
+            curl --fail --location \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/raliegh2/m5-bridge/actions/artifacts/8391937431/zip \
+              --output /tmp/v14_6_candidate_artifact.zip
+            unzip -j /tmp/v14_6_candidate_artifact.zip \
+              all_swing_candidates.csv all_wide_ict_candidates.csv \
+              -d research/v14_6_candidate_fixture
+          fi
+          test -s research/v14_6_candidate_fixture/all_swing_candidates.csv
+          test -s research/v14_6_candidate_fixture/all_wide_ict_candidates.csv
       - name: Compile implementation
         run: >-
           python -m py_compile
           mt5_ai_bridge/v14_6_1_intraday_ict_trend.py
-          research/v14_6_1_intraday_ict_trend_backtest.py
+          research/v14_6_1_intraday_ict_ensemble_backtest.py
           tests/test_v14_6_1_intraday_ict_trend.py
       - name: Run focused tests
         run: python -m pytest -q tests/test_v14_6_1_intraday_ict_trend.py
-      - name: Run intraday ICT validation and portfolio replay
+      - name: Run profile-specific intraday ICT ensemble replay
         id: backtest
         continue-on-error: true
         run: |
           set -o pipefail
           mkdir -p research/v14_6_1_intraday_ict_output
-          python research/v14_6_1_intraday_ict_trend_backtest.py 2>&1 \
+          python research/v14_6_1_intraday_ict_ensemble_backtest.py 2>&1 \
             | tee research/v14_6_1_intraday_ict_output/backtest_stdout.log
       - name: Validate costs, multi-entry behavior and accounting
         id: validation
@@ -55,38 +74,38 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          import pandas as pd
 
           root = Path('research/v14_6_1_intraday_ict_output')
           payload = json.loads((root / 'v14_6_1_results.json').read_text())
           assert payload['retail_cost_r'] == {
               'SWING': 0.04,
               'ICT_WIDE': 0.09,
-              'ICT_INTRADAY': 0.12,
+              'ICT_INTRADAY_ENSEMBLE': 0.12,
               'ICT_LEGACY_M1': 0.16,
           }
-          assert payload['execution_limits']['target_symbol_max_open_ict_positions'] == 2
-          assert payload['execution_limits']['max_entries_per_hour'] == 1
-          assert payload['execution_limits']['max_ict_open_risk_percent'] == 1.75
-          assert payload['execution_limits']['max_combined_open_risk_percent'] == 3.25
-
-          candidates = pd.read_csv(root / 'all_intraday_ict_candidates.csv')
-          assert set(candidates['symbol']) == {'GBPUSD', 'GBPJPY', 'AUDUSD'}
-          candidates['entry_time'] = pd.to_datetime(candidates['entry_time'], utc=True)
-          candidates['day'] = candidates['entry_time'].dt.floor('D')
-          symbol_daily = candidates.groupby(['symbol', 'day']).size()
-          assert int(symbol_daily.max()) > 1, symbol_daily.describe()
-
-          profile_daily = candidates.groupby(['symbol', 'profile', 'day']).size()
-          profile_limits = candidates.groupby(['symbol', 'profile', 'day'])['max_trades_per_day'].first()
-          assert bool((profile_daily <= profile_limits).all()), pd.DataFrame({
-              'trades': profile_daily,
-              'limit': profile_limits,
-          }).query('trades > limit')
+          limits = payload['execution_limits']
+          assert limits['target_symbol_max_open_ict_positions'] == 2
+          assert limits['max_entries_per_hour'] == 1
+          assert limits['maximum_components_per_symbol'] == 3
+          assert limits['max_ict_open_risk_percent'] == 1.75
+          assert limits['max_combined_open_risk_percent'] == 3.25
+          protocol = payload['selection_protocol']
+          assert protocol['component_selection_uses_holdout'] is False
+          assert protocol['holdout_used_for_final_gate'] is True
 
           for symbol in ('GBPUSD', 'GBPJPY', 'AUDUSD'):
-              assert int((candidates['symbol'] == symbol).sum()) > 0
-              assert payload['target_symbol_results'][symbol]['intraday_candidate_count'] > 0
+              item = payload['target_symbol_results'][symbol]
+              assert item['candidate_count'] > 0
+              assert item['component_count'] <= 3
+              assert item['activity']['maximum_entries_per_day'] >= 1
+              if item['validated']:
+                  assert item['component_count'] >= 1
+                  assert item['activity']['maximum_entries_per_day'] > 1
+                  for segment in ('development', 'confirmation', 'holdout'):
+                      evidence = item['evidence']['segments'][segment]
+                      assert evidence['trades'] > 0
+                      assert evidence['net_r'] > 0
+                      assert evidence['profit_factor'] > 1.0
 
           best = payload['best_safe_portfolio']
           assert best['ending_balance'] > 0
@@ -98,18 +117,8 @@ jobs:
               best['net_profit'] - payload['baseline_v14_6']['net_profit'], 2
           )
 
-          for symbol, item in payload['target_symbol_results'].items():
-              if item['validated']:
-                  assert item['evidence'] is not None
-                  for segment in ('development', 'confirmation', 'holdout'):
-                      evidence = item['evidence']['segments'][segment]
-                      assert evidence['trades'] > 0
-                      assert evidence['net_r'] > 0
-                      assert evidence['profit_factor'] > 1.0
-
           for expected in (
               'BACKTEST_REPORT.md',
-              'all_intraday_ict_candidates.csv',
               'best_safe_trades.csv',
               'best_safe_skipped.csv',
               'best_safe_governor_events.csv',
@@ -124,7 +133,7 @@ jobs:
           print('improvement', payload['profit_improvement_vs_v14_6'])
           print('target_gap', payload['target_gap'])
           PY
-      - name: Persist results and diagnostics
+      - name: Persist fixtures, results and diagnostics
         if: always() && github.event_name == 'pull_request'
         run: |
           {
@@ -136,7 +145,7 @@ jobs:
             echo
             echo '```text'
             if [ -f research/v14_6_1_intraday_ict_output/backtest_stdout.log ]; then
-              tail -n 100 research/v14_6_1_intraday_ict_output/backtest_stdout.log
+              tail -n 120 research/v14_6_1_intraday_ict_output/backtest_stdout.log
             else
               echo "No backtest log was produced."
             fi
@@ -152,10 +161,12 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/v14_6_candidate_fixture/all_swing_candidates.csv
+          git add research/v14_6_candidate_fixture/all_wide_ict_candidates.csv
           git add research/V14_6_1_RUN_STATUS.md
           [ -f research/V14_6_1_INTRADAY_ICT_RESULTS.md ] && git add research/V14_6_1_INTRADAY_ICT_RESULTS.md
           [ -f research/v14_6_1_intraday_ict_results.json ] && git add research/v14_6_1_intraday_ict_results.json
-          git commit -m "Record V14.6.1 intraday ICT run" || exit 0
+          git commit -m "Record V14.6.1 intraday ICT ensemble run" || exit 0
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
       - name: Upload complete research package
         if: always()
