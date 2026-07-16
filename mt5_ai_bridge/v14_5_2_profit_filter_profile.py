@@ -2,7 +2,7 @@
 
 V14.5.2 retains the V14.5.1 engine set, risk ceiling, observation sizing,
 portfolio caps, drawdown governor, entries, stops and targets. It improves
-trade selection by demoting three pre-entry time buckets that were negative in
+trade selection by demoting two pre-entry time buckets that were negative in
 both the development and validation partitions of the ten-year V12 ledger.
 
 The filter never increases risk. A filtered trade remains active at the
@@ -23,7 +23,6 @@ from mt5_ai_bridge.v14_5_cost_robust_profile import (
 V14_5_2_OBSERVATION_RISK_PERCENT = V14_5_OBSERVATION_RISK_PERCENT
 
 # Frozen pre-entry filters. Python weekday numbering is Monday=0, Tuesday=1.
-EURUSD_WEAK_WEEKDAYS_UTC: frozenset[int] = frozenset({0})
 EURUSD_WEAK_ENTRY_HOURS_UTC: frozenset[int] = frozenset({16})
 GBPJPY_WEAK_WEEKDAYS_UTC: frozenset[int] = frozenset({1})
 
@@ -50,11 +49,11 @@ def v14_5_2_filter_reason(engine: str, entry_time: Any) -> str | None:
     weekday = timestamp.weekday()
     hour = timestamp.hour
 
-    if normalized_engine == "EURUSD_SWING_CORE":
-        if weekday in EURUSD_WEAK_WEEKDAYS_UTC:
-            return "EURUSD_MONDAY_OBSERVATION"
-        if hour in EURUSD_WEAK_ENTRY_HOURS_UTC:
-            return "EURUSD_16UTC_OBSERVATION"
+    if (
+        normalized_engine == "EURUSD_SWING_CORE"
+        and hour in EURUSD_WEAK_ENTRY_HOURS_UTC
+    ):
+        return "EURUSD_16UTC_OBSERVATION"
     if (
         normalized_engine == "GBPJPY_SWING_CORE"
         and weekday in GBPJPY_WEAK_WEEKDAYS_UTC
@@ -80,8 +79,6 @@ def validate_profile() -> None:
         raise RuntimeError("V14.5.2 observation risk must remain micro-sized")
     if PARITY_TRADE_RISK_CEILING_PERCENT != 0.80:
         raise RuntimeError("Unexpected parity trade-risk ceiling")
-    if not EURUSD_WEAK_WEEKDAYS_UTC <= set(range(7)):
-        raise RuntimeError("Invalid EURUSD weekday filter")
     if not GBPJPY_WEAK_WEEKDAYS_UTC <= set(range(7)):
         raise RuntimeError("Invalid GBPJPY weekday filter")
     if not EURUSD_WEAK_ENTRY_HOURS_UTC <= set(range(24)):
