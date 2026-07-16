@@ -1,7 +1,7 @@
 """Run the V14.6.1 raw-candle intraday trend test reproducibly.
 
 The V14.6 swing and wide-ICT candidate fixtures are restored by CI from the
-successful V14.6 artifact.  New GBPUSD, GBPJPY and AUDUSD intraday ICT trades
+successful V14.6 artifact. New GBPUSD, GBPJPY and AUDUSD intraday ICT trades
 are generated from the repository's established public H1/H4/D1 history
 loader, including the new partial-profit and break-even exit simulation.
 
@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT / "research"))
 from research import v14_6_1_intraday_ict_trend_backtest as study  # noqa: E402
 
 FIXTURE = ROOT / "research" / "v14_6_candidate_fixture"
+OUT = ROOT / "research" / "v14_6_2_raw_intraday_output"
 
 
 def load_fixture(name: str) -> pd.DataFrame:
@@ -40,6 +41,7 @@ def load_fixture(name: str) -> pd.DataFrame:
 def main() -> None:
     swing = load_fixture("all_swing_candidates.csv")
     wide_ict = load_fixture("all_wide_ict_candidates.csv")
+    study.OUT = OUT
     study.base.build_continuous_swing_candidates = lambda: swing.copy()
     study.base.build_continuous_ict_candidates = lambda: wide_ict.copy()
     study.main()
