@@ -21,14 +21,12 @@ def test_normal_promoted_trade_keeps_v14_5_1_risk() -> None:
     ) == pytest.approx(0.75)
 
 
-def test_eurusd_monday_is_observation_only() -> None:
-    timestamp = utc(2026, 7, 13, 12)  # Monday
-    assert v14_5_2_filter_reason("EURUSD_SWING_CORE", timestamp) == (
-        "EURUSD_MONDAY_OBSERVATION"
-    )
+def test_eurusd_monday_is_not_filtered_without_16utc_condition() -> None:
+    timestamp = utc(2026, 7, 13, 12)  # Monday, but not 16 UTC
+    assert v14_5_2_filter_reason("EURUSD_SWING_CORE", timestamp) is None
     assert v14_5_2_risk_percent(
         "EURUSD_SWING_CORE", "V12", timestamp
-    ) == pytest.approx(V14_5_2_OBSERVATION_RISK_PERCENT)
+    ) == pytest.approx(0.75)
 
 
 def test_eurusd_16utc_is_observation_only() -> None:
