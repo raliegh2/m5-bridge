@@ -1,0 +1,98 @@
+name: V14.5.2 adaptive-profit research
+
+on:
+  pull_request:
+    branches:
+      - v14-4-live-profit-guard
+    paths:
+      - "research/v14_5_2_adaptive_profit_research.py"
+      - "mt5_ai_bridge/v14_5_cost_robust_profile.py"
+      - "research/v14_6_swing_regeneration.py"
+      - "research/data_v14_6/**"
+      - "research/v14_3_true_combined_v12_ict_output/true_combined_closed_trades.csv"
+      - ".github/workflows/v14-5-2-adaptive-profit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  research-and-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib
+      - name: Compile research
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_5_cost_robust_profile.py
+          research/v14_6_swing_regeneration.py
+          research/v14_5_2_adaptive_profit_research.py
+      - name: Run development, validation and exact-ten-year backtests
+        run: |
+          mkdir -p research/v14_5_2_adaptive_profit_output
+          python research/v14_5_2_adaptive_profit_research.py \
+            | tee research/v14_5_2_adaptive_profit_output/backtest_stdout.log
+      - name: Validate preserved protections and profitability
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('research/v14_5_2_adaptive_profit_output')
+          payload = json.loads((root / 'v14_5_2_results.json').read_text())
+          constraints = payload['preserved_constraints']
+          assert constraints['max_trade_risk_percent'] == 0.75
+          assert constraints['observation_risk_percent'] == 0.025
+          assert constraints['max_combined_open_risk_percent'] == 3.25
+          assert payload['promoted_engines'] == [
+              'EURUSD_SWING_CORE',
+              'GBPJPY_SWING_CORE',
+              'GBPUSD_V10_PRECISION',
+          ]
+
+          selection = payload['selection_research']
+          for segment in ('development', 'validation'):
+              old = selection[f'static_{segment}']
+              new = selection[f'selected_{segment}']
+              assert new['net_profit'] >= old['net_profit'], (segment, old, new)
+              assert new['profit_factor'] >= old['profit_factor'], (segment, old, new)
+              assert new['max_drawdown_percent'] <= old['max_drawdown_percent'] + 0.50, (segment, old, new)
+
+          results = payload['results']
+          old_demo = results['ten_year/v14_5_1/demo_cost']
+          new_demo = results['ten_year/v14_5_2/demo_cost']
+          old_retail = results['ten_year/v14_5_1/retail_cost']
+          new_retail = results['ten_year/v14_5_2/retail_cost']
+          assert new_demo['net_profit'] > old_demo['net_profit'], (old_demo, new_demo)
+          assert new_demo['profit_factor'] >= old_demo['profit_factor'], (old_demo, new_demo)
+          assert new_demo['max_drawdown_percent'] <= old_demo['max_drawdown_percent'] + 0.50, (old_demo, new_demo)
+          assert new_retail['net_profit'] >= old_retail['net_profit'], (old_retail, new_retail)
+
+          for expected in (
+              'BACKTEST_REPORT.md',
+              'comparison_summary.csv',
+              'top_candidates.csv',
+              'ten_year_demo_profit.png',
+              'ten_year_demo_equity.png',
+          ):
+              assert (root / expected).exists(), expected
+
+          print('selected_params', payload['selected_params'])
+          print('demo_cost', {'v14_5_1': old_demo, 'v14_5_2': new_demo})
+          print('retail_cost', {'v14_5_1': old_retail, 'v14_5_2': new_retail})
+          PY
+      - name: Upload complete research package
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-5-2-adaptive-profit-backtest
+          path: research/v14_5_2_adaptive_profit_output/
+          if-no-files-found: error
+          retention-days: 90
