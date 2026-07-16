@@ -4,12 +4,14 @@ from __future__ import annotations
 import v14_3_satellite_bot_m1 as bot
 from mt5_ai_bridge.mt5_client import create_client as create_raw_client
 from mt5_ai_bridge.v14_3_mt5_broker_compat import MT5BrokerCompatibilityClient
+from mt5_ai_bridge.v14_3_position_reconciliation import (
+    ReconciledResearchParityLiveExecutor,
+)
 from mt5_ai_bridge.v14_3_research_parity_execution import (
     PARITY_MAX_COMBINED_OPEN_RISK_PERCENT,
     PARITY_MAX_ICT_OPEN_RISK_PERCENT,
     PARITY_MAX_SIMULTANEOUS_ICT_POSITIONS,
     PARITY_MAX_TOTAL_ENTRIES_PER_HOUR,
-    ResearchParityLiveExecutor,
     ResearchParityLiveRunnerConfig,
 )
 from v14_3_satellite_bot_windows import WindowsSafeLiveDashboard
@@ -37,6 +39,7 @@ def _parity_banner(
     print(f" Max ICT entries/hour : {PARITY_MAX_TOTAL_ENTRIES_PER_HOUR}")
     print(" Drawdown governor    : 7.50 / 8.50 / 9.00 / 9.60% hard stop")
     print(" MT5 compatibility    : broker fill policy + UTC bar normalization")
+    print(" Position accounting  : order/deal/position reconciliation enabled")
     print(" Transmission         : confirmed MT5 demo account only")
     print(f" Dashboard            : {dashboard_url}")
     print(" Press Ctrl+C to stop the bot.")
@@ -45,7 +48,7 @@ def _parity_banner(
 
 # The split runner resolves these names from its module globals at runtime.
 bot.LiveRunnerConfig = ResearchParityLiveRunnerConfig
-bot.SatelliteLiveExecutor = ResearchParityLiveExecutor
+bot.SatelliteLiveExecutor = ReconciledResearchParityLiveExecutor
 bot.LiveDashboard = WindowsSafeLiveDashboard
 bot.create_client = _create_compatible_client
 bot._startup_banner = _parity_banner
