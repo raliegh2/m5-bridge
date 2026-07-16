@@ -1,0 +1,97 @@
+name: V14.5.1 versus current live backtest
+
+on:
+  pull_request:
+    branches:
+      - v14-4-live-profit-guard
+    paths:
+      - "mt5_ai_bridge/v14_5_cost_robust_profile.py"
+      - "research/v14_5_1_vs_current_live_backtest.py"
+      - "research/v14_3_true_combined_v12_ict_output/true_combined_closed_trades.csv"
+      - ".github/workflows/v14-5-1-vs-current-live-backtest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare-models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install report dependency
+        run: python -m pip install --upgrade pip matplotlib
+      - name: Compile comparison
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_5_cost_robust_profile.py
+          research/v14_5_1_vs_current_live_backtest.py
+      - name: Run comparison backtest
+        run: >-
+          python research/v14_5_1_vs_current_live_backtest.py
+          | tee research/v14_5_1_vs_current_live_output/backtest_stdout.log
+      - name: Validate common-period outputs
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          from pathlib import Path
+
+          root = Path('research/v14_5_1_vs_current_live_output')
+          payload = json.loads((root / 'comparison_results.json').read_text())
+          assert payload['starting_balance'] == 5000.0
+          promoted = payload['models']['v14_5_1']['promoted_v12_engines']
+          assert promoted == [
+              'EURUSD_SWING_CORE',
+              'GBPJPY_SWING_CORE',
+              'GBPUSD_V10_PRECISION',
+          ], promoted
+          assert 'AUDUSD_TREND_PULLBACK' not in promoted
+          assert payload['limits']['max_ict_open_risk_percent'] == 1.75
+          assert payload['limits']['max_combined_open_risk_percent'] == 3.25
+
+          results = payload['results']
+          required = [
+              f'exact_ten_year/{model}/{cost}'
+              for model in ('current_live_v14_3', 'v14_5_1')
+              for cost in ('zero_cost', 'demo_cost', 'retail_cost')
+          ]
+          assert all(key in results for key in required)
+          for key in required:
+              value = results[key]
+              assert value['trades'] > 0, (key, value)
+              assert value['years'] > 9.0, (key, value)
+              assert value['ending_balance'] > 0, (key, value)
+
+          rows = list(csv.DictReader((root / 'comparison_summary.csv').open()))
+          assert len(rows) == 24, len(rows)
+          yearly = list(csv.DictReader((root / 'yearly_profit_equity.csv').open()))
+          assert yearly, 'yearly output missing'
+          assert (root / 'BACKTEST_COMPARISON.md').exists()
+          assert (root / 'exact_10_year_demo_profit.png').exists()
+          assert (root / 'exact_10_year_demo_equity_by_year.png').exists()
+
+          for cost in ('demo_cost', 'retail_cost'):
+              current = results[f'exact_ten_year/current_live_v14_3/{cost}']
+              new = results[f'exact_ten_year/v14_5_1/{cost}']
+              print(cost, {
+                  'current_net': current['net_profit'],
+                  'v14_5_1_net': new['net_profit'],
+                  'profit_delta': round(new['net_profit'] - current['net_profit'], 2),
+                  'current_dd': current['max_drawdown_percent'],
+                  'v14_5_1_dd': new['max_drawdown_percent'],
+              })
+          PY
+      - name: Upload comparison package
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-5-1-vs-current-live-backtest
+          path: research/v14_5_1_vs_current_live_output/
+          if-no-files-found: error
+          retention-days: 90
