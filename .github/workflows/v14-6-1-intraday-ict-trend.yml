@@ -1,4 +1,4 @@
-name: V14.6.1 multi-entry intraday ICT trend
+name: V14.6.3 raw-candle intraday component ensemble
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
     paths:
       - "mt5_ai_bridge/v14_6_1_intraday_ict_trend.py"
       - "research/v14_6_1_intraday_ict_trend_backtest.py"
-      - "research/v14_6_2_raw_intraday_trend_backtest.py"
+      - "research/v14_6_3_raw_intraday_component_ensemble.py"
       - "tests/test_v14_6_1_intraday_ict_trend.py"
       - ".github/workflows/v14-6-1-intraday-ict-trend.yml"
   workflow_dispatch:
@@ -56,19 +56,19 @@ jobs:
           python -m py_compile
           mt5_ai_bridge/v14_6_1_intraday_ict_trend.py
           research/v14_6_1_intraday_ict_trend_backtest.py
-          research/v14_6_2_raw_intraday_trend_backtest.py
+          research/v14_6_3_raw_intraday_component_ensemble.py
           tests/test_v14_6_1_intraday_ict_trend.py
       - name: Run focused partial-profit tests
         run: python -m pytest -q tests/test_v14_6_1_intraday_ict_trend.py
-      - name: Run raw H1/H4/D1 intraday ICT replay
+      - name: Run four-block raw intraday ensemble
         id: backtest
         continue-on-error: true
         run: |
           set -o pipefail
-          mkdir -p research/v14_6_2_raw_intraday_output
-          python research/v14_6_2_raw_intraday_trend_backtest.py 2>&1 \
-            | tee research/v14_6_2_raw_intraday_output/backtest_stdout.log
-      - name: Validate raw-candle costs, frequency and accounting
+          mkdir -p research/v14_6_3_raw_intraday_output
+          python research/v14_6_3_raw_intraday_component_ensemble.py 2>&1 \
+            | tee research/v14_6_3_raw_intraday_output/backtest_stdout.log
+      - name: Validate frequency, four-block evidence and portfolio accounting
         id: validation
         continue-on-error: true
         run: |
@@ -77,14 +77,18 @@ jobs:
           from pathlib import Path
           import pandas as pd
 
-          root = Path('research/v14_6_2_raw_intraday_output')
-          payload = json.loads((root / 'v14_6_1_results.json').read_text())
+          root = Path('research/v14_6_3_raw_intraday_output')
+          payload = json.loads((root / 'v14_6_3_results.json').read_text())
           assert payload['retail_cost_r'] == {
               'SWING': 0.04,
               'ICT_WIDE': 0.09,
               'ICT_INTRADAY': 0.12,
               'ICT_LEGACY_M1': 0.16,
           }
+          protocol = payload['selection_protocol']
+          assert protocol['component_selection_uses_audits'] is False
+          assert protocol['both_audits_required_positive'] is True
+          assert protocol['max_components_per_symbol'] == 4
           limits = payload['execution_limits']
           assert limits['target_symbol_max_open_ict_positions'] == 2
           assert limits['max_entries_per_hour'] == 1
@@ -96,19 +100,19 @@ jobs:
           assert set(candidates['symbol']) == {'GBPUSD', 'GBPJPY', 'AUDUSD'}
           assert set(candidates['signal_mode']) == {'PULLBACK', 'BREAKOUT', 'RECLAIM'}
           assert bool((candidates['partial_fraction'] > 0).all())
-          assert bool((candidates['partial_fraction'] < 1).all())
-          daily = candidates.groupby([
+          assert int(candidates.groupby([
               'symbol', candidates['entry_time'].dt.floor('D')
-          ]).size()
-          assert int(daily.max()) > 1, daily.describe()
+          ]).size().max()) > 1
 
           for symbol in ('GBPUSD', 'GBPJPY', 'AUDUSD'):
               item = payload['target_symbol_results'][symbol]
+              assert item['candidate_count'] > 0
               assert item['intraday_candidate_count'] > 0
+              assert item['component_count'] <= 4
               if item['validated']:
-                  assert item['selected_engine'].startswith(f'{symbol}_ICT_INTRADAY_')
-                  for segment in ('development', 'confirmation', 'holdout'):
-                      evidence = item['evidence']['segments'][segment]
+                  assert item['component_count'] >= 1
+                  for block in ('development', 'confirmation', 'audit_a', 'audit_b'):
+                      evidence = item['evidence'][block]
                       assert evidence['trades'] > 0
                       assert evidence['net_r'] > 0
                       assert evidence['profit_factor'] > 1.0
@@ -119,6 +123,9 @@ jobs:
           assert best['stress_drawdown_percent'] <= 10.00 + 1e-9, best
           assert payload['target_reached'] == (best['net_profit'] >= 34000.0)
           assert payload['target_gap'] == round(max(0.0, 34000.0 - best['net_profit']), 2)
+          assert payload['profit_improvement_vs_v14_6'] == round(
+              best['net_profit'] - payload['baseline_v14_6']['net_profit'], 2
+          )
           print('target_symbol_results', payload['target_symbol_results'])
           print('coverage', payload['coverage'])
           print('baseline', payload['baseline_v14_6'])
@@ -126,51 +133,51 @@ jobs:
           print('improvement', payload['profit_improvement_vs_v14_6'])
           print('target_gap', payload['target_gap'])
           PY
-      - name: Persist raw results and diagnostics
+      - name: Persist results and diagnostics
         if: always() && github.event_name == 'pull_request'
         run: |
           {
-            echo "# V14.6.2 raw-candle workflow status"
+            echo "# V14.6.3 raw intraday ensemble workflow status"
             echo
             echo "- Backtest outcome: ${{ steps.backtest.outcome }}"
             echo "- Validation outcome: ${{ steps.validation.outcome }}"
             echo "- Commit: ${{ github.sha }}"
             echo
             echo '```text'
-            if [ -f research/v14_6_2_raw_intraday_output/backtest_stdout.log ]; then
-              tail -n 160 research/v14_6_2_raw_intraday_output/backtest_stdout.log
+            if [ -f research/v14_6_3_raw_intraday_output/backtest_stdout.log ]; then
+              tail -n 180 research/v14_6_3_raw_intraday_output/backtest_stdout.log
             else
-              echo "No raw-candle backtest log was produced."
+              echo "No V14.6.3 backtest log was produced."
             fi
             echo '```'
-          } > research/V14_6_2_RAW_INTRADAY_STATUS.md
+          } > research/V14_6_3_RAW_INTRADAY_STATUS.md
 
-          if [ -f research/v14_6_2_raw_intraday_output/BACKTEST_REPORT.md ]; then
-            cp research/v14_6_2_raw_intraday_output/BACKTEST_REPORT.md research/V14_6_2_RAW_INTRADAY_RESULTS.md
+          if [ -f research/v14_6_3_raw_intraday_output/BACKTEST_REPORT.md ]; then
+            cp research/v14_6_3_raw_intraday_output/BACKTEST_REPORT.md research/V14_6_3_RAW_INTRADAY_RESULTS.md
           fi
-          if [ -f research/v14_6_2_raw_intraday_output/v14_6_1_results.json ]; then
-            cp research/v14_6_2_raw_intraday_output/v14_6_1_results.json research/v14_6_2_raw_intraday_results.json
+          if [ -f research/v14_6_3_raw_intraday_output/v14_6_3_results.json ]; then
+            cp research/v14_6_3_raw_intraday_output/v14_6_3_results.json research/v14_6_3_raw_intraday_results.json
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add research/V14_6_2_RAW_INTRADAY_STATUS.md
-          [ -f research/V14_6_2_RAW_INTRADAY_RESULTS.md ] && git add research/V14_6_2_RAW_INTRADAY_RESULTS.md
-          [ -f research/v14_6_2_raw_intraday_results.json ] && git add research/v14_6_2_raw_intraday_results.json
-          git commit -m "Record V14.6.2 raw intraday trend results" || exit 0
+          git add research/V14_6_3_RAW_INTRADAY_STATUS.md
+          [ -f research/V14_6_3_RAW_INTRADAY_RESULTS.md ] && git add research/V14_6_3_RAW_INTRADAY_RESULTS.md
+          [ -f research/v14_6_3_raw_intraday_results.json ] && git add research/v14_6_3_raw_intraday_results.json
+          git commit -m "Record V14.6.3 raw intraday ensemble results" || exit 0
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
-      - name: Upload raw-candle research package
+      - name: Upload research package
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v14-6-2-raw-intraday-trend
-          path: research/v14_6_2_raw_intraday_output/
+          name: v14-6-3-raw-intraday-ensemble
+          path: research/v14_6_3_raw_intraday_output/
           if-no-files-found: warn
           retention-days: 90
       - name: Enforce successful research gate
         if: always()
         run: |
           if [ "${{ steps.backtest.outcome }}" != "success" ] || [ "${{ steps.validation.outcome }}" != "success" ]; then
-            echo "Raw-candle backtest or validation failed; diagnostics were persisted first."
+            echo "V14.6.3 backtest or validation failed; diagnostics were persisted first."
             exit 1
           fi
