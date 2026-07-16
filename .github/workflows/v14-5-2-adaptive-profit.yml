@@ -1,0 +1,122 @@
+name: V14.5.2 robust profit-filter backtest
+
+on:
+  pull_request:
+    branches:
+      - v14-4-live-profit-guard
+    paths:
+      - "mt5_ai_bridge/v14_5_cost_robust_profile.py"
+      - "mt5_ai_bridge/v14_5_2_profit_filter_profile.py"
+      - "research/v14_5_2_profit_filter_backtest.py"
+      - "research/v14_5_2_profit_filter_backtest_final.py"
+      - "tests/test_v14_5_2_profit_filter_profile.py"
+      - "research/v12_final_ledger_output/v12_final_trade_ledger.csv"
+      - "research/v14_3_true_combined_v12_ict_output/true_combined_closed_trades.csv"
+      - ".github/workflows/v14-5-2-adaptive-profit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest
+      - name: Compile implementation
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_5_cost_robust_profile.py
+          mt5_ai_bridge/v14_5_2_profit_filter_profile.py
+          research/v14_5_2_profit_filter_backtest.py
+          research/v14_5_2_profit_filter_backtest_final.py
+          tests/test_v14_5_2_profit_filter_profile.py
+      - name: Run focused tests
+        run: python -m pytest -q tests/test_v14_5_2_profit_filter_profile.py
+      - name: Run split-validation and exact-ten-year backtests
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_5_2_profit_filter_output
+          python research/v14_5_2_profit_filter_backtest_final.py 2>&1 \
+            | tee research/v14_5_2_profit_filter_output/backtest_stdout.log
+      - name: Validate higher profitability and preserved risk
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('research/v14_5_2_profit_filter_output')
+          payload = json.loads((root / 'v14_5_2_results.json').read_text())
+          results = payload['results']
+
+          assert payload['models']['v14_5_2']['same_engines_and_limits'] is True
+          assert payload['models']['v14_5_2']['filters'] == [
+              'EURUSD_SWING_CORE 16UTC -> observation',
+              'GBPJPY_SWING_CORE Tuesday UTC -> observation',
+          ]
+          assert set(payload['filter_counts']) == {
+              'EURUSD_16UTC_OBSERVATION',
+              'GBPJPY_TUESDAY_OBSERVATION',
+          }
+          assert all(count > 0 for count in payload['filter_counts'].values())
+
+          for reason, evidence in payload['filter_evidence'].items():
+              development = evidence['development_demo_cost']
+              validation = evidence['validation_demo_cost']
+              assert development['trades'] > 0, (reason, development)
+              assert validation['trades'] > 0, (reason, validation)
+              assert development['sum_r'] < 0, (reason, development)
+              assert validation['sum_r'] < 0, (reason, validation)
+              assert development['profit_factor'] < 1.0, (reason, development)
+              assert validation['profit_factor'] < 1.0, (reason, validation)
+
+          for window in ('development', 'validation'):
+              old = results[f'{window}/v14_5_1/demo_cost']['summary']
+              new = results[f'{window}/v14_5_2/demo_cost']['summary']
+              assert new['net_profit'] > old['net_profit'], (window, old, new)
+              assert new['profit_factor'] > old['profit_factor'], (window, old, new)
+              assert new['max_closed_drawdown_percent'] < old['max_closed_drawdown_percent'], (window, old, new)
+              assert new['stress_drawdown_percent'] < old['stress_drawdown_percent'], (window, old, new)
+
+          for cost in ('zero_cost', 'demo_cost', 'retail_cost'):
+              old = results[f'exact_10_year/v14_5_1/{cost}']['summary']
+              new = results[f'exact_10_year/v14_5_2/{cost}']['summary']
+              assert new['net_profit'] > old['net_profit'], (cost, old, new)
+              assert new['profit_factor'] > old['profit_factor'], (cost, old, new)
+              assert new['max_closed_drawdown_percent'] < old['max_closed_drawdown_percent'], (cost, old, new)
+              assert new['stress_drawdown_percent'] < old['stress_drawdown_percent'], (cost, old, new)
+              print(cost, {
+                  'v14_5_1_net': old['net_profit'],
+                  'v14_5_2_net': new['net_profit'],
+                  'profit_delta': round(new['net_profit'] - old['net_profit'], 2),
+                  'v14_5_1_pf': old['profit_factor'],
+                  'v14_5_2_pf': new['profit_factor'],
+                  'v14_5_1_dd': old['max_closed_drawdown_percent'],
+                  'v14_5_2_dd': new['max_closed_drawdown_percent'],
+              })
+
+          for expected in (
+              'BACKTEST_REPORT.md',
+              'comparison_summary.csv',
+              'yearly_profit_equity.csv',
+              'exact_10_year_demo_profit.png',
+              'exact_10_year_demo_drawdown.png',
+          ):
+              assert (root / expected).exists(), expected
+          PY
+      - name: Upload complete V14.5.2 package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-5-2-profit-filter-backtest
+          path: research/v14_5_2_profit_filter_output/
+          if-no-files-found: error
+          retention-days: 90
