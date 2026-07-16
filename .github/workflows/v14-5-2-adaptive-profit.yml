@@ -90,6 +90,7 @@ jobs:
           print('retail_cost', {'v14_5_1': old_retail, 'v14_5_2': new_retail})
           PY
       - name: Upload complete research package
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: v14-5-2-adaptive-profit-backtest
