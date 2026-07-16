@@ -70,9 +70,16 @@ jobs:
           assert set(candidates['symbol']) == {'GBPUSD', 'GBPJPY', 'AUDUSD'}
           candidates['entry_time'] = pd.to_datetime(candidates['entry_time'], utc=True)
           candidates['day'] = candidates['entry_time'].dt.floor('D')
-          daily = candidates.groupby(['symbol', 'day']).size()
-          assert int(daily.max()) > 1, daily.describe()
-          assert int(daily.max()) <= 7, daily.describe()
+          symbol_daily = candidates.groupby(['symbol', 'day']).size()
+          assert int(symbol_daily.max()) > 1, symbol_daily.describe()
+
+          profile_daily = candidates.groupby(['symbol', 'profile', 'day']).size()
+          profile_limits = candidates.groupby(['symbol', 'profile', 'day'])['max_trades_per_day'].first()
+          assert bool((profile_daily <= profile_limits).all()), pd.DataFrame({
+              'trades': profile_daily,
+              'limit': profile_limits,
+          }).query('trades > limit')
+
           for symbol in ('GBPUSD', 'GBPJPY', 'AUDUSD'):
               assert int((candidates['symbol'] == symbol).sum()) > 0
               assert payload['target_symbol_results'][symbol]['intraday_candidate_count'] > 0
