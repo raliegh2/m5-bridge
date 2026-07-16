@@ -41,12 +41,16 @@ jobs:
       - name: Run focused tests
         run: python -m pytest -q tests/test_v14_6_1_intraday_ict_trend.py
       - name: Run intraday ICT validation and portfolio replay
+        id: backtest
+        continue-on-error: true
         run: |
           set -o pipefail
           mkdir -p research/v14_6_1_intraday_ict_output
           python research/v14_6_1_intraday_ict_trend_backtest.py 2>&1 \
             | tee research/v14_6_1_intraday_ict_output/backtest_stdout.log
       - name: Validate costs, multi-entry behavior and accounting
+        id: validation
+        continue-on-error: true
         run: |
           python - <<'PY'
           import json
@@ -120,15 +124,38 @@ jobs:
           print('improvement', payload['profit_improvement_vs_v14_6'])
           print('target_gap', payload['target_gap'])
           PY
-      - name: Persist compact research results
-        if: github.event_name == 'pull_request'
+      - name: Persist results and diagnostics
+        if: always() && github.event_name == 'pull_request'
         run: |
-          cp research/v14_6_1_intraday_ict_output/BACKTEST_REPORT.md research/V14_6_1_INTRADAY_ICT_RESULTS.md
-          cp research/v14_6_1_intraday_ict_output/v14_6_1_results.json research/v14_6_1_intraday_ict_results.json
+          {
+            echo "# V14.6.1 workflow status"
+            echo
+            echo "- Backtest outcome: ${{ steps.backtest.outcome }}"
+            echo "- Validation outcome: ${{ steps.validation.outcome }}"
+            echo "- Commit: ${{ github.sha }}"
+            echo
+            echo '```text'
+            if [ -f research/v14_6_1_intraday_ict_output/backtest_stdout.log ]; then
+              tail -n 100 research/v14_6_1_intraday_ict_output/backtest_stdout.log
+            else
+              echo "No backtest log was produced."
+            fi
+            echo '```'
+          } > research/V14_6_1_RUN_STATUS.md
+
+          if [ -f research/v14_6_1_intraday_ict_output/BACKTEST_REPORT.md ]; then
+            cp research/v14_6_1_intraday_ict_output/BACKTEST_REPORT.md research/V14_6_1_INTRADAY_ICT_RESULTS.md
+          fi
+          if [ -f research/v14_6_1_intraday_ict_output/v14_6_1_results.json ]; then
+            cp research/v14_6_1_intraday_ict_output/v14_6_1_results.json research/v14_6_1_intraday_ict_results.json
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add research/V14_6_1_INTRADAY_ICT_RESULTS.md research/v14_6_1_intraday_ict_results.json
-          git commit -m "Record V14.6.1 intraday ICT results" || exit 0
+          git add research/V14_6_1_RUN_STATUS.md
+          [ -f research/V14_6_1_INTRADAY_ICT_RESULTS.md ] && git add research/V14_6_1_INTRADAY_ICT_RESULTS.md
+          [ -f research/v14_6_1_intraday_ict_results.json ] && git add research/v14_6_1_intraday_ict_results.json
+          git commit -m "Record V14.6.1 intraday ICT run" || exit 0
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
       - name: Upload complete research package
         if: always()
@@ -136,5 +163,12 @@ jobs:
         with:
           name: v14-6-1-intraday-ict-trend
           path: research/v14_6_1_intraday_ict_output/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
+      - name: Enforce successful research gate
+        if: always()
+        run: |
+          if [ "${{ steps.backtest.outcome }}" != "success" ] || [ "${{ steps.validation.outcome }}" != "success" ]; then
+            echo "Backtest or validation failed; diagnostics were persisted first."
+            exit 1
+          fi
