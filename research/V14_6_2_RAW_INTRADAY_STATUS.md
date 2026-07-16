@@ -1,30 +1,10 @@
 # V14.6.2 raw-candle workflow status
 
 - Backtest outcome: success
-- Validation outcome: success
-- Commit: 545c7e2ba7a812af98165cee580bf53141f41725
+- Validation outcome: failure
+- Commit: 1a6202a2524ef0b5f91c7b4f69430e033380af7a
 
 ```text
-    "start": "2012-03-05T00:00:00+00:00",
-    "end": "2022-03-05T00:00:00+00:00"
-  },
-  "target_symbol_results": {
-    "GBPUSD": {
-      "validated": false,
-      "selected_engine": null,
-      "base_risk_percent": null,
-      "evidence": null,
-      "activity": {
-        "trading_days": 0,
-        "average_entries_per_active_day": 0.0,
-        "median_entries_per_active_day": 0.0,
-        "p95_entries_per_active_day": 0.0,
-        "maximum_entries_per_day": 0,
-        "days_with_multiple_entries": 0
-      },
-      "candidate_count": 8232,
-      "intraday_candidate_count": 6993
-    },
     "GBPJPY": {
       "validated": true,
       "selected_engine": "GBPJPY_ICT_INTRADAY_GJ_LONDON_PULLBACK",
