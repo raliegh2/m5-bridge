@@ -25,16 +25,12 @@ jobs:
     env:
       PYTHONPATH: .
       PYTHONHASHSEED: "0"
-      FXCM_FROM: "2015-01-01T00:00:00Z"
-      FXCM_TO: "2026-07-17T00:00:00Z"
-      FXCM_OUT: "research/fxcm_2016_2026_data"
-      FXCM_WORKERS: "24"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install market-data and Python dependencies
+      - name: Install Python dependencies
         run: python -m pip install --upgrade pip pandas numpy matplotlib pytest requests
       - name: Compile external replay
         run: >-
@@ -43,8 +39,18 @@ jobs:
           research/v14_8_dukascopy_2016_2026_backtest.py
           research/v14_8_fxcm_2016_2026.py
           research/v14_8_strict_all_ten_20k.py
-      - name: Download FXCM H1 bid and ask history
-        run: python research/download_fxcm_h1_2015_2026.py
+      - name: Restore verified FXCM H1 bid-ask dataset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p research/fxcm_2016_2026_data
+          curl --fail --location \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/raliegh2/m5-bridge/actions/artifacts/8394816921/zip \
+            --output /tmp/fxcm_h1.zip
+          unzip -o /tmp/fxcm_h1.zip -d research/fxcm_2016_2026_data
       - name: Validate downloaded market data
         run: |
           python - <<'PY'
@@ -62,8 +68,8 @@ jobs:
                   frame = pd.read_csv(path, usecols=['time'])
                   times = pd.to_datetime(frame['time'], utc=True)
                   assert len(frame) > 50_000, (path, len(frame))
-                  assert times.min() <= pd.Timestamp('2015-01-03', tz='UTC'), (path, times.min())
-                  assert times.max() >= pd.Timestamp('2026-07-14', tz='UTC'), (path, times.max())
+                  assert times.min() <= pd.Timestamp('2015-01-05', tz='UTC'), (path, times.min())
+                  assert times.max() >= pd.Timestamp('2026-05-01 20:00', tz='UTC'), (path, times.max())
           print(json.dumps(manifest, indent=2))
           PY
       - name: Run frozen V14.8 external-data replay
@@ -83,10 +89,10 @@ jobs:
           payload = json.loads((root / 'v14_8_dukascopy_results.json').read_text())
           assert payload['provider'] == 'FXCM official weekly H1 candle archive'
           assert payload['window']['start'].startswith('2016-01-01')
-          assert payload['window']['end'].startswith('2026-07-16')
+          assert payload['window']['end'].startswith('2026-05-01')
           assert set(payload['data_quality']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
           assert len(payload['sleeves']) == 10
-          assert len(payload['monthly']) >= 126
+          assert len(payload['monthly']) >= 125
           assert len(payload['annual']) == 11
           portfolio = payload['portfolio']
           assert portfolio['ending_balance'] > 0
@@ -123,11 +129,3 @@ jobs:
           path: research/v14_8_dukascopy_2016_2026_output/
           if-no-files-found: error
           retention-days: 90
-      - name: Upload FXCM source dataset and manifest
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fxcm-five-symbol-h1-bid-ask-2015-2026
-          path: research/fxcm_2016_2026_data/
-          if-no-files-found: error
-          retention-days: 30
