@@ -5,7 +5,7 @@ on:
     branches:
       - v14-7-five-symbol-20k-target
     paths:
-      - "research/download_dukascopy_h1_2015_2026.mjs"
+      - "research/download_dukascopy_api_h1_2015_2026.py"
       - "research/v14_8_dukascopy_2016_2026_backtest.py"
       - "research/v14_8_strict_all_ten_20k.py"
       - "mt5_ai_bridge/v14_7_strategy_families.py"
@@ -29,23 +29,19 @@ jobs:
       DUKASCOPY_OUT: "research/dukascopy_2016_2026_data"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Install market-data and Python dependencies
-        run: |
-          npm install --no-save dukascopy-node@1.46.4
-          python -m pip install --upgrade pip pandas numpy matplotlib pytest
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest requests
       - name: Compile external replay
         run: >-
           python -m py_compile
+          research/download_dukascopy_api_h1_2015_2026.py
           research/v14_8_dukascopy_2016_2026_backtest.py
           research/v14_8_strict_all_ten_20k.py
       - name: Download Dukascopy H1 bid and ask history
-        run: node research/download_dukascopy_h1_2015_2026.mjs
+        run: python research/download_dukascopy_api_h1_2015_2026.py
       - name: Validate downloaded market data
         run: |
           python - <<'PY'
@@ -82,7 +78,7 @@ jobs:
 
           root = Path('research/v14_8_dukascopy_2016_2026_output')
           payload = json.loads((root / 'v14_8_dukascopy_results.json').read_text())
-          assert payload['provider'] == 'Dukascopy via dukascopy-node'
+          assert payload['provider'] == 'Dukascopy Trading Tools API'
           assert payload['window']['start'].startswith('2016-01-01')
           assert payload['window']['end'].startswith('2026-07-16')
           assert set(payload['data_quality']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
