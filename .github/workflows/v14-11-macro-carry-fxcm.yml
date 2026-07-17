@@ -1,0 +1,156 @@
+name: V14.11 FXCM macro carry external test
+
+on:
+  pull_request:
+    branches:
+      - v14-9-fxcm-walk-forward
+    paths:
+      - "research/download_fred_short_rates.py"
+      - "mt5_ai_bridge/v14_11_macro_carry.py"
+      - "research/v14_11_macro_carry_fxcm.py"
+      - "research/v14_9_fxcm_walk_forward.py"
+      - "research/v14_8_dukascopy_2016_2026_backtest.py"
+      - ".github/workflows/v14-11-macro-carry-fxcm.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  macro-carry-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+      FRED_RATE_OUT: research/fred_short_rates_2014_2026
+      FRED_RATE_START: "2014-01-01"
+      FRED_RATE_END: "2026-05-31"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest requests
+      - name: Compile carry research
+        run: >-
+          python -m py_compile
+          research/download_fred_short_rates.py
+          mt5_ai_bridge/v14_11_macro_carry.py
+          research/v14_11_macro_carry_fxcm.py
+      - name: Restore verified FXCM H1 bid-ask dataset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p research/fxcm_2016_2026_data
+          curl --fail --location \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/raliegh2/m5-bridge/actions/artifacts/8394816921/zip \
+            --output /tmp/fxcm_h1.zip
+          unzip -o /tmp/fxcm_h1.zip -d research/fxcm_2016_2026_data
+      - name: Download lagged short-rate history
+        run: python research/download_fred_short_rates.py
+      - name: Validate source datasets
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          fxcm = Path('research/fxcm_2016_2026_data')
+          fxcm_manifest = json.loads((fxcm / 'manifest.json').read_text())
+          assert set(fxcm_manifest['symbols']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          for symbol in fxcm_manifest['symbols']:
+              for side in ('bid', 'ask'):
+                  frame = pd.read_csv(fxcm / f'{symbol}_H1_{side}.csv', usecols=['time'])
+                  times = pd.to_datetime(frame['time'], utc=True)
+                  assert len(frame) > 50_000
+                  assert times.max() >= pd.Timestamp('2026-05-01 20:00', tz='UTC')
+
+          rates = Path('research/fred_short_rates_2014_2026')
+          manifest = json.loads((rates / 'manifest.json').read_text())
+          assert {item['currency'] for item in manifest['downloads']} == {'USD', 'GBP', 'EUR', 'AUD', 'JPY'}
+          assert manifest['publication_lag_days_used_by_backtest'] == 45
+          for item in manifest['downloads']:
+              frame = pd.read_csv(item['file'])
+              assert len(frame) >= 100, item
+              assert pd.to_datetime(frame['observation_date']).max() >= pd.Timestamp('2026-01-01'), item
+          PY
+      - name: Run V14.11 macro carry replay
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_11_macro_carry_output
+          python research/v14_11_macro_carry_fxcm.py 2>&1 \
+            | tee research/v14_11_macro_carry_output/backtest_stdout.log
+      - name: Validate improvement safety and outputs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('research/v14_11_macro_carry_output')
+          payload = json.loads((root / 'v14_11_macro_carry_results.json').read_text())
+          baseline = payload['baseline_v14_9']
+          portfolio = payload['portfolio']
+          post = payload['post_selection_2022_2026']
+          carry = payload['macro_carry_2022_2026']
+
+          assert payload['rate_publication_lag_days'] == 45
+          assert payload['carry_haircut'] == 0.50
+          assert len(payload['selected_carry_sleeves']) > 0
+          assert portfolio['net_profit'] > baseline['net_profit'], (baseline, portfolio)
+          assert portfolio['profit_factor'] > 1.0
+          assert portfolio['max_closed_drawdown_percent'] <= 9.60
+          assert portfolio['stress_drawdown_percent'] <= 10.00
+          assert post['net_profit'] > 0.0, post
+          assert carry['net_profit'] > 0.0, carry
+          assert payload['target_reached'] == (portfolio['net_profit'] >= 20_000.0)
+          assert payload['target_gap'] == round(max(0.0, 20_000.0 - portfolio['net_profit']), 2)
+
+          for expected in (
+              'BACKTEST_REPORT.md',
+              'all_macro_carry_candidates.csv',
+              'selected_macro_carry_candidates.csv',
+              'macro_carry_evidence.csv',
+              'macro_carry_gate_and_admission.csv',
+              'baseline_v14_9_closed_trades.csv',
+              'closed_trades.csv',
+              'monthly_equity_profit_drawdown.csv',
+              'annual_profit_fees_drawdown.csv',
+              'monthly_equity_2016_2026.png',
+              'annual_net_profit_2016_2026.png',
+              'monthly_drawdown_2016_2026.png',
+              'profit_by_symbol.png',
+              'profit_by_mode.png',
+              'cumulative_modeled_fees.png',
+          ):
+              assert (root / expected).exists(), expected
+
+          print('baseline', baseline)
+          print('v14_11', portfolio)
+          print('improvement', payload['improvement'])
+          print('selected', payload['selected_carry_sleeves'])
+          print('post_selection', post)
+          print('carry_post_selection', carry)
+          print('attribution', payload['attribution_by_mode'])
+          PY
+      - name: Upload V14.11 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-11-fxcm-macro-carry-results
+          path: research/v14_11_macro_carry_output/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload rate manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-11-fred-oecd-short-rates
+          path: research/fred_short_rates_2014_2026/
+          if-no-files-found: error
+          retention-days: 30
