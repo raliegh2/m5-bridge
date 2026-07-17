@@ -8,6 +8,7 @@ on:
       - "research/download_fred_short_rates.py"
       - "mt5_ai_bridge/v14_11_macro_carry.py"
       - "research/v14_11_macro_carry_fxcm.py"
+      - "research/v14_11_macro_carry_entrypoint.py"
       - "research/v14_9_fxcm_walk_forward.py"
       - "research/v14_8_dukascopy_2016_2026_backtest.py"
       - ".github/workflows/v14-11-macro-carry-fxcm.yml"
@@ -40,6 +41,7 @@ jobs:
           research/download_fred_short_rates.py
           mt5_ai_bridge/v14_11_macro_carry.py
           research/v14_11_macro_carry_fxcm.py
+          research/v14_11_macro_carry_entrypoint.py
       - name: Restore verified FXCM H1 bid-ask dataset
         env:
           GH_TOKEN: ${{ github.token }}
@@ -84,7 +86,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p research/v14_11_macro_carry_output
-          python research/v14_11_macro_carry_fxcm.py 2>&1 \
+          python research/v14_11_macro_carry_entrypoint.py 2>&1 \
             | tee research/v14_11_macro_carry_output/backtest_stdout.log
       - name: Validate improvement safety and outputs
         run: |
