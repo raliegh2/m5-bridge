@@ -2,7 +2,7 @@
 
 - Backtest outcome: failure
 - Validation outcome: failure
-- Commit: 33012bf11c5a2720e15f2358afc18df1971507f8
+- Commit: 241a79cdb86c51d7fdd21a0f991d32fc8a768561
 
 ```text
 Traceback (most recent call last):
