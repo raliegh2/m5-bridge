@@ -1,0 +1,6776 @@
+{
+  "generated_at": "2026-07-17T00:06:27.449144",
+  "window": {
+    "start": "2012-03-05T00:00:00+00:00",
+    "end": "2022-03-05T00:00:00+00:00"
+  },
+  "target": {
+    "starting_balance": 5000.0,
+    "net_profit": 20000.0,
+    "ending_balance": 25000.0,
+    "after_retail_costs_and_fees": true
+  },
+  "validation_protocol": {
+    "training_percent": 35,
+    "validation_percent": 20,
+    "audit_a_percent": 15,
+    "audit_b_percent": 15,
+    "untouched_final_holdout_percent": 15,
+    "final_holdout_used_for_selection": false
+  },
+  "risk_limits": {
+    "max_swing_trade_percent": 1.25,
+    "max_ict_trade_percent": 0.6,
+    "max_closed_drawdown_percent": 9.6,
+    "max_stress_drawdown_percent": 10.0,
+    "max_ict_open_risk_percent": 1.75,
+    "max_combined_open_risk_percent": 3.25
+  },
+  "selections": {
+    "GBPUSD": {
+      "SWING": {
+        "symbol": "GBPUSD",
+        "mode": "SWING",
+        "setup": "v14_7_gbpusd_swing",
+        "base_risk_percent": 1.0,
+        "components": [
+          {
+            "engine": "GBPUSD_V10_PRECISION",
+            "side": "ALL",
+            "hour": 12,
+            "session": null,
+            "excluded_weekday": null
+          },
+          {
+            "engine": "GBPUSD_SWING_SWING_EMA_RECLAIM",
+            "side": "BUY",
+            "hour": 16,
+            "session": null,
+            "excluded_weekday": null
+          }
+        ],
+        "engines": [
+          "GBPUSD_V10_PRECISION",
+          "GBPUSD_SWING_SWING_EMA_RECLAIM"
+        ],
+        "families": [
+          "V14_6_SWING",
+          "EMA_RECLAIM"
+        ],
+        "evidence": {
+          "train": {
+            "trades": 47,
+            "net_r": 18.975,
+            "expectancy_r": 0.403723,
+            "profit_factor": 2.005032
+          },
+          "validation": {
+            "trades": 15,
+            "net_r": 6.49,
+            "expectancy_r": 0.432667,
+            "profit_factor": 2.033439
+          },
+          "audit_a": {
+            "trades": 14,
+            "net_r": 10.231595,
+            "expectancy_r": 0.730828,
+            "profit_factor": 4.1579
+          },
+          "audit_b": {
+            "trades": 17,
+            "net_r": 10.34,
+            "expectancy_r": 0.608235,
+            "profit_factor": 2.657051
+          },
+          "final_holdout": {
+            "trades": 13,
+            "net_r": 4.493968,
+            "expectancy_r": 0.34569,
+            "profit_factor": 2.069992
+          }
+        }
+      },
+      "ICT": null
+    },
+    "EURUSD": {
+      "SWING": {
+        "symbol": "EURUSD",
+        "mode": "SWING",
+        "setup": "v14_7_eurusd_swing",
+        "base_risk_percent": 0.45,
+        "components": [
+          {
+            "engine": "EURUSD_SWING_SWING_VOL_EXPANSION",
+            "side": "ALL",
+            "hour": null,
+            "session": "ASIA",
+            "excluded_weekday": null
+          },
+          {
+            "engine": "EURUSD_SWING_SWING_PULLBACK_20",
+            "side": "ALL",
+            "hour": 16,
+            "session": null,
+            "excluded_weekday": null
+          }
+        ],
+        "engines": [
+          "EURUSD_SWING_SWING_VOL_EXPANSION",
+          "EURUSD_SWING_SWING_PULLBACK_20"
+        ],
+        "families": [
+          "VOLATILITY_BREAKOUT",
+          "TREND_PULLBACK"
+        ],
+        "evidence": {
+          "train": {
+            "trades": 45,
+            "net_r": 6.212596,
+            "expectancy_r": 0.138058,
+            "profit_factor": 1.247319
+          },
+          "validation": {
+            "trades": 35,
+            "net_r": 8.426834,
+            "expectancy_r": 0.240767,
+            "profit_factor": 1.450151
+          },
+          "audit_a": {
+            "trades": 16,
+            "net_r": 3.324877,
+            "expectancy_r": 0.207805,
+            "profit_factor": 1.350758
+          },
+          "audit_b": {
+            "trades": 24,
+            "net_r": 5.04,
+            "expectancy_r": 0.21,
+            "profit_factor": 1.323077
+          },
+          "final_holdout": {
+            "trades": 25,
+            "net_r": 1.107962,
+            "expectancy_r": 0.044318,
+            "profit_factor": 1.066584
+          }
+        }
+      },
+      "ICT": null
+    },
+    "GBPJPY": {
+      "SWING": {
+        "symbol": "GBPJPY",
+        "mode": "SWING",
+        "setup": "v14_7_gbpjpy_swing",
+        "base_risk_percent": 0.6,
+        "components": [
+          {
+            "engine": "GBPJPY_SWING_CORE",
+            "side": "ALL",
+            "hour": null,
+            "session": null,
+            "excluded_weekday": 1
+          }
+        ],
+        "engines": [
+          "GBPJPY_SWING_CORE"
+        ],
+        "families": [
+          "V14_6_SWING"
+        ],
+        "evidence": {
+          "train": {
+            "trades": 39,
+            "net_r": 9.114978,
+            "expectancy_r": 0.233717,
+            "profit_factor": 1.501926
+          },
+          "validation": {
+            "trades": 54,
+            "net_r": 12.417166,
+            "expectancy_r": 0.229948,
+            "profit_factor": 1.791378
+          },
+          "audit_a": {
+            "trades": 14,
+            "net_r": 5.44,
+            "expectancy_r": 0.388571,
+            "profit_factor": 1.85
+          },
+          "audit_b": {
+            "trades": 15,
+            "net_r": 8.191046,
+            "expectancy_r": 0.54607,
+            "profit_factor": 2.52818
+          },
+          "final_holdout": {
+            "trades": 18,
+            "net_r": 3.28,
+            "expectancy_r": 0.182222,
+            "profit_factor": 1.284722
+          }
+        }
+      },
+      "ICT": {
+        "symbol": "GBPJPY",
+        "mode": "ICT",
+        "setup": "v14_7_gbpjpy_ict",
+        "base_risk_percent": 0.25,
+        "components": [
+          {
+            "engine": "GBPJPY_ICT_ICT_BREAKOUT_H4",
+            "side": "BUY",
+            "hour": 7,
+            "session": null,
+            "excluded_weekday": null
+          },
+          {
+            "engine": "GBPJPY_ICT_ICT_MOMENTUM_BREAKOUT_4",
+            "side": "ALL",
+            "hour": 7,
+            "session": null,
+            "excluded_weekday": null
+          }
+        ],
+        "engines": [
+          "GBPJPY_ICT_ICT_BREAKOUT_H4",
+          "GBPJPY_ICT_ICT_MOMENTUM_BREAKOUT_4"
+        ],
+        "families": [
+          "BREAKOUT",
+          "BREAKOUT"
+        ],
+        "evidence": {
+          "train": {
+            "trades": 29,
+            "net_r": 2.964136,
+            "expectancy_r": 0.102212,
+            "profit_factor": 1.240595
+          },
+          "validation": {
+            "trades": 20,
+            "net_r": 4.705609,
+            "expectancy_r": 0.23528,
+            "profit_factor": 1.52518
+          },
+          "audit_a": {
+            "trades": 14,
+            "net_r": 6.617282,
+            "expectancy_r": 0.472663,
+            "profit_factor": 2.969429
+          },
+          "audit_b": {
+            "trades": 11,
+            "net_r": 1.04,
+            "expectancy_r": 0.094545,
+            "profit_factor": 1.309524
+          },
+          "final_holdout": {
+            "trades": 17,
+            "net_r": 3.16,
+            "expectancy_r": 0.185882,
+            "profit_factor": 1.564286
+          }
+        }
+      }
+    },
+    "AUDUSD": {
+      "SWING": null,
+      "ICT": null
+    },
+    "USDJPY": {
+      "SWING": {
+        "symbol": "USDJPY",
+        "mode": "SWING",
+        "setup": "v14_7_usdjpy_swing",
+        "base_risk_percent": 0.45,
+        "components": [
+          {
+            "engine": "USDJPY_SWING_SWING_BREAKOUT_24",
+            "side": "ALL",
+            "hour": null,
+            "session": "LONDON",
+            "excluded_weekday": null
+          }
+        ],
+        "engines": [
+          "USDJPY_SWING_SWING_BREAKOUT_24"
+        ],
+        "families": [
+          "BREAKOUT"
+        ],
+        "evidence": {
+          "train": {
+            "trades": 24,
+            "net_r": 5.86172,
+            "expectancy_r": 0.244238,
+            "profit_factor": 1.469689
+          },
+          "validation": {
+            "trades": 24,
+            "net_r": 9.985523,
+            "expectancy_r": 0.416063,
+            "profit_factor": 2.066829
+          },
+          "audit_a": {
+            "trades": 18,
+            "net_r": 1.18,
+            "expectancy_r": 0.065556,
+            "profit_factor": 1.141827
+          },
+          "audit_b": {
+            "trades": 15,
+            "net_r": 3.06,
+            "expectancy_r": 0.204,
+            "profit_factor": 1.326923
+          },
+          "final_holdout": {
+            "trades": 18,
+            "net_r": 0.56,
+            "expectancy_r": 0.031111,
+            "profit_factor": 1.053846
+          }
+        }
+      },
+      "ICT": null
+    }
+  },
+  "diagnostics": {
+    "GBPUSD": {
+      "SWING": [
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_SWING_EMA_RECLAIM"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "EMA_RECLAIM"
+          ],
+          "audit_score": 96.434055,
+          "stats": {
+            "train": {
+              "trades": 47,
+              "net_r": 18.975,
+              "expectancy_r": 0.403723,
+              "profit_factor": 2.005032
+            },
+            "validation": {
+              "trades": 15,
+              "net_r": 6.49,
+              "expectancy_r": 0.432667,
+              "profit_factor": 2.033439
+            },
+            "audit_a": {
+              "trades": 14,
+              "net_r": 10.231595,
+              "expectancy_r": 0.730828,
+              "profit_factor": 4.1579
+            },
+            "audit_b": {
+              "trades": 17,
+              "net_r": 10.34,
+              "expectancy_r": 0.608235,
+              "profit_factor": 2.657051
+            },
+            "final_holdout": {
+              "trades": 13,
+              "net_r": 4.493968,
+              "expectancy_r": 0.34569,
+              "profit_factor": 2.069992
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 4
+            },
+            {
+              "engine": "GBPUSD_SWING_SWING_BREAKOUT_24",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_SWING_BREAKOUT_24"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "BREAKOUT"
+          ],
+          "audit_score": 92.624322,
+          "stats": {
+            "train": {
+              "trades": 94,
+              "net_r": 24.587727,
+              "expectancy_r": 0.261572,
+              "profit_factor": 1.585463
+            },
+            "validation": {
+              "trades": 65,
+              "net_r": 14.479352,
+              "expectancy_r": 0.222759,
+              "profit_factor": 1.478182
+            },
+            "audit_a": {
+              "trades": 39,
+              "net_r": 7.41975,
+              "expectancy_r": 0.19025,
+              "profit_factor": 1.41684
+            },
+            "audit_b": {
+              "trades": 54,
+              "net_r": 20.028293,
+              "expectancy_r": 0.370894,
+              "profit_factor": 1.872312
+            },
+            "final_holdout": {
+              "trades": 37,
+              "net_r": 7.129019,
+              "expectancy_r": 0.192676,
+              "profit_factor": 1.469986
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_SWING_BREAKOUT_24",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_SWING_BREAKOUT_24"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "BREAKOUT"
+          ],
+          "audit_score": 92.440643,
+          "stats": {
+            "train": {
+              "trades": 107,
+              "net_r": 25.663179,
+              "expectancy_r": 0.239843,
+              "profit_factor": 1.521641
+            },
+            "validation": {
+              "trades": 67,
+              "net_r": 12.184911,
+              "expectancy_r": 0.181864,
+              "profit_factor": 1.376077
+            },
+            "audit_a": {
+              "trades": 44,
+              "net_r": 11.567135,
+              "expectancy_r": 0.262889,
+              "profit_factor": 1.581848
+            },
+            "audit_b": {
+              "trades": 64,
+              "net_r": 17.958633,
+              "expectancy_r": 0.280604,
+              "profit_factor": 1.635929
+            },
+            "final_holdout": {
+              "trades": 41,
+              "net_r": 3.689019,
+              "expectancy_r": 0.089976,
+              "profit_factor": 1.190464
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": "NEW_YORK",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_SWING_BREAKOUT_24",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_SWING_BREAKOUT_24"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "BREAKOUT"
+          ],
+          "audit_score": 92.440643,
+          "stats": {
+            "train": {
+              "trades": 107,
+              "net_r": 25.663179,
+              "expectancy_r": 0.239843,
+              "profit_factor": 1.521641
+            },
+            "validation": {
+              "trades": 67,
+              "net_r": 12.184911,
+              "expectancy_r": 0.181864,
+              "profit_factor": 1.376077
+            },
+            "audit_a": {
+              "trades": 44,
+              "net_r": 11.567135,
+              "expectancy_r": 0.262889,
+              "profit_factor": 1.581848
+            },
+            "audit_b": {
+              "trades": 64,
+              "net_r": 17.958633,
+              "expectancy_r": 0.280604,
+              "profit_factor": 1.635929
+            },
+            "final_holdout": {
+              "trades": 41,
+              "net_r": 3.689019,
+              "expectancy_r": 0.089976,
+              "profit_factor": 1.190464
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 4
+            },
+            {
+              "engine": "GBPUSD_SWING_SWING_BREAKOUT_24",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_SWING_BREAKOUT_24"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "BREAKOUT"
+          ],
+          "audit_score": 91.993258,
+          "stats": {
+            "train": {
+              "trades": 103,
+              "net_r": 25.823179,
+              "expectancy_r": 0.25071,
+              "profit_factor": 1.560435
+            },
+            "validation": {
+              "trades": 67,
+              "net_r": 12.184911,
+              "expectancy_r": 0.181864,
+              "profit_factor": 1.376077
+            },
+            "audit_a": {
+              "trades": 41,
+              "net_r": 12.33975,
+              "expectancy_r": 0.30097,
+              "profit_factor": 1.65637
+            },
+            "audit_b": {
+              "trades": 61,
+              "net_r": 16.578633,
+              "expectancy_r": 0.271781,
+              "profit_factor": 1.610406
+            },
+            "final_holdout": {
+              "trades": 39,
+              "net_r": -2.230981,
+              "expectancy_r": -0.057205,
+              "profit_factor": 0.884814
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "GBPUSD_SWING_SWING_BREAKOUT_24",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_SWING_BREAKOUT_24"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "BREAKOUT"
+          ],
+          "audit_score": 91.876085,
+          "stats": {
+            "train": {
+              "trades": 96,
+              "net_r": 24.100219,
+              "expectancy_r": 0.251044,
+              "profit_factor": 1.562039
+            },
+            "validation": {
+              "trades": 66,
+              "net_r": 13.224911,
+              "expectancy_r": 0.200377,
+              "profit_factor": 1.421713
+            },
+            "audit_a": {
+              "trades": 43,
+              "net_r": 8.607135,
+              "expectancy_r": 0.200166,
+              "profit_factor": 1.432954
+            },
+            "audit_b": {
+              "trades": 62,
+              "net_r": 18.818655,
+              "expectancy_r": 0.303527,
+              "profit_factor": 1.691862
+            },
+            "final_holdout": {
+              "trades": 40,
+              "net_r": 1.229019,
+              "expectancy_r": 0.030725,
+              "profit_factor": 1.063454
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION"
+          ],
+          "families": [
+            "V14_6_SWING"
+          ],
+          "audit_score": 91.42064,
+          "stats": {
+            "train": {
+              "trades": 21,
+              "net_r": 10.66,
+              "expectancy_r": 0.507619,
+              "profit_factor": 2.119748
+            },
+            "validation": {
+              "trades": 4,
+              "net_r": 4.84,
+              "expectancy_r": 1.21,
+              "profit_factor": 5.481481
+            },
+            "audit_a": {
+              "trades": 6,
+              "net_r": 8.76,
+              "expectancy_r": 1.46,
+              "profit_factor": 74.0
+            },
+            "audit_b": {
+              "trades": 5,
+              "net_r": 5.8,
+              "expectancy_r": 1.16,
+              "profit_factor": 3.788462
+            },
+            "final_holdout": {
+              "trades": 4,
+              "net_r": 5.978968,
+              "expectancy_r": 1.494742,
+              "profit_factor": 150.474198
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_RETEST",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_RETEST"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "V14_6_SWING"
+          ],
+          "audit_score": 90.693926,
+          "stats": {
+            "train": {
+              "trades": 39,
+              "net_r": 15.311092,
+              "expectancy_r": 0.392592,
+              "profit_factor": 1.907055
+            },
+            "validation": {
+              "trades": 23,
+              "net_r": 9.264117,
+              "expectancy_r": 0.402788,
+              "profit_factor": 1.873973
+            },
+            "audit_a": {
+              "trades": 10,
+              "net_r": 10.6,
+              "expectancy_r": 1.06,
+              "profit_factor": 5.732143
+            },
+            "audit_b": {
+              "trades": 16,
+              "net_r": 7.349962,
+              "expectancy_r": 0.459373,
+              "profit_factor": 1.781911
+            },
+            "final_holdout": {
+              "trades": 10,
+              "net_r": 3.576767,
+              "expectancy_r": 0.357677,
+              "profit_factor": 2.10394
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_SWING_BREAKOUT_24",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_SWING_BREAKOUT_24"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "BREAKOUT"
+          ],
+          "audit_score": 89.549372,
+          "stats": {
+            "train": {
+              "trades": 98,
+              "net_r": 24.427727,
+              "expectancy_r": 0.249263,
+              "profit_factor": 1.54143
+            },
+            "validation": {
+              "trades": 65,
+              "net_r": 14.479352,
+              "expectancy_r": 0.222759,
+              "profit_factor": 1.478182
+            },
+            "audit_a": {
+              "trades": 42,
+              "net_r": 6.647135,
+              "expectancy_r": 0.158265,
+              "profit_factor": 1.352073
+            },
+            "audit_b": {
+              "trades": 57,
+              "net_r": 21.408293,
+              "expectancy_r": 0.375584,
+              "profit_factor": 1.890528
+            },
+            "final_holdout": {
+              "trades": 39,
+              "net_r": 13.049019,
+              "expectancy_r": 0.33459,
+              "profit_factor": 1.860267
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": "NEW_YORK",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_SWING_BREAKOUT_24",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_SWING_BREAKOUT_24"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "BREAKOUT"
+          ],
+          "audit_score": 89.549372,
+          "stats": {
+            "train": {
+              "trades": 98,
+              "net_r": 24.427727,
+              "expectancy_r": 0.249263,
+              "profit_factor": 1.54143
+            },
+            "validation": {
+              "trades": 65,
+              "net_r": 14.479352,
+              "expectancy_r": 0.222759,
+              "profit_factor": 1.478182
+            },
+            "audit_a": {
+              "trades": 42,
+              "net_r": 6.647135,
+              "expectancy_r": 0.158265,
+              "profit_factor": 1.352073
+            },
+            "audit_b": {
+              "trades": 57,
+              "net_r": 21.408293,
+              "expectancy_r": 0.375584,
+              "profit_factor": 1.890528
+            },
+            "final_holdout": {
+              "trades": 39,
+              "net_r": 13.049019,
+              "expectancy_r": 0.33459,
+              "profit_factor": 1.860267
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_RETEST",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_RETEST"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "V14_6_SWING"
+          ],
+          "audit_score": 87.652679,
+          "stats": {
+            "train": {
+              "trades": 68,
+              "net_r": 31.505368,
+              "expectancy_r": 0.463314,
+              "profit_factor": 2.2289
+            },
+            "validation": {
+              "trades": 46,
+              "net_r": 8.43043,
+              "expectancy_r": 0.18327,
+              "profit_factor": 1.361511
+            },
+            "audit_a": {
+              "trades": 21,
+              "net_r": 15.047135,
+              "expectancy_r": 0.71653,
+              "profit_factor": 3.011649
+            },
+            "audit_b": {
+              "trades": 31,
+              "net_r": 7.535191,
+              "expectancy_r": 0.243071,
+              "profit_factor": 1.590532
+            },
+            "final_holdout": {
+              "trades": 20,
+              "net_r": 9.839094,
+              "expectancy_r": 0.491955,
+              "profit_factor": 2.309913
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": "NEW_YORK",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_RETEST",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_RETEST"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "V14_6_SWING"
+          ],
+          "audit_score": 87.652679,
+          "stats": {
+            "train": {
+              "trades": 68,
+              "net_r": 31.505368,
+              "expectancy_r": 0.463314,
+              "profit_factor": 2.2289
+            },
+            "validation": {
+              "trades": 46,
+              "net_r": 8.43043,
+              "expectancy_r": 0.18327,
+              "profit_factor": 1.361511
+            },
+            "audit_a": {
+              "trades": 21,
+              "net_r": 15.047135,
+              "expectancy_r": 0.71653,
+              "profit_factor": 3.011649
+            },
+            "audit_b": {
+              "trades": 31,
+              "net_r": 7.535191,
+              "expectancy_r": 0.243071,
+              "profit_factor": 1.590532
+            },
+            "final_holdout": {
+              "trades": 20,
+              "net_r": 9.839094,
+              "expectancy_r": 0.491955,
+              "profit_factor": 2.309913
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_RETEST",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_RETEST"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "V14_6_SWING"
+          ],
+          "audit_score": 87.49267,
+          "stats": {
+            "train": {
+              "trades": 65,
+              "net_r": 22.625368,
+              "expectancy_r": 0.348083,
+              "profit_factor": 1.850672
+            },
+            "validation": {
+              "trades": 41,
+              "net_r": 9.482847,
+              "expectancy_r": 0.231289,
+              "profit_factor": 1.495965
+            },
+            "audit_a": {
+              "trades": 19,
+              "net_r": 17.127135,
+              "expectancy_r": 0.901428,
+              "profit_factor": 4.171692
+            },
+            "audit_b": {
+              "trades": 31,
+              "net_r": 7.648595,
+              "expectancy_r": 0.246729,
+              "profit_factor": 1.516797
+            },
+            "final_holdout": {
+              "trades": 19,
+              "net_r": 8.685507,
+              "expectancy_r": 0.457132,
+              "profit_factor": 2.333921
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": "NEW_YORK",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_RETEST",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_RETEST"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "V14_6_SWING"
+          ],
+          "audit_score": 87.49267,
+          "stats": {
+            "train": {
+              "trades": 65,
+              "net_r": 22.625368,
+              "expectancy_r": 0.348083,
+              "profit_factor": 1.850672
+            },
+            "validation": {
+              "trades": 41,
+              "net_r": 9.482847,
+              "expectancy_r": 0.231289,
+              "profit_factor": 1.495965
+            },
+            "audit_a": {
+              "trades": 19,
+              "net_r": 17.127135,
+              "expectancy_r": 0.901428,
+              "profit_factor": 4.171692
+            },
+            "audit_b": {
+              "trades": 31,
+              "net_r": 7.648595,
+              "expectancy_r": 0.246729,
+              "profit_factor": 1.516797
+            },
+            "final_holdout": {
+              "trades": 19,
+              "net_r": 8.685507,
+              "expectancy_r": 0.457132,
+              "profit_factor": 2.333921
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "SELL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_SWING_EMA_RECLAIM"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "EMA_RECLAIM"
+          ],
+          "audit_score": 85.85789,
+          "stats": {
+            "train": {
+              "trades": 37,
+              "net_r": 15.375,
+              "expectancy_r": 0.415541,
+              "profit_factor": 2.053082
+            },
+            "validation": {
+              "trades": 15,
+              "net_r": 6.49,
+              "expectancy_r": 0.432667,
+              "profit_factor": 2.033439
+            },
+            "audit_a": {
+              "trades": 10,
+              "net_r": 4.391595,
+              "expectancy_r": 0.439159,
+              "profit_factor": 2.389745
+            },
+            "audit_b": {
+              "trades": 16,
+              "net_r": 7.88,
+              "expectancy_r": 0.4925,
+              "profit_factor": 2.262821
+            },
+            "final_holdout": {
+              "trades": 11,
+              "net_r": 1.435,
+              "expectancy_r": 0.130455,
+              "profit_factor": 1.341667
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_SWING_RETEST",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_RETEST"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "V14_6_SWING"
+          ],
+          "audit_score": 85.261075,
+          "stats": {
+            "train": {
+              "trades": 42,
+              "net_r": 24.191092,
+              "expectancy_r": 0.575978,
+              "profit_factor": 2.519541
+            },
+            "validation": {
+              "trades": 28,
+              "net_r": 8.211699,
+              "expectancy_r": 0.293275,
+              "profit_factor": 1.554845
+            },
+            "audit_a": {
+              "trades": 12,
+              "net_r": 8.52,
+              "expectancy_r": 0.71,
+              "profit_factor": 2.972222
+            },
+            "audit_b": {
+              "trades": 16,
+              "net_r": 7.236559,
+              "expectancy_r": 0.452285,
+              "profit_factor": 1.983228
+            },
+            "final_holdout": {
+              "trades": 11,
+              "net_r": 4.730354,
+              "expectancy_r": 0.430032,
+              "profit_factor": 2.11565
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_SWING_SWING_BREAKOUT_24",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            },
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 1
+            }
+          ],
+          "engines": [
+            "GBPUSD_SWING_SWING_BREAKOUT_24",
+            "GBPUSD_V10_PRECISION"
+          ],
+          "families": [
+            "BREAKOUT",
+            "V14_6_SWING"
+          ],
+          "audit_score": 84.987322,
+          "stats": {
+            "train": {
+              "trades": 93,
+              "net_r": 23.127727,
+              "expectancy_r": 0.248685,
+              "profit_factor": 1.526144
+            },
+            "validation": {
+              "trades": 64,
+              "net_r": 12.019352,
+              "expectancy_r": 0.187802,
+              "profit_factor": 1.39694
+            },
+            "audit_a": {
+              "trades": 41,
+              "net_r": 6.687135,
+              "expectancy_r": 0.163101,
+              "profit_factor": 1.354943
+            },
+            "audit_b": {
+              "trades": 53,
+              "net_r": 20.068293,
+              "expectancy_r": 0.378647,
+              "profit_factor": 1.87558
+            },
+            "final_holdout": {
+              "trades": 39,
+              "net_r": 13.049019,
+              "expectancy_r": 0.33459,
+              "profit_factor": 1.860267
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "GBPUSD_SWING_SWING_VOL_EXPANSION",
+            "GBPUSD_V10_PRECISION"
+          ],
+          "families": [
+            "VOLATILITY_BREAKOUT",
+            "V14_6_SWING"
+          ],
+          "audit_score": 84.782633,
+          "stats": {
+            "train": {
+              "trades": 26,
+              "net_r": 16.770254,
+              "expectancy_r": 0.64501,
+              "profit_factor": 2.959142
+            },
+            "validation": {
+              "trades": 11,
+              "net_r": 8.46,
+              "expectancy_r": 0.769091,
+              "profit_factor": 2.995283
+            },
+            "audit_a": {
+              "trades": 12,
+              "net_r": 7.467384,
+              "expectancy_r": 0.622282,
+              "profit_factor": 2.744716
+            },
+            "audit_b": {
+              "trades": 13,
+              "net_r": 4.888315,
+              "expectancy_r": 0.376024,
+              "profit_factor": 1.918856
+            },
+            "final_holdout": {
+              "trades": 11,
+              "net_r": 2.798968,
+              "expectancy_r": 0.254452,
+              "profit_factor": 1.445696
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "GBPUSD_SWING_RETEST",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_RETEST"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "V14_6_SWING"
+          ],
+          "audit_score": 83.744417,
+          "stats": {
+            "train": {
+              "trades": 53,
+              "net_r": 18.102408,
+              "expectancy_r": 0.341555,
+              "profit_factor": 1.892624
+            },
+            "validation": {
+              "trades": 38,
+              "net_r": 8.602847,
+              "expectancy_r": 0.226391,
+              "profit_factor": 1.504862
+            },
+            "audit_a": {
+              "trades": 16,
+              "net_r": 16.247135,
+              "expectancy_r": 1.015446,
+              "profit_factor": 5.893715
+            },
+            "audit_b": {
+              "trades": 26,
+              "net_r": 10.628617,
+              "expectancy_r": 0.408793,
+              "profit_factor": 1.913111
+            },
+            "final_holdout": {
+              "trades": 18,
+              "net_r": 6.225507,
+              "expectancy_r": 0.345862,
+              "profit_factor": 1.956114
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_V10_PRECISION",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "GBPUSD_SWING_RETEST",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "GBPUSD_V10_PRECISION",
+            "GBPUSD_SWING_RETEST"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "V14_6_SWING"
+          ],
+          "audit_score": 83.551697,
+          "stats": {
+            "train": {
+              "trades": 56,
+              "net_r": 26.982408,
+              "expectancy_r": 0.481829,
+              "profit_factor": 2.396605
+            },
+            "validation": {
+              "trades": 43,
+              "net_r": 7.55043,
+              "expectancy_r": 0.175591,
+              "profit_factor": 1.355482
+            },
+            "audit_a": {
+              "trades": 18,
+              "net_r": 14.167135,
+              "expectancy_r": 0.787063,
+              "profit_factor": 3.623543
+            },
+            "audit_b": {
+              "trades": 26,
+              "net_r": 10.515214,
+              "expectancy_r": 0.404431,
+              "profit_factor": 2.095335
+            },
+            "final_holdout": {
+              "trades": 19,
+              "net_r": 7.379094,
+              "expectancy_r": 0.388373,
+              "profit_factor": 1.982404
+            }
+          },
+          "final_passed": true
+        }
+      ],
+      "ICT": [
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_ICT_WIDE_SWEEP",
+              "side": "ALL",
+              "hour": 14,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPUSD_ICT_WIDE_SWEEP"
+          ],
+          "families": [
+            "V14_6_ICT"
+          ],
+          "audit_score": 25.00522,
+          "stats": {
+            "train": {
+              "trades": 15,
+              "net_r": 1.15,
+              "expectancy_r": 0.076667,
+              "profit_factor": 1.131881
+            },
+            "validation": {
+              "trades": 14,
+              "net_r": 3.565645,
+              "expectancy_r": 0.254689,
+              "profit_factor": 1.545206
+            },
+            "audit_a": {
+              "trades": 5,
+              "net_r": 4.55,
+              "expectancy_r": 0.91,
+              "profit_factor": 5.174312
+            },
+            "audit_b": {
+              "trades": 8,
+              "net_r": 2.41347,
+              "expectancy_r": 0.301684,
+              "profit_factor": 1.738064
+            },
+            "final_holdout": {
+              "trades": 6,
+              "net_r": -4.04,
+              "expectancy_r": -0.673333,
+              "profit_factor": 0.258716
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_ICT_ICT_FVG_CONTINUATION",
+              "side": "ALL",
+              "hour": 17,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPUSD_ICT_ICT_FVG_CONTINUATION"
+          ],
+          "families": [
+            "FVG_CONTINUATION"
+          ],
+          "audit_score": 14.472758,
+          "stats": {
+            "train": {
+              "trades": 17,
+              "net_r": 0.219051,
+              "expectancy_r": 0.012885,
+              "profit_factor": 1.037729
+            },
+            "validation": {
+              "trades": 14,
+              "net_r": 3.741932,
+              "expectancy_r": 0.267281,
+              "profit_factor": 2.036174
+            },
+            "audit_a": {
+              "trades": 11,
+              "net_r": 1.343221,
+              "expectancy_r": 0.122111,
+              "profit_factor": 1.239861
+            },
+            "audit_b": {
+              "trades": 10,
+              "net_r": 2.691409,
+              "expectancy_r": 0.269141,
+              "profit_factor": 2.201522
+            },
+            "final_holdout": {
+              "trades": 11,
+              "net_r": 1.913507,
+              "expectancy_r": 0.173955,
+              "profit_factor": 1.927714
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPUSD_ICT_ICT_BREAKOUT_H4",
+              "side": "SELL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPUSD_ICT_ICT_BREAKOUT_H4"
+          ],
+          "families": [
+            "BREAKOUT"
+          ],
+          "audit_score": 11.366944,
+          "stats": {
+            "train": {
+              "trades": 19,
+              "net_r": 0.28,
+              "expectancy_r": 0.014737,
+              "profit_factor": 1.027778
+            },
+            "validation": {
+              "trades": 7,
+              "net_r": 0.554354,
+              "expectancy_r": 0.079193,
+              "profit_factor": 1.164986
+            },
+            "audit_a": {
+              "trades": 12,
+              "net_r": 0.68,
+              "expectancy_r": 0.056667,
+              "profit_factor": 1.121429
+            },
+            "audit_b": {
+              "trades": 5,
+              "net_r": 3.24,
+              "expectancy_r": 0.648,
+              "profit_factor": 3.892857
+            },
+            "final_holdout": {
+              "trades": 9,
+              "net_r": 0.16,
+              "expectancy_r": 0.017778,
+              "profit_factor": 1.035714
+            }
+          },
+          "final_passed": true
+        }
+      ]
+    },
+    "EURUSD": {
+      "SWING": [
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "ALL",
+              "hour": null,
+              "session": "ASIA",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_20",
+              "side": "ALL",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_VOL_EXPANSION",
+            "EURUSD_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "VOLATILITY_BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 43.046702,
+          "stats": {
+            "train": {
+              "trades": 45,
+              "net_r": 6.212596,
+              "expectancy_r": 0.138058,
+              "profit_factor": 1.247319
+            },
+            "validation": {
+              "trades": 35,
+              "net_r": 8.426834,
+              "expectancy_r": 0.240767,
+              "profit_factor": 1.450151
+            },
+            "audit_a": {
+              "trades": 16,
+              "net_r": 3.324877,
+              "expectancy_r": 0.207805,
+              "profit_factor": 1.350758
+            },
+            "audit_b": {
+              "trades": 24,
+              "net_r": 5.04,
+              "expectancy_r": 0.21,
+              "profit_factor": 1.323077
+            },
+            "final_holdout": {
+              "trades": 25,
+              "net_r": 1.107962,
+              "expectancy_r": 0.044318,
+              "profit_factor": 1.066584
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "ALL",
+              "hour": 0,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_20",
+              "side": "ALL",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_VOL_EXPANSION",
+            "EURUSD_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "VOLATILITY_BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 36.988242,
+          "stats": {
+            "train": {
+              "trades": 42,
+              "net_r": 5.732596,
+              "expectancy_r": 0.13649,
+              "profit_factor": 1.248813
+            },
+            "validation": {
+              "trades": 33,
+              "net_r": 3.306834,
+              "expectancy_r": 0.100207,
+              "profit_factor": 1.176647
+            },
+            "audit_a": {
+              "trades": 16,
+              "net_r": 3.324877,
+              "expectancy_r": 0.207805,
+              "profit_factor": 1.350758
+            },
+            "audit_b": {
+              "trades": 17,
+              "net_r": 8.72,
+              "expectancy_r": 0.512941,
+              "profit_factor": 1.931624
+            },
+            "final_holdout": {
+              "trades": 22,
+              "net_r": 4.227962,
+              "expectancy_r": 0.19218,
+              "profit_factor": 1.312719
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_20",
+              "side": "ALL",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_RUNNER",
+              "side": "SELL",
+              "hour": null,
+              "session": "LATE",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_PULLBACK_20",
+            "EURUSD_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 32.183985,
+          "stats": {
+            "train": {
+              "trades": 46,
+              "net_r": 3.286404,
+              "expectancy_r": 0.071444,
+              "profit_factor": 1.131667
+            },
+            "validation": {
+              "trades": 30,
+              "net_r": 2.615925,
+              "expectancy_r": 0.087197,
+              "profit_factor": 1.179665
+            },
+            "audit_a": {
+              "trades": 16,
+              "net_r": 2.918921,
+              "expectancy_r": 0.182433,
+              "profit_factor": 1.350832
+            },
+            "audit_b": {
+              "trades": 17,
+              "net_r": 10.56,
+              "expectancy_r": 0.621176,
+              "profit_factor": 2.450549
+            },
+            "final_holdout": {
+              "trades": 26,
+              "net_r": 2.329513,
+              "expectancy_r": 0.089597,
+              "profit_factor": 1.159994
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_20",
+              "side": "ALL",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_RUNNER",
+              "side": "SELL",
+              "hour": 20,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_PULLBACK_20",
+            "EURUSD_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 32.183985,
+          "stats": {
+            "train": {
+              "trades": 46,
+              "net_r": 3.286404,
+              "expectancy_r": 0.071444,
+              "profit_factor": 1.131667
+            },
+            "validation": {
+              "trades": 30,
+              "net_r": 2.615925,
+              "expectancy_r": 0.087197,
+              "profit_factor": 1.179665
+            },
+            "audit_a": {
+              "trades": 16,
+              "net_r": 2.918921,
+              "expectancy_r": 0.182433,
+              "profit_factor": 1.350832
+            },
+            "audit_b": {
+              "trades": 17,
+              "net_r": 10.56,
+              "expectancy_r": 0.621176,
+              "profit_factor": 2.450549
+            },
+            "final_holdout": {
+              "trades": 26,
+              "net_r": 2.329513,
+              "expectancy_r": 0.089597,
+              "profit_factor": 1.159994
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_BREAKOUT_24",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_20",
+              "side": "ALL",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_BREAKOUT_24",
+            "EURUSD_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 32.151157,
+          "stats": {
+            "train": {
+              "trades": 48,
+              "net_r": 10.228664,
+              "expectancy_r": 0.213097,
+              "profit_factor": 1.39341
+            },
+            "validation": {
+              "trades": 30,
+              "net_r": 4.807852,
+              "expectancy_r": 0.160262,
+              "profit_factor": 1.308196
+            },
+            "audit_a": {
+              "trades": 22,
+              "net_r": 0.458921,
+              "expectancy_r": 0.02086,
+              "profit_factor": 1.033944
+            },
+            "audit_b": {
+              "trades": 20,
+              "net_r": 9.4,
+              "expectancy_r": 0.47,
+              "profit_factor": 2.004274
+            },
+            "final_holdout": {
+              "trades": 24,
+              "net_r": -3.250487,
+              "expectancy_r": -0.135437,
+              "profit_factor": 0.791635
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_BREAKOUT_24",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_20",
+              "side": "ALL",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_BREAKOUT_24",
+            "EURUSD_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 32.151157,
+          "stats": {
+            "train": {
+              "trades": 48,
+              "net_r": 10.228664,
+              "expectancy_r": 0.213097,
+              "profit_factor": 1.39341
+            },
+            "validation": {
+              "trades": 30,
+              "net_r": 4.807852,
+              "expectancy_r": 0.160262,
+              "profit_factor": 1.308196
+            },
+            "audit_a": {
+              "trades": 22,
+              "net_r": 0.458921,
+              "expectancy_r": 0.02086,
+              "profit_factor": 1.033944
+            },
+            "audit_b": {
+              "trades": 20,
+              "net_r": 9.4,
+              "expectancy_r": 0.47,
+              "profit_factor": 2.004274
+            },
+            "final_holdout": {
+              "trades": 24,
+              "net_r": -3.250487,
+              "expectancy_r": -0.135437,
+              "profit_factor": 0.791635
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_20",
+              "side": "ALL",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 27.950027,
+          "stats": {
+            "train": {
+              "trades": 33,
+              "net_r": 2.348664,
+              "expectancy_r": 0.071172,
+              "profit_factor": 1.125463
+            },
+            "validation": {
+              "trades": 22,
+              "net_r": 2.127852,
+              "expectancy_r": 0.096721,
+              "profit_factor": 1.170501
+            },
+            "audit_a": {
+              "trades": 11,
+              "net_r": 0.898921,
+              "expectancy_r": 0.08172,
+              "profit_factor": 1.123478
+            },
+            "audit_b": {
+              "trades": 9,
+              "net_r": 9.84,
+              "expectancy_r": 1.093333,
+              "profit_factor": 4.153846
+            },
+            "final_holdout": {
+              "trades": 15,
+              "net_r": 2.029513,
+              "expectancy_r": 0.135301,
+              "profit_factor": 1.216828
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_BREAKOUT_24",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_RUNNER",
+              "side": "SELL",
+              "hour": null,
+              "session": "LATE",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_BREAKOUT_24",
+            "EURUSD_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 20.454128,
+          "stats": {
+            "train": {
+              "trades": 28,
+              "net_r": 8.81774,
+              "expectancy_r": 0.314919,
+              "profit_factor": 1.6522
+            },
+            "validation": {
+              "trades": 16,
+              "net_r": 3.168073,
+              "expectancy_r": 0.198005,
+              "profit_factor": 1.609245
+            },
+            "audit_a": {
+              "trades": 16,
+              "net_r": 1.58,
+              "expectancy_r": 0.09875,
+              "profit_factor": 1.217033
+            },
+            "audit_b": {
+              "trades": 19,
+              "net_r": 0.28,
+              "expectancy_r": 0.014737,
+              "profit_factor": 1.026923
+            },
+            "final_holdout": {
+              "trades": 20,
+              "net_r": -4.98,
+              "expectancy_r": -0.249,
+              "profit_factor": 0.564685
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_BREAKOUT_24",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_RUNNER",
+              "side": "SELL",
+              "hour": 20,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_BREAKOUT_24",
+            "EURUSD_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 20.454128,
+          "stats": {
+            "train": {
+              "trades": 28,
+              "net_r": 8.81774,
+              "expectancy_r": 0.314919,
+              "profit_factor": 1.6522
+            },
+            "validation": {
+              "trades": 16,
+              "net_r": 3.168073,
+              "expectancy_r": 0.198005,
+              "profit_factor": 1.609245
+            },
+            "audit_a": {
+              "trades": 16,
+              "net_r": 1.58,
+              "expectancy_r": 0.09875,
+              "profit_factor": 1.217033
+            },
+            "audit_b": {
+              "trades": 19,
+              "net_r": 0.28,
+              "expectancy_r": 0.014737,
+              "profit_factor": 1.026923
+            },
+            "final_holdout": {
+              "trades": 20,
+              "net_r": -4.98,
+              "expectancy_r": -0.249,
+              "profit_factor": 0.564685
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_BREAKOUT_24",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_RUNNER",
+              "side": "SELL",
+              "hour": null,
+              "session": "LATE",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_BREAKOUT_24",
+            "EURUSD_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 20.454128,
+          "stats": {
+            "train": {
+              "trades": 28,
+              "net_r": 8.81774,
+              "expectancy_r": 0.314919,
+              "profit_factor": 1.6522
+            },
+            "validation": {
+              "trades": 16,
+              "net_r": 3.168073,
+              "expectancy_r": 0.198005,
+              "profit_factor": 1.609245
+            },
+            "audit_a": {
+              "trades": 16,
+              "net_r": 1.58,
+              "expectancy_r": 0.09875,
+              "profit_factor": 1.217033
+            },
+            "audit_b": {
+              "trades": 19,
+              "net_r": 0.28,
+              "expectancy_r": 0.014737,
+              "profit_factor": 1.026923
+            },
+            "final_holdout": {
+              "trades": 20,
+              "net_r": -4.98,
+              "expectancy_r": -0.249,
+              "profit_factor": 0.564685
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_BREAKOUT_24",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_RUNNER",
+              "side": "SELL",
+              "hour": 20,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_BREAKOUT_24",
+            "EURUSD_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 20.454128,
+          "stats": {
+            "train": {
+              "trades": 28,
+              "net_r": 8.81774,
+              "expectancy_r": 0.314919,
+              "profit_factor": 1.6522
+            },
+            "validation": {
+              "trades": 16,
+              "net_r": 3.168073,
+              "expectancy_r": 0.198005,
+              "profit_factor": 1.609245
+            },
+            "audit_a": {
+              "trades": 16,
+              "net_r": 1.58,
+              "expectancy_r": 0.09875,
+              "profit_factor": 1.217033
+            },
+            "audit_b": {
+              "trades": 19,
+              "net_r": 0.28,
+              "expectancy_r": 0.014737,
+              "profit_factor": 1.026923
+            },
+            "final_holdout": {
+              "trades": 20,
+              "net_r": -4.98,
+              "expectancy_r": -0.249,
+              "profit_factor": 0.564685
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_RUNNER",
+              "side": "SELL",
+              "hour": null,
+              "session": "LATE",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 16.018108,
+          "stats": {
+            "train": {
+              "trades": 13,
+              "net_r": 0.93774,
+              "expectancy_r": 0.072134,
+              "profit_factor": 1.150279
+            },
+            "validation": {
+              "trades": 8,
+              "net_r": 0.488073,
+              "expectancy_r": 0.061009,
+              "profit_factor": 1.234651
+            },
+            "audit_a": {
+              "trades": 5,
+              "net_r": 2.02,
+              "expectancy_r": 0.404,
+              "profit_factor": 2.942308
+            },
+            "audit_b": {
+              "trades": 8,
+              "net_r": 0.72,
+              "expectancy_r": 0.09,
+              "profit_factor": 1.173077
+            },
+            "final_holdout": {
+              "trades": 11,
+              "net_r": 0.3,
+              "expectancy_r": 0.027273,
+              "profit_factor": 1.057692
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "EURUSD_SWING_SWING_PULLBACK_RUNNER",
+              "side": "SELL",
+              "hour": 20,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "EURUSD_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 16.018108,
+          "stats": {
+            "train": {
+              "trades": 13,
+              "net_r": 0.93774,
+              "expectancy_r": 0.072134,
+              "profit_factor": 1.150279
+            },
+            "validation": {
+              "trades": 8,
+              "net_r": 0.488073,
+              "expectancy_r": 0.061009,
+              "profit_factor": 1.234651
+            },
+            "audit_a": {
+              "trades": 5,
+              "net_r": 2.02,
+              "expectancy_r": 0.404,
+              "profit_factor": 2.942308
+            },
+            "audit_b": {
+              "trades": 8,
+              "net_r": 0.72,
+              "expectancy_r": 0.09,
+              "profit_factor": 1.173077
+            },
+            "final_holdout": {
+              "trades": 11,
+              "net_r": 0.3,
+              "expectancy_r": 0.027273,
+              "profit_factor": 1.057692
+            }
+          },
+          "final_passed": true
+        }
+      ],
+      "ICT": []
+    },
+    "GBPJPY": {
+      "SWING": [
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 1
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE"
+          ],
+          "families": [
+            "V14_6_SWING"
+          ],
+          "audit_score": 65.66762,
+          "stats": {
+            "train": {
+              "trades": 39,
+              "net_r": 9.114978,
+              "expectancy_r": 0.233717,
+              "profit_factor": 1.501926
+            },
+            "validation": {
+              "trades": 54,
+              "net_r": 12.417166,
+              "expectancy_r": 0.229948,
+              "profit_factor": 1.791378
+            },
+            "audit_a": {
+              "trades": 14,
+              "net_r": 5.44,
+              "expectancy_r": 0.388571,
+              "profit_factor": 1.85
+            },
+            "audit_b": {
+              "trades": 15,
+              "net_r": 8.191046,
+              "expectancy_r": 0.54607,
+              "profit_factor": 2.52818
+            },
+            "final_holdout": {
+              "trades": 18,
+              "net_r": 3.28,
+              "expectancy_r": 0.182222,
+              "profit_factor": 1.284722
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 1
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_PULLBACK_20",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 65.318864,
+          "stats": {
+            "train": {
+              "trades": 54,
+              "net_r": 11.654814,
+              "expectancy_r": 0.21583,
+              "profit_factor": 1.423503
+            },
+            "validation": {
+              "trades": 97,
+              "net_r": 27.196639,
+              "expectancy_r": 0.280378,
+              "profit_factor": 1.695005
+            },
+            "audit_a": {
+              "trades": 35,
+              "net_r": 2.8,
+              "expectancy_r": 0.08,
+              "profit_factor": 1.127273
+            },
+            "audit_b": {
+              "trades": 44,
+              "net_r": 10.031046,
+              "expectancy_r": 0.227978,
+              "profit_factor": 1.399325
+            },
+            "final_holdout": {
+              "trades": 20,
+              "net_r": 4.4,
+              "expectancy_r": 0.22,
+              "profit_factor": 1.350318
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 1
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_PULLBACK_RUNNER",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 61.661177,
+          "stats": {
+            "train": {
+              "trades": 57,
+              "net_r": 8.315456,
+              "expectancy_r": 0.145885,
+              "profit_factor": 1.314028
+            },
+            "validation": {
+              "trades": 68,
+              "net_r": 17.426035,
+              "expectancy_r": 0.256265,
+              "profit_factor": 1.796052
+            },
+            "audit_a": {
+              "trades": 17,
+              "net_r": 5.49,
+              "expectancy_r": 0.322941,
+              "profit_factor": 1.647406
+            },
+            "audit_b": {
+              "trades": 27,
+              "net_r": 9.271046,
+              "expectancy_r": 0.343372,
+              "profit_factor": 1.799228
+            },
+            "final_holdout": {
+              "trades": 22,
+              "net_r": 4.99,
+              "expectancy_r": 0.226818,
+              "profit_factor": 1.397293
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 1
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_PULLBACK_RUNNER",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 61.661177,
+          "stats": {
+            "train": {
+              "trades": 57,
+              "net_r": 8.315456,
+              "expectancy_r": 0.145885,
+              "profit_factor": 1.314028
+            },
+            "validation": {
+              "trades": 68,
+              "net_r": 17.426035,
+              "expectancy_r": 0.256265,
+              "profit_factor": 1.796052
+            },
+            "audit_a": {
+              "trades": 17,
+              "net_r": 5.49,
+              "expectancy_r": 0.322941,
+              "profit_factor": 1.647406
+            },
+            "audit_b": {
+              "trades": 27,
+              "net_r": 9.271046,
+              "expectancy_r": 0.343372,
+              "profit_factor": 1.799228
+            },
+            "final_holdout": {
+              "trades": 22,
+              "net_r": 4.99,
+              "expectancy_r": 0.226818,
+              "profit_factor": 1.397293
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 1
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_VOL_EXPANSION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 58.997703,
+          "stats": {
+            "train": {
+              "trades": 47,
+              "net_r": 9.907504,
+              "expectancy_r": 0.210798,
+              "profit_factor": 1.424123
+            },
+            "validation": {
+              "trades": 63,
+              "net_r": 22.44069,
+              "expectancy_r": 0.356201,
+              "profit_factor": 2.192983
+            },
+            "audit_a": {
+              "trades": 20,
+              "net_r": 2.165523,
+              "expectancy_r": 0.108276,
+              "profit_factor": 1.205068
+            },
+            "audit_b": {
+              "trades": 19,
+              "net_r": 7.631046,
+              "expectancy_r": 0.401634,
+              "profit_factor": 1.899887
+            },
+            "final_holdout": {
+              "trades": 26,
+              "net_r": 1.502911,
+              "expectancy_r": 0.057804,
+              "profit_factor": 1.089053
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_PULLBACK_RUNNER",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 54.356813,
+          "stats": {
+            "train": {
+              "trades": 61,
+              "net_r": 9.155456,
+              "expectancy_r": 0.150089,
+              "profit_factor": 1.320121
+            },
+            "validation": {
+              "trades": 76,
+              "net_r": 13.106035,
+              "expectancy_r": 0.172448,
+              "profit_factor": 1.500029
+            },
+            "audit_a": {
+              "trades": 21,
+              "net_r": 4.454771,
+              "expectancy_r": 0.212132,
+              "profit_factor": 1.464039
+            },
+            "audit_b": {
+              "trades": 33,
+              "net_r": 6.031046,
+              "expectancy_r": 0.182759,
+              "profit_factor": 1.406405
+            },
+            "final_holdout": {
+              "trades": 27,
+              "net_r": 7.65192,
+              "expectancy_r": 0.283404,
+              "profit_factor": 1.521248
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_PULLBACK_RUNNER",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 54.356813,
+          "stats": {
+            "train": {
+              "trades": 61,
+              "net_r": 9.155456,
+              "expectancy_r": 0.150089,
+              "profit_factor": 1.320121
+            },
+            "validation": {
+              "trades": 76,
+              "net_r": 13.106035,
+              "expectancy_r": 0.172448,
+              "profit_factor": 1.500029
+            },
+            "audit_a": {
+              "trades": 21,
+              "net_r": 4.454771,
+              "expectancy_r": 0.212132,
+              "profit_factor": 1.464039
+            },
+            "audit_b": {
+              "trades": 33,
+              "net_r": 6.031046,
+              "expectancy_r": 0.182759,
+              "profit_factor": 1.406405
+            },
+            "final_holdout": {
+              "trades": 27,
+              "net_r": 7.65192,
+              "expectancy_r": 0.283404,
+              "profit_factor": 1.521248
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 1
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_EMA_RECLAIM",
+              "side": "ALL",
+              "hour": null,
+              "session": "NEW_YORK",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_EMA_RECLAIM"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "EMA_RECLAIM"
+          ],
+          "audit_score": 54.238492,
+          "stats": {
+            "train": {
+              "trades": 120,
+              "net_r": 10.151654,
+              "expectancy_r": 0.084597,
+              "profit_factor": 1.168943
+            },
+            "validation": {
+              "trades": 121,
+              "net_r": 19.857165,
+              "expectancy_r": 0.164109,
+              "profit_factor": 1.50131
+            },
+            "audit_a": {
+              "trades": 59,
+              "net_r": 4.5,
+              "expectancy_r": 0.076271,
+              "profit_factor": 1.159348
+            },
+            "audit_b": {
+              "trades": 63,
+              "net_r": 6.305833,
+              "expectancy_r": 0.100093,
+              "profit_factor": 1.201079
+            },
+            "final_holdout": {
+              "trades": 54,
+              "net_r": -2.523038,
+              "expectancy_r": -0.046723,
+              "profit_factor": 0.916566
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_VOL_EXPANSION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 52.708355,
+          "stats": {
+            "train": {
+              "trades": 42,
+              "net_r": 8.707504,
+              "expectancy_r": 0.207322,
+              "profit_factor": 1.410731
+            },
+            "validation": {
+              "trades": 59,
+              "net_r": 19.60069,
+              "expectancy_r": 0.332215,
+              "profit_factor": 2.048694
+            },
+            "audit_a": {
+              "trades": 20,
+              "net_r": 2.290293,
+              "expectancy_r": 0.114515,
+              "profit_factor": 1.217708
+            },
+            "audit_b": {
+              "trades": 21,
+              "net_r": 4.569828,
+              "expectancy_r": 0.217611,
+              "profit_factor": 1.476024
+            },
+            "final_holdout": {
+              "trades": 26,
+              "net_r": -1.518555,
+              "expectancy_r": -0.058406,
+              "profit_factor": 0.919054
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_PULLBACK_RUNNER",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 52.08587,
+          "stats": {
+            "train": {
+              "trades": 50,
+              "net_r": 8.765456,
+              "expectancy_r": 0.175309,
+              "profit_factor": 1.39413
+            },
+            "validation": {
+              "trades": 64,
+              "net_r": 14.586035,
+              "expectancy_r": 0.227907,
+              "profit_factor": 1.669989
+            },
+            "audit_a": {
+              "trades": 17,
+              "net_r": 5.614771,
+              "expectancy_r": 0.330281,
+              "profit_factor": 1.665257
+            },
+            "audit_b": {
+              "trades": 28,
+              "net_r": 3.649828,
+              "expectancy_r": 0.130351,
+              "profit_factor": 1.286936
+            },
+            "final_holdout": {
+              "trades": 23,
+              "net_r": 1.81192,
+              "expectancy_r": 0.078779,
+              "profit_factor": 1.124104
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_PULLBACK_RUNNER",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_PULLBACK_RUNNER"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 52.08587,
+          "stats": {
+            "train": {
+              "trades": 50,
+              "net_r": 8.765456,
+              "expectancy_r": 0.175309,
+              "profit_factor": 1.39413
+            },
+            "validation": {
+              "trades": 64,
+              "net_r": 14.586035,
+              "expectancy_r": 0.227907,
+              "profit_factor": 1.669989
+            },
+            "audit_a": {
+              "trades": 17,
+              "net_r": 5.614771,
+              "expectancy_r": 0.330281,
+              "profit_factor": 1.665257
+            },
+            "audit_b": {
+              "trades": 28,
+              "net_r": 3.649828,
+              "expectancy_r": 0.130351,
+              "profit_factor": 1.286936
+            },
+            "final_holdout": {
+              "trades": 23,
+              "net_r": 1.81192,
+              "expectancy_r": 0.078779,
+              "profit_factor": 1.124104
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_SWING_PULLBACK_20",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_SWING_PULLBACK_20",
+            "GBPJPY_SWING_CORE"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "V14_6_SWING"
+          ],
+          "audit_score": 51.674025,
+          "stats": {
+            "train": {
+              "trades": 58,
+              "net_r": 12.494814,
+              "expectancy_r": 0.215428,
+              "profit_factor": 1.421552
+            },
+            "validation": {
+              "trades": 105,
+              "net_r": 22.876639,
+              "expectancy_r": 0.217873,
+              "profit_factor": 1.526486
+            },
+            "audit_a": {
+              "trades": 39,
+              "net_r": 1.764771,
+              "expectancy_r": 0.045251,
+              "profit_factor": 1.076331
+            },
+            "audit_b": {
+              "trades": 49,
+              "net_r": 4.631046,
+              "expectancy_r": 0.094511,
+              "profit_factor": 1.163295
+            },
+            "final_holdout": {
+              "trades": 25,
+              "net_r": 7.06192,
+              "expectancy_r": 0.282477,
+              "profit_factor": 1.481057
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_PULLBACK_20",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 50.047952,
+          "stats": {
+            "train": {
+              "trades": 46,
+              "net_r": 9.974814,
+              "expectancy_r": 0.216844,
+              "profit_factor": 1.428471
+            },
+            "validation": {
+              "trades": 93,
+              "net_r": 24.356639,
+              "expectancy_r": 0.261899,
+              "profit_factor": 1.624344
+            },
+            "audit_a": {
+              "trades": 35,
+              "net_r": 2.924771,
+              "expectancy_r": 0.083565,
+              "profit_factor": 1.133186
+            },
+            "audit_b": {
+              "trades": 44,
+              "net_r": 2.249828,
+              "expectancy_r": 0.051132,
+              "profit_factor": 1.08574
+            },
+            "final_holdout": {
+              "trades": 21,
+              "net_r": 1.22192,
+              "expectancy_r": 0.058187,
+              "profit_factor": 1.083693
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 1
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": "NEW_YORK",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_EMA_RECLAIM"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "EMA_RECLAIM"
+          ],
+          "audit_score": 48.91027,
+          "stats": {
+            "train": {
+              "trades": 101,
+              "net_r": 15.142606,
+              "expectancy_r": 0.149927,
+              "profit_factor": 1.313641
+            },
+            "validation": {
+              "trades": 72,
+              "net_r": 11.977166,
+              "expectancy_r": 0.16635,
+              "profit_factor": 1.521414
+            },
+            "audit_a": {
+              "trades": 39,
+              "net_r": 8.265,
+              "expectancy_r": 0.211923,
+              "profit_factor": 1.491964
+            },
+            "audit_b": {
+              "trades": 38,
+              "net_r": 2.195833,
+              "expectancy_r": 0.057785,
+              "profit_factor": 1.110233
+            },
+            "final_holdout": {
+              "trades": 47,
+              "net_r": 0.811962,
+              "expectancy_r": 0.017276,
+              "profit_factor": 1.031134
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE"
+          ],
+          "families": [
+            "V14_6_SWING"
+          ],
+          "audit_score": 48.191033,
+          "stats": {
+            "train": {
+              "trades": 31,
+              "net_r": 7.434978,
+              "expectancy_r": 0.239838,
+              "profit_factor": 1.534122
+            },
+            "validation": {
+              "trades": 50,
+              "net_r": 9.577166,
+              "expectancy_r": 0.191543,
+              "profit_factor": 1.615081
+            },
+            "audit_a": {
+              "trades": 14,
+              "net_r": 5.564771,
+              "expectancy_r": 0.397484,
+              "profit_factor": 1.874964
+            },
+            "audit_b": {
+              "trades": 16,
+              "net_r": 2.569828,
+              "expectancy_r": 0.160614,
+              "profit_factor": 1.396578
+            },
+            "final_holdout": {
+              "trades": 19,
+              "net_r": 0.10192,
+              "expectancy_r": 0.005364,
+              "profit_factor": 1.007516
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE"
+          ],
+          "families": [
+            "V14_6_SWING"
+          ],
+          "audit_score": 47.491086,
+          "stats": {
+            "train": {
+              "trades": 43,
+              "net_r": 9.954978,
+              "expectancy_r": 0.231511,
+              "profit_factor": 1.490877
+            },
+            "validation": {
+              "trades": 62,
+              "net_r": 8.097166,
+              "expectancy_r": 0.130599,
+              "profit_factor": 1.404645
+            },
+            "audit_a": {
+              "trades": 18,
+              "net_r": 4.404771,
+              "expectancy_r": 0.244709,
+              "profit_factor": 1.585741
+            },
+            "audit_b": {
+              "trades": 21,
+              "net_r": 4.951046,
+              "expectancy_r": 0.235764,
+              "profit_factor": 1.575703
+            },
+            "final_holdout": {
+              "trades": 23,
+              "net_r": 5.94192,
+              "expectancy_r": 0.258344,
+              "profit_factor": 1.435625
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_SWING_VOL_EXPANSION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_SWING_VOL_EXPANSION",
+            "GBPJPY_SWING_CORE"
+          ],
+          "families": [
+            "VOLATILITY_BREAKOUT",
+            "V14_6_SWING"
+          ],
+          "audit_score": 44.582993,
+          "stats": {
+            "train": {
+              "trades": 51,
+              "net_r": 10.747504,
+              "expectancy_r": 0.210735,
+              "profit_factor": 1.421802
+            },
+            "validation": {
+              "trades": 71,
+              "net_r": 18.12069,
+              "expectancy_r": 0.255221,
+              "profit_factor": 1.783409
+            },
+            "audit_a": {
+              "trades": 24,
+              "net_r": 1.130293,
+              "expectancy_r": 0.047096,
+              "profit_factor": 1.096772
+            },
+            "audit_b": {
+              "trades": 25,
+              "net_r": 4.391046,
+              "expectancy_r": 0.175642,
+              "profit_factor": 1.374663
+            },
+            "final_holdout": {
+              "trades": 30,
+              "net_r": 4.321445,
+              "expectancy_r": 0.144048,
+              "profit_factor": 1.229376
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_EMA_RECLAIM",
+              "side": "ALL",
+              "hour": null,
+              "session": "NEW_YORK",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_EMA_RECLAIM"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "EMA_RECLAIM"
+          ],
+          "audit_score": 42.945663,
+          "stats": {
+            "train": {
+              "trades": 124,
+              "net_r": 10.991654,
+              "expectancy_r": 0.088642,
+              "profit_factor": 1.176688
+            },
+            "validation": {
+              "trades": 129,
+              "net_r": 15.537165,
+              "expectancy_r": 0.120443,
+              "profit_factor": 1.353676
+            },
+            "audit_a": {
+              "trades": 63,
+              "net_r": 3.464771,
+              "expectancy_r": 0.054996,
+              "profit_factor": 1.11801
+            },
+            "audit_b": {
+              "trades": 69,
+              "net_r": 3.065833,
+              "expectancy_r": 0.044432,
+              "profit_factor": 1.088608
+            },
+            "final_holdout": {
+              "trades": 59,
+              "net_r": 0.138882,
+              "expectancy_r": 0.002354,
+              "profit_factor": 1.004292
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": "NEW_YORK",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_EMA_RECLAIM"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "EMA_RECLAIM"
+          ],
+          "audit_score": 42.395095,
+          "stats": {
+            "train": {
+              "trades": 73,
+              "net_r": 16.902628,
+              "expectancy_r": 0.231543,
+              "profit_factor": 1.492501
+            },
+            "validation": {
+              "trades": 36,
+              "net_r": 8.84,
+              "expectancy_r": 0.245556,
+              "profit_factor": 1.690625
+            },
+            "audit_a": {
+              "trades": 25,
+              "net_r": 2.825,
+              "expectancy_r": 0.113,
+              "profit_factor": 1.271635
+            },
+            "audit_b": {
+              "trades": 28,
+              "net_r": 1.804787,
+              "expectancy_r": 0.064457,
+              "profit_factor": 1.115396
+            },
+            "final_holdout": {
+              "trades": 32,
+              "net_r": -0.588038,
+              "expectancy_r": -0.018376,
+              "profit_factor": 0.962402
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_SWING_CORE",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 1
+            },
+            {
+              "engine": "GBPJPY_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": 16,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_SWING_CORE",
+            "GBPJPY_SWING_SWING_EMA_RECLAIM"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "EMA_RECLAIM"
+          ],
+          "audit_score": 39.906048,
+          "stats": {
+            "train": {
+              "trades": 68,
+              "net_r": 14.294978,
+              "expectancy_r": 0.21022,
+              "profit_factor": 1.45123
+            },
+            "validation": {
+              "trades": 64,
+              "net_r": 11.192166,
+              "expectancy_r": 0.174878,
+              "profit_factor": 1.535752
+            },
+            "audit_a": {
+              "trades": 22,
+              "net_r": 2.365,
+              "expectancy_r": 0.1075,
+              "profit_factor": 1.203879
+            },
+            "audit_b": {
+              "trades": 28,
+              "net_r": 1.436324,
+              "expectancy_r": 0.051297,
+              "profit_factor": 1.097576
+            },
+            "final_holdout": {
+              "trades": 27,
+              "net_r": 3.261962,
+              "expectancy_r": 0.120813,
+              "profit_factor": 1.208033
+            }
+          },
+          "final_passed": true
+        }
+      ],
+      "ICT": [
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_ICT_ICT_BREAKOUT_H4",
+              "side": "BUY",
+              "hour": 7,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "GBPJPY_ICT_ICT_MOMENTUM_BREAKOUT_4",
+              "side": "ALL",
+              "hour": 7,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_ICT_ICT_BREAKOUT_H4",
+            "GBPJPY_ICT_ICT_MOMENTUM_BREAKOUT_4"
+          ],
+          "families": [
+            "BREAKOUT",
+            "BREAKOUT"
+          ],
+          "audit_score": 30.984502,
+          "stats": {
+            "train": {
+              "trades": 29,
+              "net_r": 2.964136,
+              "expectancy_r": 0.102212,
+              "profit_factor": 1.240595
+            },
+            "validation": {
+              "trades": 20,
+              "net_r": 4.705609,
+              "expectancy_r": 0.23528,
+              "profit_factor": 1.52518
+            },
+            "audit_a": {
+              "trades": 14,
+              "net_r": 6.617282,
+              "expectancy_r": 0.472663,
+              "profit_factor": 2.969429
+            },
+            "audit_b": {
+              "trades": 11,
+              "net_r": 1.04,
+              "expectancy_r": 0.094545,
+              "profit_factor": 1.309524
+            },
+            "final_holdout": {
+              "trades": 17,
+              "net_r": 3.16,
+              "expectancy_r": 0.185882,
+              "profit_factor": 1.564286
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "GBPJPY_ICT_ICT_MOMENTUM_BREAKOUT_4",
+              "side": "ALL",
+              "hour": 7,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "GBPJPY_ICT_ICT_MOMENTUM_BREAKOUT_4"
+          ],
+          "families": [
+            "BREAKOUT"
+          ],
+          "audit_score": 21.36932,
+          "stats": {
+            "train": {
+              "trades": 20,
+              "net_r": 1.724136,
+              "expectancy_r": 0.086207,
+              "profit_factor": 1.219915
+            },
+            "validation": {
+              "trades": 16,
+              "net_r": 3.905609,
+              "expectancy_r": 0.244101,
+              "profit_factor": 1.498164
+            },
+            "audit_a": {
+              "trades": 8,
+              "net_r": 1.28,
+              "expectancy_r": 0.16,
+              "profit_factor": 1.380952
+            },
+            "audit_b": {
+              "trades": 10,
+              "net_r": 0.76,
+              "expectancy_r": 0.076,
+              "profit_factor": 1.22619
+            },
+            "final_holdout": {
+              "trades": 14,
+              "net_r": 2.64,
+              "expectancy_r": 0.188571,
+              "profit_factor": 1.589286
+            }
+          },
+          "final_passed": true
+        }
+      ]
+    },
+    "AUDUSD": {
+      "SWING": [
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 55.75021,
+          "stats": {
+            "train": {
+              "trades": 109,
+              "net_r": 3.425956,
+              "expectancy_r": 0.031431,
+              "profit_factor": 1.049782
+            },
+            "validation": {
+              "trades": 41,
+              "net_r": 7.114556,
+              "expectancy_r": 0.173526,
+              "profit_factor": 1.339435
+            },
+            "audit_a": {
+              "trades": 54,
+              "net_r": 15.704306,
+              "expectancy_r": 0.29082,
+              "profit_factor": 1.598487
+            },
+            "audit_b": {
+              "trades": 39,
+              "net_r": 21.113382,
+              "expectancy_r": 0.541369,
+              "profit_factor": 2.150844
+            },
+            "final_holdout": {
+              "trades": 45,
+              "net_r": -1.245815,
+              "expectancy_r": -0.027685,
+              "profit_factor": 0.950641
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_PULLBACK_20",
+              "side": "BUY",
+              "hour": 4,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "EMA_RECLAIM",
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 54.817707,
+          "stats": {
+            "train": {
+              "trades": 72,
+              "net_r": 13.573885,
+              "expectancy_r": 0.188526,
+              "profit_factor": 1.394776
+            },
+            "validation": {
+              "trades": 100,
+              "net_r": 7.134862,
+              "expectancy_r": 0.071349,
+              "profit_factor": 1.167171
+            },
+            "audit_a": {
+              "trades": 40,
+              "net_r": 6.78352,
+              "expectancy_r": 0.169588,
+              "profit_factor": 1.403781
+            },
+            "audit_b": {
+              "trades": 50,
+              "net_r": 14.354685,
+              "expectancy_r": 0.287094,
+              "profit_factor": 1.656064
+            },
+            "final_holdout": {
+              "trades": 75,
+              "net_r": -1.870919,
+              "expectancy_r": -0.024946,
+              "profit_factor": 0.950294
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_PULLBACK_20",
+              "side": "BUY",
+              "hour": 4,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "EMA_RECLAIM",
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 54.817707,
+          "stats": {
+            "train": {
+              "trades": 72,
+              "net_r": 13.573885,
+              "expectancy_r": 0.188526,
+              "profit_factor": 1.394776
+            },
+            "validation": {
+              "trades": 100,
+              "net_r": 7.134862,
+              "expectancy_r": 0.071349,
+              "profit_factor": 1.167171
+            },
+            "audit_a": {
+              "trades": 40,
+              "net_r": 6.78352,
+              "expectancy_r": 0.169588,
+              "profit_factor": 1.403781
+            },
+            "audit_b": {
+              "trades": 50,
+              "net_r": 14.354685,
+              "expectancy_r": 0.287094,
+              "profit_factor": 1.656064
+            },
+            "final_holdout": {
+              "trades": 75,
+              "net_r": -1.870919,
+              "expectancy_r": -0.024946,
+              "profit_factor": 0.950294
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 54.779883,
+          "stats": {
+            "train": {
+              "trades": 85,
+              "net_r": 6.234286,
+              "expectancy_r": 0.073345,
+              "profit_factor": 1.114973
+            },
+            "validation": {
+              "trades": 27,
+              "net_r": 3.14647,
+              "expectancy_r": 0.116536,
+              "profit_factor": 1.214337
+            },
+            "audit_a": {
+              "trades": 48,
+              "net_r": 16.021695,
+              "expectancy_r": 0.333785,
+              "profit_factor": 1.636792
+            },
+            "audit_b": {
+              "trades": 34,
+              "net_r": 16.468067,
+              "expectancy_r": 0.484355,
+              "profit_factor": 2.078742
+            },
+            "final_holdout": {
+              "trades": 35,
+              "net_r": -2.276908,
+              "expectancy_r": -0.065055,
+              "profit_factor": 0.886155
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 54.779883,
+          "stats": {
+            "train": {
+              "trades": 85,
+              "net_r": 6.234286,
+              "expectancy_r": 0.073345,
+              "profit_factor": 1.114973
+            },
+            "validation": {
+              "trades": 27,
+              "net_r": 3.14647,
+              "expectancy_r": 0.116536,
+              "profit_factor": 1.214337
+            },
+            "audit_a": {
+              "trades": 48,
+              "net_r": 16.021695,
+              "expectancy_r": 0.333785,
+              "profit_factor": 1.636792
+            },
+            "audit_b": {
+              "trades": 34,
+              "net_r": 16.468067,
+              "expectancy_r": 0.484355,
+              "profit_factor": 2.078742
+            },
+            "final_holdout": {
+              "trades": 35,
+              "net_r": -2.276908,
+              "expectancy_r": -0.065055,
+              "profit_factor": 0.886155
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_PULLBACK_20",
+              "side": "BUY",
+              "hour": null,
+              "session": "ASIA",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_SWING_SWING_PULLBACK_20",
+            "AUDUSD_TREND_PULLBACK"
+          ],
+          "families": [
+            "EMA_RECLAIM",
+            "TREND_PULLBACK",
+            "V14_6_SWING"
+          ],
+          "audit_score": 54.682718,
+          "stats": {
+            "train": {
+              "trades": 73,
+              "net_r": 15.733885,
+              "expectancy_r": 0.215533,
+              "profit_factor": 1.457596
+            },
+            "validation": {
+              "trades": 106,
+              "net_r": 5.248631,
+              "expectancy_r": 0.049515,
+              "profit_factor": 1.112054
+            },
+            "audit_a": {
+              "trades": 40,
+              "net_r": 6.78352,
+              "expectancy_r": 0.169588,
+              "profit_factor": 1.403781
+            },
+            "audit_b": {
+              "trades": 52,
+              "net_r": 16.404912,
+              "expectancy_r": 0.315479,
+              "profit_factor": 1.746025
+            },
+            "final_holdout": {
+              "trades": 78,
+              "net_r": -1.790919,
+              "expectancy_r": -0.022961,
+              "profit_factor": 0.954911
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_PULLBACK_20",
+              "side": "BUY",
+              "hour": null,
+              "session": "ASIA",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_SWING_SWING_PULLBACK_20",
+            "AUDUSD_TREND_PULLBACK"
+          ],
+          "families": [
+            "EMA_RECLAIM",
+            "TREND_PULLBACK",
+            "V14_6_SWING"
+          ],
+          "audit_score": 54.682718,
+          "stats": {
+            "train": {
+              "trades": 73,
+              "net_r": 15.733885,
+              "expectancy_r": 0.215533,
+              "profit_factor": 1.457596
+            },
+            "validation": {
+              "trades": 106,
+              "net_r": 5.248631,
+              "expectancy_r": 0.049515,
+              "profit_factor": 1.112054
+            },
+            "audit_a": {
+              "trades": 40,
+              "net_r": 6.78352,
+              "expectancy_r": 0.169588,
+              "profit_factor": 1.403781
+            },
+            "audit_b": {
+              "trades": 52,
+              "net_r": 16.404912,
+              "expectancy_r": 0.315479,
+              "profit_factor": 1.746025
+            },
+            "final_holdout": {
+              "trades": 78,
+              "net_r": -1.790919,
+              "expectancy_r": -0.022961,
+              "profit_factor": 0.954911
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "EMA_RECLAIM",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 54.418914,
+          "stats": {
+            "train": {
+              "trades": 98,
+              "net_r": 5.862373,
+              "expectancy_r": 0.05982,
+              "profit_factor": 1.097188
+            },
+            "validation": {
+              "trades": 37,
+              "net_r": 7.826045,
+              "expectancy_r": 0.211515,
+              "profit_factor": 1.537503
+            },
+            "audit_a": {
+              "trades": 52,
+              "net_r": 14.183175,
+              "expectancy_r": 0.272753,
+              "profit_factor": 1.545507
+            },
+            "audit_b": {
+              "trades": 33,
+              "net_r": 15.079381,
+              "expectancy_r": 0.456951,
+              "profit_factor": 2.035672
+            },
+            "final_holdout": {
+              "trades": 42,
+              "net_r": -5.37,
+              "expectancy_r": -0.127857,
+              "profit_factor": 0.793462
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "EMA_RECLAIM",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 54.418914,
+          "stats": {
+            "train": {
+              "trades": 98,
+              "net_r": 5.862373,
+              "expectancy_r": 0.05982,
+              "profit_factor": 1.097188
+            },
+            "validation": {
+              "trades": 37,
+              "net_r": 7.826045,
+              "expectancy_r": 0.211515,
+              "profit_factor": 1.537503
+            },
+            "audit_a": {
+              "trades": 52,
+              "net_r": 14.183175,
+              "expectancy_r": 0.272753,
+              "profit_factor": 1.545507
+            },
+            "audit_b": {
+              "trades": 33,
+              "net_r": 15.079381,
+              "expectancy_r": 0.456951,
+              "profit_factor": 2.035672
+            },
+            "final_holdout": {
+              "trades": 42,
+              "net_r": -5.37,
+              "expectancy_r": -0.127857,
+              "profit_factor": 0.793462
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 53.617078,
+          "stats": {
+            "train": {
+              "trades": 110,
+              "net_r": 6.410076,
+              "expectancy_r": 0.058273,
+              "profit_factor": 1.097366
+            },
+            "validation": {
+              "trades": 38,
+              "net_r": 5.105402,
+              "expectancy_r": 0.134353,
+              "profit_factor": 1.269272
+            },
+            "audit_a": {
+              "trades": 53,
+              "net_r": 13.506173,
+              "expectancy_r": 0.254833,
+              "profit_factor": 1.478264
+            },
+            "audit_b": {
+              "trades": 46,
+              "net_r": 17.281297,
+              "expectancy_r": 0.37568,
+              "profit_factor": 1.766491
+            },
+            "final_holdout": {
+              "trades": 46,
+              "net_r": -5.514827,
+              "expectancy_r": -0.119888,
+              "profit_factor": 0.798435
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_BREAKOUT_12",
+              "side": "SELL",
+              "hour": 0,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_BREAKOUT_12",
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_TREND_PULLBACK"
+          ],
+          "families": [
+            "BREAKOUT",
+            "EMA_RECLAIM",
+            "V14_6_SWING"
+          ],
+          "audit_score": 52.874401,
+          "stats": {
+            "train": {
+              "trades": 80,
+              "net_r": 20.153689,
+              "expectancy_r": 0.251921,
+              "profit_factor": 1.535861
+            },
+            "validation": {
+              "trades": 102,
+              "net_r": 6.819862,
+              "expectancy_r": 0.066861,
+              "profit_factor": 1.155933
+            },
+            "audit_a": {
+              "trades": 47,
+              "net_r": 1.792012,
+              "expectancy_r": 0.038128,
+              "profit_factor": 1.077778
+            },
+            "audit_b": {
+              "trades": 59,
+              "net_r": 14.907148,
+              "expectancy_r": 0.252664,
+              "profit_factor": 1.550486
+            },
+            "final_holdout": {
+              "trades": 76,
+              "net_r": 5.655726,
+              "expectancy_r": 0.074417,
+              "profit_factor": 1.15872
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_BREAKOUT_12",
+              "side": "SELL",
+              "hour": 0,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_BREAKOUT_12",
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_TREND_PULLBACK"
+          ],
+          "families": [
+            "BREAKOUT",
+            "EMA_RECLAIM",
+            "V14_6_SWING"
+          ],
+          "audit_score": 52.874401,
+          "stats": {
+            "train": {
+              "trades": 80,
+              "net_r": 20.153689,
+              "expectancy_r": 0.251921,
+              "profit_factor": 1.535861
+            },
+            "validation": {
+              "trades": 102,
+              "net_r": 6.819862,
+              "expectancy_r": 0.066861,
+              "profit_factor": 1.155933
+            },
+            "audit_a": {
+              "trades": 47,
+              "net_r": 1.792012,
+              "expectancy_r": 0.038128,
+              "profit_factor": 1.077778
+            },
+            "audit_b": {
+              "trades": 59,
+              "net_r": 14.907148,
+              "expectancy_r": 0.252664,
+              "profit_factor": 1.550486
+            },
+            "final_holdout": {
+              "trades": 76,
+              "net_r": 5.655726,
+              "expectancy_r": 0.074417,
+              "profit_factor": 1.15872
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_BREAKOUT_12",
+              "side": "SELL",
+              "hour": 0,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "SELL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_PULLBACK_20",
+              "side": "BUY",
+              "hour": 4,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_BREAKOUT_12",
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "BREAKOUT",
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 52.546385,
+          "stats": {
+            "train": {
+              "trades": 39,
+              "net_r": 10.593748,
+              "expectancy_r": 0.271635,
+              "profit_factor": 1.506729
+            },
+            "validation": {
+              "trades": 26,
+              "net_r": 6.718427,
+              "expectancy_r": 0.258401,
+              "profit_factor": 1.496347
+            },
+            "audit_a": {
+              "trades": 22,
+              "net_r": 3.808492,
+              "expectancy_r": 0.173113,
+              "profit_factor": 1.329454
+            },
+            "audit_b": {
+              "trades": 25,
+              "net_r": 7.467148,
+              "expectancy_r": 0.298686,
+              "profit_factor": 1.596418
+            },
+            "final_holdout": {
+              "trades": 23,
+              "net_r": 5.740726,
+              "expectancy_r": 0.249597,
+              "profit_factor": 1.455854
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_BREAKOUT_12",
+              "side": "SELL",
+              "hour": 0,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "SELL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_PULLBACK_20",
+              "side": "BUY",
+              "hour": 4,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_BREAKOUT_12",
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_PULLBACK_20"
+          ],
+          "families": [
+            "BREAKOUT",
+            "V14_6_SWING",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 52.546385,
+          "stats": {
+            "train": {
+              "trades": 39,
+              "net_r": 10.593748,
+              "expectancy_r": 0.271635,
+              "profit_factor": 1.506729
+            },
+            "validation": {
+              "trades": 26,
+              "net_r": 6.718427,
+              "expectancy_r": 0.258401,
+              "profit_factor": 1.496347
+            },
+            "audit_a": {
+              "trades": 22,
+              "net_r": 3.808492,
+              "expectancy_r": 0.173113,
+              "profit_factor": 1.329454
+            },
+            "audit_b": {
+              "trades": 25,
+              "net_r": 7.467148,
+              "expectancy_r": 0.298686,
+              "profit_factor": 1.596418
+            },
+            "final_holdout": {
+              "trades": 23,
+              "net_r": 5.740726,
+              "expectancy_r": 0.249597,
+              "profit_factor": 1.455854
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_TREND_PULLBACK"
+          ],
+          "families": [
+            "EMA_RECLAIM",
+            "V14_6_SWING"
+          ],
+          "audit_score": 51.459535,
+          "stats": {
+            "train": {
+              "trades": 84,
+              "net_r": 9.218582,
+              "expectancy_r": 0.109745,
+              "profit_factor": 1.220861
+            },
+            "validation": {
+              "trades": 104,
+              "net_r": 6.921446,
+              "expectancy_r": 0.066552,
+              "profit_factor": 1.154635
+            },
+            "audit_a": {
+              "trades": 45,
+              "net_r": 4.306132,
+              "expectancy_r": 0.095692,
+              "profit_factor": 1.240835
+            },
+            "audit_b": {
+              "trades": 50,
+              "net_r": 18.585,
+              "expectancy_r": 0.3717,
+              "profit_factor": 1.850962
+            },
+            "final_holdout": {
+              "trades": 81,
+              "net_r": -3.079827,
+              "expectancy_r": -0.038023,
+              "profit_factor": 0.924514
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "SELL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 51.1304,
+          "stats": {
+            "train": {
+              "trades": 72,
+              "net_r": 5.302373,
+              "expectancy_r": 0.073644,
+              "profit_factor": 1.108477
+            },
+            "validation": {
+              "trades": 14,
+              "net_r": 2.24,
+              "expectancy_r": 0.16,
+              "profit_factor": 1.239316
+            },
+            "audit_a": {
+              "trades": 43,
+              "net_r": 17.933175,
+              "expectancy_r": 0.417051,
+              "profit_factor": 1.779703
+            },
+            "audit_b": {
+              "trades": 27,
+              "net_r": 12.748067,
+              "expectancy_r": 0.472151,
+              "profit_factor": 1.97269
+            },
+            "final_holdout": {
+              "trades": 23,
+              "net_r": -8.025919,
+              "expectancy_r": -0.348953,
+              "profit_factor": 0.54707
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "SELL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "AUDUSD_TREND_PULLBACK",
+            "AUDUSD_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "V14_6_SWING",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 51.1304,
+          "stats": {
+            "train": {
+              "trades": 72,
+              "net_r": 5.302373,
+              "expectancy_r": 0.073644,
+              "profit_factor": 1.108477
+            },
+            "validation": {
+              "trades": 14,
+              "net_r": 2.24,
+              "expectancy_r": 0.16,
+              "profit_factor": 1.239316
+            },
+            "audit_a": {
+              "trades": 43,
+              "net_r": 17.933175,
+              "expectancy_r": 0.417051,
+              "profit_factor": 1.779703
+            },
+            "audit_b": {
+              "trades": 27,
+              "net_r": 12.748067,
+              "expectancy_r": 0.472151,
+              "profit_factor": 1.97269
+            },
+            "final_holdout": {
+              "trades": 23,
+              "net_r": -8.025919,
+              "expectancy_r": -0.348953,
+              "profit_factor": 0.54707
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_PULLBACK_20",
+              "side": "BUY",
+              "hour": null,
+              "session": "ASIA",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 2
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_PULLBACK_20",
+            "AUDUSD_TREND_PULLBACK"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "V14_6_SWING"
+          ],
+          "audit_score": 50.957604,
+          "stats": {
+            "train": {
+              "trades": 54,
+              "net_r": 5.76438,
+              "expectancy_r": 0.106748,
+              "profit_factor": 1.19698
+            },
+            "validation": {
+              "trades": 45,
+              "net_r": 5.392165,
+              "expectancy_r": 0.119826,
+              "profit_factor": 1.2243
+            },
+            "audit_a": {
+              "trades": 23,
+              "net_r": 3.491132,
+              "expectancy_r": 0.151788,
+              "profit_factor": 1.464246
+            },
+            "audit_b": {
+              "trades": 27,
+              "net_r": 19.650227,
+              "expectancy_r": 0.727786,
+              "profit_factor": 2.862621
+            },
+            "final_holdout": {
+              "trades": 39,
+              "net_r": 3.194185,
+              "expectancy_r": 0.081902,
+              "profit_factor": 1.159709
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "AUDUSD_SWING_SWING_VOL_EXPANSION",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "EMA_RECLAIM",
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 50.65103,
+          "stats": {
+            "train": {
+              "trades": 107,
+              "net_r": 11.877373,
+              "expectancy_r": 0.111003,
+              "profit_factor": 1.187222
+            },
+            "validation": {
+              "trades": 92,
+              "net_r": 4.376045,
+              "expectancy_r": 0.047566,
+              "profit_factor": 1.107891
+            },
+            "audit_a": {
+              "trades": 56,
+              "net_r": 11.308175,
+              "expectancy_r": 0.201932,
+              "profit_factor": 1.362441
+            },
+            "audit_b": {
+              "trades": 52,
+              "net_r": 12.793382,
+              "expectancy_r": 0.246027,
+              "profit_factor": 1.500798
+            },
+            "final_holdout": {
+              "trades": 75,
+              "net_r": -9.565,
+              "expectancy_r": -0.127533,
+              "profit_factor": 0.786114
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_SWING_SWING_EMA_RECLAIM",
+              "side": "BUY",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 3
+            },
+            {
+              "engine": "AUDUSD_TREND_PULLBACK",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_SWING_SWING_EMA_RECLAIM",
+            "AUDUSD_TREND_PULLBACK"
+          ],
+          "families": [
+            "EMA_RECLAIM",
+            "V14_6_SWING"
+          ],
+          "audit_score": 49.533804,
+          "stats": {
+            "train": {
+              "trades": 65,
+              "net_r": 11.826913,
+              "expectancy_r": 0.181953,
+              "profit_factor": 1.378295
+            },
+            "validation": {
+              "trades": 94,
+              "net_r": 5.793361,
+              "expectancy_r": 0.061631,
+              "profit_factor": 1.146445
+            },
+            "audit_a": {
+              "trades": 39,
+              "net_r": 4.62352,
+              "expectancy_r": 0.118552,
+              "profit_factor": 1.27521
+            },
+            "audit_b": {
+              "trades": 49,
+              "net_r": 15.394685,
+              "expectancy_r": 0.314177,
+              "profit_factor": 1.738708
+            },
+            "final_holdout": {
+              "trades": 69,
+              "net_r": -2.030919,
+              "expectancy_r": -0.029434,
+              "profit_factor": 0.939339
+            }
+          },
+          "final_passed": false
+        }
+      ],
+      "ICT": [
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_NY_PULLBACK",
+              "side": "ALL",
+              "hour": 15,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ICT_NY_PULLBACK"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 41.670026,
+          "stats": {
+            "train": {
+              "trades": 150,
+              "net_r": 11.879858,
+              "expectancy_r": 0.079199,
+              "profit_factor": 1.191181
+            },
+            "validation": {
+              "trades": 114,
+              "net_r": 8.977133,
+              "expectancy_r": 0.078747,
+              "profit_factor": 1.209354
+            },
+            "audit_a": {
+              "trades": 80,
+              "net_r": 2.260362,
+              "expectancy_r": 0.028255,
+              "profit_factor": 1.065211
+            },
+            "audit_b": {
+              "trades": 76,
+              "net_r": 10.401118,
+              "expectancy_r": 0.136857,
+              "profit_factor": 1.374468
+            },
+            "final_holdout": {
+              "trades": 103,
+              "net_r": -18.769483,
+              "expectancy_r": -0.182228,
+              "profit_factor": 0.66716
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_MOMENTUM_BREAKOUT_4",
+              "side": "BUY",
+              "hour": 10,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_MOMENTUM_BREAKOUT_4",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4"
+          ],
+          "families": [
+            "BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 40.81636,
+          "stats": {
+            "train": {
+              "trades": 145,
+              "net_r": 16.732777,
+              "expectancy_r": 0.115398,
+              "profit_factor": 1.282562
+            },
+            "validation": {
+              "trades": 123,
+              "net_r": 11.138347,
+              "expectancy_r": 0.090556,
+              "profit_factor": 1.240096
+            },
+            "audit_a": {
+              "trades": 77,
+              "net_r": 1.48885,
+              "expectancy_r": 0.019336,
+              "profit_factor": 1.044387
+            },
+            "audit_b": {
+              "trades": 75,
+              "net_r": 4.300851,
+              "expectancy_r": 0.057345,
+              "profit_factor": 1.139364
+            },
+            "final_holdout": {
+              "trades": 105,
+              "net_r": -18.424538,
+              "expectancy_r": -0.175472,
+              "profit_factor": 0.667552
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ICT_FVG_CONTINUATION"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "FVG_CONTINUATION"
+          ],
+          "audit_score": 39.030063,
+          "stats": {
+            "train": {
+              "trades": 150,
+              "net_r": 12.366881,
+              "expectancy_r": 0.082446,
+              "profit_factor": 1.194132
+            },
+            "validation": {
+              "trades": 122,
+              "net_r": 6.273864,
+              "expectancy_r": 0.051425,
+              "profit_factor": 1.130687
+            },
+            "audit_a": {
+              "trades": 93,
+              "net_r": 4.350238,
+              "expectancy_r": 0.046777,
+              "profit_factor": 1.114412
+            },
+            "audit_b": {
+              "trades": 81,
+              "net_r": 5.78932,
+              "expectancy_r": 0.071473,
+              "profit_factor": 1.174901
+            },
+            "final_holdout": {
+              "trades": 113,
+              "net_r": -23.064731,
+              "expectancy_r": -0.204113,
+              "profit_factor": 0.62794
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 38.556707,
+          "stats": {
+            "train": {
+              "trades": 133,
+              "net_r": 10.971383,
+              "expectancy_r": 0.082492,
+              "profit_factor": 1.192555
+            },
+            "validation": {
+              "trades": 104,
+              "net_r": 5.944287,
+              "expectancy_r": 0.057157,
+              "profit_factor": 1.14799
+            },
+            "audit_a": {
+              "trades": 77,
+              "net_r": 5.23885,
+              "expectancy_r": 0.068037,
+              "profit_factor": 1.167362
+            },
+            "audit_b": {
+              "trades": 70,
+              "net_r": 4.946537,
+              "expectancy_r": 0.070665,
+              "profit_factor": 1.17987
+            },
+            "final_holdout": {
+              "trades": 95,
+              "net_r": -16.275665,
+              "expectancy_r": -0.171323,
+              "profit_factor": 0.679562
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+              "side": "BUY",
+              "hour": 10,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4"
+          ],
+          "families": [
+            "FVG_CONTINUATION",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 38.511699,
+          "stats": {
+            "train": {
+              "trades": 143,
+              "net_r": 14.686383,
+              "expectancy_r": 0.102702,
+              "profit_factor": 1.248005
+            },
+            "validation": {
+              "trades": 111,
+              "net_r": 8.398864,
+              "expectancy_r": 0.075665,
+              "profit_factor": 1.198055
+            },
+            "audit_a": {
+              "trades": 77,
+              "net_r": 2.80885,
+              "expectancy_r": 0.036479,
+              "profit_factor": 1.086633
+            },
+            "audit_b": {
+              "trades": 70,
+              "net_r": 3.536537,
+              "expectancy_r": 0.050522,
+              "profit_factor": 1.123566
+            },
+            "final_holdout": {
+              "trades": 101,
+              "net_r": -17.555665,
+              "expectancy_r": -0.173818,
+              "profit_factor": 0.66896
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4"
+          ],
+          "families": [
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 35.982124,
+          "stats": {
+            "train": {
+              "trades": 131,
+              "net_r": 11.806383,
+              "expectancy_r": 0.090125,
+              "profit_factor": 1.211364
+            },
+            "validation": {
+              "trades": 102,
+              "net_r": 6.238864,
+              "expectancy_r": 0.061165,
+              "profit_factor": 1.159779
+            },
+            "audit_a": {
+              "trades": 74,
+              "net_r": 3.44885,
+              "expectancy_r": 0.046606,
+              "profit_factor": 1.110178
+            },
+            "audit_b": {
+              "trades": 66,
+              "net_r": 4.276537,
+              "expectancy_r": 0.064796,
+              "profit_factor": 1.162109
+            },
+            "final_holdout": {
+              "trades": 95,
+              "net_r": -16.275665,
+              "expectancy_r": -0.171323,
+              "profit_factor": 0.679562
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+              "side": "BUY",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK"
+          ],
+          "families": [
+            "FVG_CONTINUATION",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 35.974333,
+          "stats": {
+            "train": {
+              "trades": 48,
+              "net_r": 8.469862,
+              "expectancy_r": 0.176455,
+              "profit_factor": 1.504158
+            },
+            "validation": {
+              "trades": 42,
+              "net_r": 4.558744,
+              "expectancy_r": 0.108542,
+              "profit_factor": 1.313424
+            },
+            "audit_a": {
+              "trades": 22,
+              "net_r": 2.886575,
+              "expectancy_r": 0.131208,
+              "profit_factor": 1.42955
+            },
+            "audit_b": {
+              "trades": 20,
+              "net_r": 2.641587,
+              "expectancy_r": 0.132079,
+              "profit_factor": 1.312673
+            },
+            "final_holdout": {
+              "trades": 44,
+              "net_r": -15.027642,
+              "expectancy_r": -0.341537,
+              "profit_factor": 0.443348
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+              "side": "BUY",
+              "hour": 10,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_MOMENTUM_BREAKOUT_4",
+              "side": "BUY",
+              "hour": 10,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+            "AUDUSD_ICT_ICT_MOMENTUM_BREAKOUT_4",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4"
+          ],
+          "families": [
+            "FVG_CONTINUATION",
+            "BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 35.317259,
+          "stats": {
+            "train": {
+              "trades": 150,
+              "net_r": 13.887056,
+              "expectancy_r": 0.09258,
+              "profit_factor": 1.221916
+            },
+            "validation": {
+              "trades": 123,
+              "net_r": 10.658347,
+              "expectancy_r": 0.086653,
+              "profit_factor": 1.229749
+            },
+            "audit_a": {
+              "trades": 79,
+              "net_r": 0.56885,
+              "expectancy_r": 0.007201,
+              "profit_factor": 1.016411
+            },
+            "audit_b": {
+              "trades": 77,
+              "net_r": 4.400851,
+              "expectancy_r": 0.057154,
+              "profit_factor": 1.13761
+            },
+            "final_holdout": {
+              "trades": 105,
+              "net_r": -18.155665,
+              "expectancy_r": -0.172911,
+              "profit_factor": 0.671521
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            },
+            {
+              "engine": "AUDUSD_ICT_ASIA_LONDON",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ASIA_LONDON"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "V14_6_ICT"
+          ],
+          "audit_score": 30.268701,
+          "stats": {
+            "train": {
+              "trades": 158,
+              "net_r": 11.60862,
+              "expectancy_r": 0.073472,
+              "profit_factor": 1.160766
+            },
+            "validation": {
+              "trades": 116,
+              "net_r": 3.478864,
+              "expectancy_r": 0.02999,
+              "profit_factor": 1.071205
+            },
+            "audit_a": {
+              "trades": 87,
+              "net_r": 4.27885,
+              "expectancy_r": 0.049182,
+              "profit_factor": 1.109904
+            },
+            "audit_b": {
+              "trades": 74,
+              "net_r": 2.547342,
+              "expectancy_r": 0.034424,
+              "profit_factor": 1.080028
+            },
+            "final_holdout": {
+              "trades": 103,
+              "net_r": -14.965665,
+              "expectancy_r": -0.145298,
+              "profit_factor": 0.728499
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "SELL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 28.984655,
+          "stats": {
+            "train": {
+              "trades": 77,
+              "net_r": 1.719636,
+              "expectancy_r": 0.022333,
+              "profit_factor": 1.050378
+            },
+            "validation": {
+              "trades": 54,
+              "net_r": 10.306649,
+              "expectancy_r": 0.190864,
+              "profit_factor": 1.553699
+            },
+            "audit_a": {
+              "trades": 62,
+              "net_r": 2.631943,
+              "expectancy_r": 0.042451,
+              "profit_factor": 1.099546
+            },
+            "audit_b": {
+              "trades": 37,
+              "net_r": 6.841237,
+              "expectancy_r": 0.184898,
+              "profit_factor": 1.572704
+            },
+            "final_holdout": {
+              "trades": 45,
+              "net_r": -19.508301,
+              "expectancy_r": -0.433518,
+              "profit_factor": 0.357359
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+              "side": "BUY",
+              "hour": 10,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_BREAKOUT_H4",
+              "side": "ALL",
+              "hour": 9,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ICT_BREAKOUT_H4"
+          ],
+          "families": [
+            "FVG_CONTINUATION",
+            "TREND_PULLBACK",
+            "BREAKOUT"
+          ],
+          "audit_score": 28.902144,
+          "stats": {
+            "train": {
+              "trades": 198,
+              "net_r": 12.336947,
+              "expectancy_r": 0.062308,
+              "profit_factor": 1.141623
+            },
+            "validation": {
+              "trades": 129,
+              "net_r": 8.671546,
+              "expectancy_r": 0.067221,
+              "profit_factor": 1.165214
+            },
+            "audit_a": {
+              "trades": 101,
+              "net_r": 0.907354,
+              "expectancy_r": 0.008984,
+              "profit_factor": 1.020279
+            },
+            "audit_b": {
+              "trades": 101,
+              "net_r": 0.986502,
+              "expectancy_r": 0.009767,
+              "profit_factor": 1.020698
+            },
+            "final_holdout": {
+              "trades": 135,
+              "net_r": -21.880665,
+              "expectancy_r": -0.162079,
+              "profit_factor": 0.701051
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_MOMENTUM_BREAKOUT_8",
+              "side": "BUY",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_MOMENTUM_BREAKOUT_8",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK"
+          ],
+          "families": [
+            "VOLATILITY_BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 27.398797,
+          "stats": {
+            "train": {
+              "trades": 34,
+              "net_r": 1.998293,
+              "expectancy_r": 0.058773,
+              "profit_factor": 1.158681
+            },
+            "validation": {
+              "trades": 29,
+              "net_r": 7.507133,
+              "expectancy_r": 0.258867,
+              "profit_factor": 1.991886
+            },
+            "audit_a": {
+              "trades": 13,
+              "net_r": 1.386575,
+              "expectancy_r": 0.10666,
+              "profit_factor": 1.309503
+            },
+            "audit_b": {
+              "trades": 16,
+              "net_r": 4.836091,
+              "expectancy_r": 0.302256,
+              "profit_factor": 2.183586
+            },
+            "final_holdout": {
+              "trades": 22,
+              "net_r": -12.220966,
+              "expectancy_r": -0.555498,
+              "profit_factor": 0.167309
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 0
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_BREAKOUT_H4",
+              "side": "ALL",
+              "hour": 9,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ICT_BREAKOUT_H4"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "BREAKOUT"
+          ],
+          "audit_score": 25.998604,
+          "stats": {
+            "train": {
+              "trades": 186,
+              "net_r": 9.456947,
+              "expectancy_r": 0.050844,
+              "profit_factor": 1.112918
+            },
+            "validation": {
+              "trades": 120,
+              "net_r": 6.511546,
+              "expectancy_r": 0.054263,
+              "profit_factor": 1.132546
+            },
+            "audit_a": {
+              "trades": 98,
+              "net_r": 1.547354,
+              "expectancy_r": 0.015789,
+              "profit_factor": 1.035471
+            },
+            "audit_b": {
+              "trades": 97,
+              "net_r": 1.726502,
+              "expectancy_r": 0.017799,
+              "profit_factor": 1.038011
+            },
+            "final_holdout": {
+              "trades": 129,
+              "net_r": -20.600665,
+              "expectancy_r": -0.159695,
+              "profit_factor": 0.709653
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "SELL",
+              "hour": 10,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 25.006739,
+          "stats": {
+            "train": {
+              "trades": 31,
+              "net_r": 1.266067,
+              "expectancy_r": 0.040841,
+              "profit_factor": 1.092149
+            },
+            "validation": {
+              "trades": 20,
+              "net_r": 5.498936,
+              "expectancy_r": 0.274947,
+              "profit_factor": 2.10047
+            },
+            "audit_a": {
+              "trades": 26,
+              "net_r": 3.185304,
+              "expectancy_r": 0.122512,
+              "profit_factor": 1.330445
+            },
+            "audit_b": {
+              "trades": 11,
+              "net_r": 5.511587,
+              "expectancy_r": 0.501053,
+              "profit_factor": 4.188814
+            },
+            "final_holdout": {
+              "trades": 19,
+              "net_r": -10.245352,
+              "expectancy_r": -0.539229,
+              "profit_factor": 0.244246
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 4
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ICT_FVG_CONTINUATION"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "FVG_CONTINUATION"
+          ],
+          "audit_score": 24.695276,
+          "stats": {
+            "train": {
+              "trades": 88,
+              "net_r": 1.098113,
+              "expectancy_r": 0.012479,
+              "profit_factor": 1.028294
+            },
+            "validation": {
+              "trades": 65,
+              "net_r": 10.15075,
+              "expectancy_r": 0.156165,
+              "profit_factor": 1.443554
+            },
+            "audit_a": {
+              "trades": 74,
+              "net_r": 2.310856,
+              "expectancy_r": 0.031228,
+              "profit_factor": 1.072125
+            },
+            "audit_b": {
+              "trades": 47,
+              "net_r": 4.746187,
+              "expectancy_r": 0.100983,
+              "profit_factor": 1.263044
+            },
+            "final_holdout": {
+              "trades": 62,
+              "net_r": -16.480062,
+              "expectancy_r": -0.265807,
+              "profit_factor": 0.541666
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 4
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 24.029503,
+          "stats": {
+            "train": {
+              "trades": 71,
+              "net_r": 0.637615,
+              "expectancy_r": 0.00898,
+              "profit_factor": 1.019873
+            },
+            "validation": {
+              "trades": 52,
+              "net_r": 11.611649,
+              "expectancy_r": 0.223301,
+              "profit_factor": 1.709145
+            },
+            "audit_a": {
+              "trades": 57,
+              "net_r": 1.979469,
+              "expectancy_r": 0.034728,
+              "profit_factor": 1.07818
+            },
+            "audit_b": {
+              "trades": 34,
+              "net_r": 3.803405,
+              "expectancy_r": 0.111865,
+              "profit_factor": 1.335891
+            },
+            "final_holdout": {
+              "trades": 48,
+              "net_r": -14.170996,
+              "expectancy_r": -0.295229,
+              "profit_factor": 0.515297
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_NY_PULLBACK",
+              "side": "ALL",
+              "hour": 15,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+            "AUDUSD_ICT_ICT_NY_PULLBACK"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 23.353412,
+          "stats": {
+            "train": {
+              "trades": 33,
+              "net_r": 0.383336,
+              "expectancy_r": 0.011616,
+              "profit_factor": 1.029485
+            },
+            "validation": {
+              "trades": 23,
+              "net_r": 6.256796,
+              "expectancy_r": 0.272035,
+              "profit_factor": 1.949415
+            },
+            "audit_a": {
+              "trades": 13,
+              "net_r": 4.218087,
+              "expectancy_r": 0.324468,
+              "profit_factor": 2.255383
+            },
+            "audit_b": {
+              "trades": 15,
+              "net_r": 6.186168,
+              "expectancy_r": 0.412411,
+              "profit_factor": 2.980543
+            },
+            "final_holdout": {
+              "trades": 16,
+              "net_r": -9.314171,
+              "expectancy_r": -0.582136,
+              "profit_factor": 0.25106
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "SELL",
+              "hour": null,
+              "session": null,
+              "excluded_weekday": 4
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK_H4"
+          ],
+          "families": [
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 20.535044,
+          "stats": {
+            "train": {
+              "trades": 69,
+              "net_r": 0.537615,
+              "expectancy_r": 0.007792,
+              "profit_factor": 1.017362
+            },
+            "validation": {
+              "trades": 43,
+              "net_r": 10.138545,
+              "expectancy_r": 0.23578,
+              "profit_factor": 1.744536
+            },
+            "audit_a": {
+              "trades": 56,
+              "net_r": 0.759469,
+              "expectancy_r": 0.013562,
+              "profit_factor": 1.029995
+            },
+            "audit_b": {
+              "trades": 32,
+              "net_r": 3.233405,
+              "expectancy_r": 0.101044,
+              "profit_factor": 1.285552
+            },
+            "final_holdout": {
+              "trades": 42,
+              "net_r": -8.454533,
+              "expectancy_r": -0.201298,
+              "profit_factor": 0.640539
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_NY_PULLBACK",
+              "side": "ALL",
+              "hour": 15,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+            "AUDUSD_ICT_ICT_NY_PULLBACK"
+          ],
+          "families": [
+            "FVG_CONTINUATION",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 20.352399,
+          "stats": {
+            "train": {
+              "trades": 38,
+              "net_r": 0.633973,
+              "expectancy_r": 0.016683,
+              "profit_factor": 1.044878
+            },
+            "validation": {
+              "trades": 35,
+              "net_r": 3.970474,
+              "expectancy_r": 0.113442,
+              "profit_factor": 1.303065
+            },
+            "audit_a": {
+              "trades": 27,
+              "net_r": 1.217899,
+              "expectancy_r": 0.045107,
+              "profit_factor": 1.120823
+            },
+            "audit_b": {
+              "trades": 25,
+              "net_r": 7.637363,
+              "expectancy_r": 0.305495,
+              "profit_factor": 1.941135
+            },
+            "final_holdout": {
+              "trades": 29,
+              "net_r": -11.639347,
+              "expectancy_r": -0.401357,
+              "profit_factor": 0.392406
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "AUDUSD_ICT_ICT_FVG_CONTINUATION",
+              "side": "ALL",
+              "hour": 12,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "AUDUSD_ICT_ICT_LONDON_PULLBACK",
+            "AUDUSD_ICT_ICT_FVG_CONTINUATION"
+          ],
+          "families": [
+            "TREND_PULLBACK",
+            "FVG_CONTINUATION"
+          ],
+          "audit_score": 19.672494,
+          "stats": {
+            "train": {
+              "trades": 33,
+              "net_r": 0.87036,
+              "expectancy_r": 0.026375,
+              "profit_factor": 1.059755
+            },
+            "validation": {
+              "trades": 31,
+              "net_r": 3.553527,
+              "expectancy_r": 0.11463,
+              "profit_factor": 1.303282
+            },
+            "audit_a": {
+              "trades": 24,
+              "net_r": 5.737962,
+              "expectancy_r": 0.239082,
+              "profit_factor": 1.853863
+            },
+            "audit_b": {
+              "trades": 20,
+              "net_r": 1.57437,
+              "expectancy_r": 0.078718,
+              "profit_factor": 1.186351
+            },
+            "final_holdout": {
+              "trades": 26,
+              "net_r": -13.609418,
+              "expectancy_r": -0.523439,
+              "profit_factor": 0.24545
+            }
+          },
+          "final_passed": false
+        }
+      ]
+    },
+    "USDJPY": {
+      "SWING": [
+        {
+          "components": [
+            {
+              "engine": "USDJPY_SWING_SWING_BREAKOUT_24",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "USDJPY_SWING_SWING_BREAKOUT_24"
+          ],
+          "families": [
+            "BREAKOUT"
+          ],
+          "audit_score": 32.351978,
+          "stats": {
+            "train": {
+              "trades": 24,
+              "net_r": 5.86172,
+              "expectancy_r": 0.244238,
+              "profit_factor": 1.469689
+            },
+            "validation": {
+              "trades": 24,
+              "net_r": 9.985523,
+              "expectancy_r": 0.416063,
+              "profit_factor": 2.066829
+            },
+            "audit_a": {
+              "trades": 18,
+              "net_r": 1.18,
+              "expectancy_r": 0.065556,
+              "profit_factor": 1.141827
+            },
+            "audit_b": {
+              "trades": 15,
+              "net_r": 3.06,
+              "expectancy_r": 0.204,
+              "profit_factor": 1.326923
+            },
+            "final_holdout": {
+              "trades": 18,
+              "net_r": 0.56,
+              "expectancy_r": 0.031111,
+              "profit_factor": 1.053846
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "USDJPY_SWING_SWING_BREAKOUT_24",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "USDJPY_SWING_SWING_BREAKOUT_24"
+          ],
+          "families": [
+            "BREAKOUT"
+          ],
+          "audit_score": 32.351978,
+          "stats": {
+            "train": {
+              "trades": 24,
+              "net_r": 5.86172,
+              "expectancy_r": 0.244238,
+              "profit_factor": 1.469689
+            },
+            "validation": {
+              "trades": 24,
+              "net_r": 9.985523,
+              "expectancy_r": 0.416063,
+              "profit_factor": 2.066829
+            },
+            "audit_a": {
+              "trades": 18,
+              "net_r": 1.18,
+              "expectancy_r": 0.065556,
+              "profit_factor": 1.141827
+            },
+            "audit_b": {
+              "trades": 15,
+              "net_r": 3.06,
+              "expectancy_r": 0.204,
+              "profit_factor": 1.326923
+            },
+            "final_holdout": {
+              "trades": 18,
+              "net_r": 0.56,
+              "expectancy_r": 0.031111,
+              "profit_factor": 1.053846
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "USDJPY_SWING_SWING_VOL_EXPANSION",
+              "side": "ALL",
+              "hour": null,
+              "session": "LONDON",
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "USDJPY_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 20.421394,
+          "stats": {
+            "train": {
+              "trades": 9,
+              "net_r": 5.04,
+              "expectancy_r": 0.56,
+              "profit_factor": 1.969231
+            },
+            "validation": {
+              "trades": 9,
+              "net_r": 4.045478,
+              "expectancy_r": 0.449498,
+              "profit_factor": 1.943041
+            },
+            "audit_a": {
+              "trades": 8,
+              "net_r": 0.266636,
+              "expectancy_r": 0.033329,
+              "profit_factor": 1.051276
+            },
+            "audit_b": {
+              "trades": 8,
+              "net_r": 2.48,
+              "expectancy_r": 0.31,
+              "profit_factor": 1.476923
+            },
+            "final_holdout": {
+              "trades": 5,
+              "net_r": -1.6,
+              "expectancy_r": -0.32,
+              "profit_factor": 0.615385
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "USDJPY_SWING_SWING_VOL_EXPANSION",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "USDJPY_SWING_SWING_VOL_EXPANSION"
+          ],
+          "families": [
+            "VOLATILITY_BREAKOUT"
+          ],
+          "audit_score": 20.421394,
+          "stats": {
+            "train": {
+              "trades": 9,
+              "net_r": 5.04,
+              "expectancy_r": 0.56,
+              "profit_factor": 1.969231
+            },
+            "validation": {
+              "trades": 9,
+              "net_r": 4.045478,
+              "expectancy_r": 0.449498,
+              "profit_factor": 1.943041
+            },
+            "audit_a": {
+              "trades": 8,
+              "net_r": 0.266636,
+              "expectancy_r": 0.033329,
+              "profit_factor": 1.051276
+            },
+            "audit_b": {
+              "trades": 8,
+              "net_r": 2.48,
+              "expectancy_r": 0.31,
+              "profit_factor": 1.476923
+            },
+            "final_holdout": {
+              "trades": 5,
+              "net_r": -1.6,
+              "expectancy_r": -0.32,
+              "profit_factor": 0.615385
+            }
+          },
+          "final_passed": false
+        }
+      ],
+      "ICT": [
+        {
+          "components": [
+            {
+              "engine": "USDJPY_ICT_SESSION_SWEEP",
+              "side": "ALL",
+              "hour": 9,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "USDJPY_ICT_ICT_BREAKOUT_H4",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "USDJPY_ICT_SESSION_SWEEP",
+            "USDJPY_ICT_ICT_BREAKOUT_H4"
+          ],
+          "families": [
+            "V14_6_ICT",
+            "BREAKOUT"
+          ],
+          "audit_score": 31.85494,
+          "stats": {
+            "train": {
+              "trades": 53,
+              "net_r": 7.839284,
+              "expectancy_r": 0.147911,
+              "profit_factor": 1.347267
+            },
+            "validation": {
+              "trades": 34,
+              "net_r": 7.01675,
+              "expectancy_r": 0.206375,
+              "profit_factor": 1.583323
+            },
+            "audit_a": {
+              "trades": 22,
+              "net_r": 1.902889,
+              "expectancy_r": 0.086495,
+              "profit_factor": 1.213808
+            },
+            "audit_b": {
+              "trades": 15,
+              "net_r": 1.200377,
+              "expectancy_r": 0.080025,
+              "profit_factor": 1.178628
+            },
+            "final_holdout": {
+              "trades": 32,
+              "net_r": -1.33992,
+              "expectancy_r": -0.041873,
+              "profit_factor": 0.92485
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "USDJPY_ICT_ICT_BREAKOUT_H4",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "USDJPY_ICT_SESSION_SWEEP",
+              "side": "ALL",
+              "hour": 15,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "USDJPY_ICT_ICT_BREAKOUT_H4",
+            "USDJPY_ICT_SESSION_SWEEP"
+          ],
+          "families": [
+            "BREAKOUT",
+            "V14_6_ICT"
+          ],
+          "audit_score": 27.007699,
+          "stats": {
+            "train": {
+              "trades": 55,
+              "net_r": 4.552528,
+              "expectancy_r": 0.082773,
+              "profit_factor": 1.18619
+            },
+            "validation": {
+              "trades": 43,
+              "net_r": 5.70675,
+              "expectancy_r": 0.132715,
+              "profit_factor": 1.307328
+            },
+            "audit_a": {
+              "trades": 30,
+              "net_r": 1.182889,
+              "expectancy_r": 0.03943,
+              "profit_factor": 1.082431
+            },
+            "audit_b": {
+              "trades": 26,
+              "net_r": 6.210377,
+              "expectancy_r": 0.238861,
+              "profit_factor": 1.510302
+            },
+            "final_holdout": {
+              "trades": 36,
+              "net_r": -0.19992,
+              "expectancy_r": -0.005553,
+              "profit_factor": 0.990009
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "USDJPY_ICT_ICT_BREAKOUT_H4",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "USDJPY_ICT_ICT_BREAKOUT_H4"
+          ],
+          "families": [
+            "BREAKOUT"
+          ],
+          "audit_score": 24.021665,
+          "stats": {
+            "train": {
+              "trades": 43,
+              "net_r": 2.739284,
+              "expectancy_r": 0.063704,
+              "profit_factor": 1.150393
+            },
+            "validation": {
+              "trades": 31,
+              "net_r": 5.28675,
+              "expectancy_r": 0.17054,
+              "profit_factor": 1.483297
+            },
+            "audit_a": {
+              "trades": 19,
+              "net_r": 2.672889,
+              "expectancy_r": 0.140678,
+              "profit_factor": 1.397751
+            },
+            "audit_b": {
+              "trades": 15,
+              "net_r": 1.200377,
+              "expectancy_r": 0.080025,
+              "profit_factor": 1.178628
+            },
+            "final_holdout": {
+              "trades": 28,
+              "net_r": 0.52008,
+              "expectancy_r": 0.018574,
+              "profit_factor": 1.03572
+            }
+          },
+          "final_passed": true
+        },
+        {
+          "components": [
+            {
+              "engine": "USDJPY_ICT_ICT_BREAKOUT_H4",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "USDJPY_ICT_ICT_FAST_RECLAIM",
+              "side": "SELL",
+              "hour": 3,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "USDJPY_ICT_ICT_BREAKOUT_H4",
+            "USDJPY_ICT_ICT_FAST_RECLAIM"
+          ],
+          "families": [
+            "BREAKOUT",
+            "EMA_RECLAIM"
+          ],
+          "audit_score": 20.926213,
+          "stats": {
+            "train": {
+              "trades": 57,
+              "net_r": 3.437866,
+              "expectancy_r": 0.060313,
+              "profit_factor": 1.146671
+            },
+            "validation": {
+              "trades": 75,
+              "net_r": 10.340723,
+              "expectancy_r": 0.137876,
+              "profit_factor": 1.40948
+            },
+            "audit_a": {
+              "trades": 28,
+              "net_r": 0.275032,
+              "expectancy_r": 0.009823,
+              "profit_factor": 1.025527
+            },
+            "audit_b": {
+              "trades": 47,
+              "net_r": 0.762657,
+              "expectancy_r": 0.016227,
+              "profit_factor": 1.040162
+            },
+            "final_holdout": {
+              "trades": 49,
+              "net_r": -4.094529,
+              "expectancy_r": -0.083562,
+              "profit_factor": 0.840125
+            }
+          },
+          "final_passed": false
+        },
+        {
+          "components": [
+            {
+              "engine": "USDJPY_ICT_ICT_BREAKOUT_H4",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            },
+            {
+              "engine": "USDJPY_ICT_ICT_LONDON_PULLBACK_H4",
+              "side": "ALL",
+              "hour": 8,
+              "session": null,
+              "excluded_weekday": null
+            }
+          ],
+          "engines": [
+            "USDJPY_ICT_ICT_BREAKOUT_H4",
+            "USDJPY_ICT_ICT_LONDON_PULLBACK_H4"
+          ],
+          "families": [
+            "BREAKOUT",
+            "TREND_PULLBACK"
+          ],
+          "audit_score": 18.762356,
+          "stats": {
+            "train": {
+              "trades": 61,
+              "net_r": 2.281137,
+              "expectancy_r": 0.037396,
+              "profit_factor": 1.087075
+            },
+            "validation": {
+              "trades": 39,
+              "net_r": 4.816538,
+              "expectancy_r": 0.123501,
+              "profit_factor": 1.336846
+            },
+            "audit_a": {
+              "trades": 22,
+              "net_r": 1.652889,
+              "expectancy_r": 0.075131,
+              "profit_factor": 1.184474
+            },
+            "audit_b": {
+              "trades": 22,
+              "net_r": 0.850377,
+              "expectancy_r": 0.038654,
+              "profit_factor": 1.084363
+            },
+            "final_holdout": {
+              "trades": 33,
+              "net_r": 1.94008,
+              "expectancy_r": 0.05879,
+              "profit_factor": 1.115481
+            }
+          },
+          "final_passed": true
+        }
+      ]
+    }
+  },
+  "coverage": {
+    "active_swing_symbols": [
+      "GBPUSD",
+      "EURUSD",
+      "GBPJPY",
+      "USDJPY"
+    ],
+    "active_ict_symbols": [
+      "GBPJPY"
+    ],
+    "all_ten_sleeves_active": false
+  },
+  "activity": {
+    "swing": {
+      "trades": 490,
+      "active_days": 408,
+      "average_per_active_day": 1.201,
+      "maximum_per_day": 4
+    },
+    "ict": {
+      "trades": 91,
+      "active_days": 91,
+      "average_per_active_day": 1.0,
+      "maximum_per_day": 1
+    }
+  },
+  "previous_v14_6_2": {
+    "swing_scale": 1.0,
+    "ict_scale": 2.0,
+    "net_profit": 8069.701021206678,
+    "ending_balance": 13069.701021206678,
+    "return_percent": 161.39402042413357,
+    "profit_factor": 1.9429036150886525,
+    "max_closed_drawdown_percent": 8.796869546776602,
+    "stress_drawdown_percent": 9.979199079604385,
+    "closed_trades": 489,
+    "skipped_trades": 42,
+    "safe": true,
+    "target_reached": false,
+    "governor_interventions": 25
+  },
+  "best_safe_portfolio": {
+    "swing_scale": 0.8,
+    "ict_scale": 2.4,
+    "net_profit": 6539.904550109673,
+    "ending_balance": 11539.904550109673,
+    "return_percent": 130.79809100219347,
+    "profit_factor": 1.6663397270978866,
+    "max_closed_drawdown_percent": 7.45826715558135,
+    "stress_drawdown_percent": 9.420151891883016,
+    "closed_trades": 581,
+    "skipped_trades": 0,
+    "safe": true,
+    "target_reached": false,
+    "governor_interventions": 0
+  },
+  "profit_improvement_vs_v14_6_2": -1529.8,
+  "target_reached": false,
+  "target_gap": 13460.1
+}
