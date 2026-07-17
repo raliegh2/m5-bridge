@@ -1,4 +1,8 @@
-"""Re-run V14.7.2 with exact V14.6.1 intraday incumbent candidates."""
+"""Re-run V14.7.2 with exact V14.6.1 intraday incumbent candidates.
+
+This entrypoint preserves the exact engine names and candidate rules used by
+the previously validated GBPJPY and AUDUSD intraday sleeves.
+"""
 from __future__ import annotations
 
 import sys
