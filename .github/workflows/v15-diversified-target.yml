@@ -1,0 +1,157 @@
+name: V15 diversified target research
+
+on:
+  pull_request:
+    branches:
+      - v14-9-fxcm-walk-forward
+    paths:
+      - "research/download_fxcm_diversified_universe.py"
+      - "mt5_ai_bridge/v15_diversified_strategies.py"
+      - "research/v15_diversified_target_backtest.py"
+      - "research/v14_9_fxcm_walk_forward.py"
+      - "research/v14_8_dukascopy_2016_2026_backtest.py"
+      - ".github/workflows/v15-diversified-target.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  diversified-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+      FXCM_OUT: research/fxcm_diversified_2013_2026_data
+      FXCM_FROM: "2013-01-01T00:00:00Z"
+      FXCM_TO: "2026-05-31T23:59:59Z"
+      FXCM_WORKERS: "32"
+      FXCM_MIN_BARS: "18000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib requests pytest
+      - name: Compile V15 research
+        run: >-
+          python -m py_compile
+          research/download_fxcm_diversified_universe.py
+          mt5_ai_bridge/v15_diversified_strategies.py
+          research/v15_diversified_target_backtest.py
+      - name: Restore expanded FXCM cache
+        id: fxcm-cache
+        uses: actions/cache@v4
+        with:
+          path: research/fxcm_diversified_2013_2026_data
+          key: fxcm-diversified-h1-2013-2026-v1
+      - name: Download expanded FXCM bid-ask universe
+        if: steps.fxcm-cache.outputs.cache-hit != 'true'
+        run: python research/download_fxcm_diversified_universe.py
+      - name: Validate expanded dataset
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/fxcm_diversified_2013_2026_data')
+          manifest = json.loads((root / 'manifest.json').read_text())
+          available = set(manifest['available'])
+          core = {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          assert core <= available, (core - available, manifest.get('unavailable'))
+          assert len(available) >= 12, sorted(available)
+          for symbol in available:
+              for side in ('bid', 'ask'):
+                  path = root / f'{symbol}_H1_{side}.csv'
+                  assert path.exists(), path
+                  frame = pd.read_csv(path, usecols=['time'])
+                  assert len(frame) >= 18_000, (symbol, side, len(frame))
+                  end = pd.to_datetime(frame['time'], utc=True).max()
+                  assert end >= pd.Timestamp('2026-05-01T00:00:00Z'), (symbol, side, end)
+          print('available_symbols', len(available), sorted(available))
+          print('unavailable_symbols', manifest.get('unavailable', {}))
+          PY
+      - name: Run V15 diversified replay
+        run: |
+          set -o pipefail
+          rm -rf research/v15_diversified_target_output
+          mkdir -p research/v15_diversified_target_output
+          python research/v15_diversified_target_backtest.py 2>&1 \
+            | tee research/v15_diversified_target_output/backtest_stdout.log
+      - name: Validate improvement safety and outputs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('research/v15_diversified_target_output')
+          payload = json.loads((root / 'v15_diversified_target_results.json').read_text())
+          baseline = payload['baseline_v14_9']
+          primary = payload['primary_portfolio']
+          holdout = payload['final_holdout_2024_2026']
+          new = payload['new_system_contribution']
+
+          assert primary['net_profit'] > baseline['net_profit'], (baseline, primary)
+          assert primary['profit_factor'] > 1.0, primary
+          assert primary['max_closed_drawdown_percent'] <= 9.60, primary
+          assert primary['stress_drawdown_percent'] <= 10.00, primary
+          assert new['trades'] > 0, new
+          assert new['net_profit'] > 0.0, new
+          assert holdout['net_profit'] > 0.0, holdout
+          assert payload['live_execution_changed'] is False
+          assert payload['research_only'] is True
+
+          for expected in (
+              'BACKTEST_REPORT.md',
+              'all_v15_diversified_candidates.csv',
+              'v15_trailing_gate.csv',
+              'risk_feasibility_grid.csv',
+              'combined_gate_and_admission.csv',
+              'admitted_candidates.csv',
+              'baseline_v14_9_closed_trades.csv',
+              'closed_trades.csv',
+              'skipped_candidates.csv',
+              'monthly_equity_profit_drawdown.csv',
+              'annual_profit_fees_drawdown.csv',
+              'monthly_equity_2016_2026.png',
+              'annual_net_profit_2016_2026.png',
+              'monthly_drawdown_2016_2026.png',
+              'profit_by_symbol.png',
+              'profit_by_mode.png',
+              'cumulative_modeled_fees.png',
+          ):
+              assert (root / expected).exists(), expected
+
+          print('baseline', baseline)
+          print('primary', primary)
+          print('improvement', payload['improvement_over_v14_9'])
+          print('new_system_contribution', new)
+          print('holdout_2024_2026', holdout)
+          print('best_safe', payload['best_safe_feasibility'])
+          print('targets', {
+              '20k': payload['target_20k_reached'],
+              '20k_gap': payload['target_20k_gap'],
+              '40k': payload['target_40k_reached'],
+              '40k_gap': payload['target_40k_gap'],
+          })
+          PY
+      - name: Upload V15 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v15-diversified-target-results
+          path: research/v15_diversified_target_output/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload expanded data manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v15-fxcm-expanded-manifest
+          path: research/fxcm_diversified_2013_2026_data/manifest.json
+          if-no-files-found: warn
+          retention-days: 30
