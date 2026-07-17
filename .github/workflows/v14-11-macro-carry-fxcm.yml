@@ -9,6 +9,7 @@ on:
       - "mt5_ai_bridge/v14_11_macro_carry.py"
       - "research/v14_11_macro_carry_fxcm.py"
       - "research/v14_11_macro_carry_entrypoint.py"
+      - "research/v14_11_macro_carry_confirmed_entrypoint.py"
       - "research/v14_9_fxcm_walk_forward.py"
       - "research/v14_8_dukascopy_2016_2026_backtest.py"
       - ".github/workflows/v14-11-macro-carry-fxcm.yml"
@@ -42,6 +43,7 @@ jobs:
           mt5_ai_bridge/v14_11_macro_carry.py
           research/v14_11_macro_carry_fxcm.py
           research/v14_11_macro_carry_entrypoint.py
+          research/v14_11_macro_carry_confirmed_entrypoint.py
       - name: Restore verified FXCM H1 bid-ask dataset
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,7 +88,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p research/v14_11_macro_carry_output
-          python research/v14_11_macro_carry_entrypoint.py 2>&1 \
+          python research/v14_11_macro_carry_confirmed_entrypoint.py 2>&1 \
             | tee research/v14_11_macro_carry_output/backtest_stdout.log
       - name: Validate improvement safety and outputs
         run: |
@@ -103,7 +105,9 @@ jobs:
 
           assert payload['rate_publication_lag_days'] == 45
           assert payload['carry_haircut'] == 0.50
-          assert len(payload['selected_carry_sleeves']) > 0
+          assert payload['selection_protocol']['confirmation_used_for_selection'] is True
+          assert payload['selection_protocol']['untouched_out_of_sample_claimed'] is False
+          assert len(payload['selected_carry_sleeves']) >= 2
           assert portfolio['net_profit'] > baseline['net_profit'], (baseline, portfolio)
           assert portfolio['profit_factor'] > 1.0
           assert portfolio['max_closed_drawdown_percent'] <= 9.60
@@ -136,8 +140,8 @@ jobs:
           print('v14_11', portfolio)
           print('improvement', payload['improvement'])
           print('selected', payload['selected_carry_sleeves'])
-          print('post_selection', post)
-          print('carry_post_selection', carry)
+          print('confirmation', post)
+          print('carry_confirmation', carry)
           print('attribution', payload['attribution_by_mode'])
           PY
       - name: Upload V14.11 results
