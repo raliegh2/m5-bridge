@@ -1,0 +1,198 @@
+name: V14.8 strict all-ten 20k research
+
+on:
+  pull_request:
+    branches:
+      - v14-6-1-intraday-ict-trend
+    paths:
+      - "mt5_ai_bridge/v14_8_projected_stress_governor.py"
+      - "research/v14_8_strict_all_ten_20k.py"
+      - "tests/test_v14_8_strict_all_ten.py"
+      - "research/v14_6_candidate_fixture/**"
+      - ".github/workflows/v14-8-strict-all-ten-20k.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  strict-all-ten-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest
+      - name: Restore V14.6 candidate fixtures when absent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p research/v14_6_candidate_fixture
+          if [ ! -s research/v14_6_candidate_fixture/all_swing_candidates.csv ] || \
+             [ ! -s research/v14_6_candidate_fixture/all_wide_ict_candidates.csv ]; then
+            curl --fail --location \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/raliegh2/m5-bridge/actions/artifacts/8391937431/zip \
+              --output /tmp/v14_6_fixture.zip
+            unzip -j /tmp/v14_6_fixture.zip \
+              all_swing_candidates.csv all_wide_ict_candidates.csv \
+              -d research/v14_6_candidate_fixture
+          fi
+          test -s research/v14_6_candidate_fixture/all_swing_candidates.csv
+          test -s research/v14_6_candidate_fixture/all_wide_ict_candidates.csv
+      - name: Compile implementation
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_8_projected_stress_governor.py
+          research/v14_8_strict_all_ten_20k.py
+          tests/test_v14_8_strict_all_ten.py
+      - name: Run focused tests
+        run: python -m pytest -q tests/test_v14_8_strict_all_ten.py
+      - name: Run strict all-ten retail-cost replay
+        id: backtest
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_8_strict_all_ten_output
+          python research/v14_8_strict_all_ten_20k.py 2>&1 \
+            | tee research/v14_8_strict_all_ten_output/backtest_stdout.log
+      - name: Validate target, costs and all-ten evidence
+        id: validation
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/v14_8_strict_all_ten_output')
+          payload = json.loads((root / 'v14_8_results.json').read_text())
+          expected_symbols = {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          assert payload['target'] == {
+              'starting_balance': 5000.0,
+              'net_profit': 20000.0,
+              'ending_balance': 25000.0,
+              'after_retail_costs_and_fees': True,
+          }
+          coverage = payload['coverage']
+          assert set(coverage['active_swing_symbols']) == expected_symbols
+          assert set(coverage['active_ict_symbols']) == expected_symbols
+          assert coverage['all_ten_sleeves_active'] is True
+
+          assert set(payload['selections']) == expected_symbols
+          for symbol, modes in payload['selections'].items():
+              assert set(modes) == {'SWING', 'ICT'}
+              for mode, selection in modes.items():
+                  evidence = selection['evidence']
+                  for block in (
+                      'training', 'validation', 'audit_a', 'audit_b',
+                      'final_validation'
+                  ):
+                      item = evidence[block]
+                      assert item['trades'] > 0, (symbol, mode, block, item)
+                      assert item['net_r'] > 0, (symbol, mode, block, item)
+                      assert item['profit_factor'] > 1.01, (symbol, mode, block, item)
+                  assert selection['trade_count'] > 0
+
+          swing = pd.read_csv(root / 'validated_swing_candidates.csv')
+          ict = pd.read_csv(root / 'validated_ict_candidates.csv')
+          for frame in (swing, ict):
+              assert (frame['cost_r'] > 0).all()
+              calculated = frame['raw_r_multiple'] - frame['cost_r']
+              assert ((calculated - frame['r_multiple']).abs() < 1e-10).all()
+
+          assert set(ict[ict['symbol'] == 'GBPUSD']['profile']) == {'gu_london_25'}
+          assert set(ict[ict['symbol'] == 'EURUSD']['profile']) == {'eu_london_20'}
+          assert set(ict[ict['symbol'] == 'GBPJPY']['profile']) == {'gj_ny_20'}
+          assert set(ict[ict['symbol'] == 'AUDUSD']['profile']) == {'au_london_relaxed'}
+          assert set(ict[ict['symbol'] == 'USDJPY']['profile']) == {'ICT_BREAKOUT_H4'}
+
+          best = payload['best_safe_portfolio']
+          assert best['safe'] is True, best
+          assert best['target_reached'] is True, best
+          assert best['net_profit'] >= 20000.0, best
+          assert best['ending_balance'] >= 25000.0, best
+          assert best['profit_factor'] > 1.0, best
+          assert best['max_closed_drawdown_percent'] <= 9.60 + 1e-9, best
+          assert best['stress_drawdown_percent'] <= 10.00 + 1e-9, best
+          assert payload['target_reached'] is True
+          assert payload['target_margin'] == round(best['net_profit'] - 20000.0, 2)
+
+          for symbol in expected_symbols:
+              assert payload['attribution'][f'{symbol}/V12']['net_profit'] > 0
+              assert payload['attribution'][f'{symbol}/ICT']['net_profit'] > 0
+
+          for expected_file in (
+              'BACKTEST_REPORT.md',
+              'validated_swing_candidates.csv',
+              'validated_ict_candidates.csv',
+              'closed_trades.csv',
+              'skipped_candidates.csv',
+              'projected_stress_governor_events.csv',
+          ):
+              assert (root / expected_file).exists(), expected_file
+
+          print('coverage', coverage)
+          print('best', best)
+          print('target_margin', payload['target_margin'])
+          print('attribution', payload['attribution'])
+          PY
+      - name: Persist compact results and diagnostics
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          {
+            echo "# V14.8 workflow status"
+            echo
+            echo "- Backtest outcome: ${{ steps.backtest.outcome }}"
+            echo "- Validation outcome: ${{ steps.validation.outcome }}"
+            echo "- Commit: ${{ github.sha }}"
+            echo
+            echo '```text'
+            if [ -f research/v14_8_strict_all_ten_output/backtest_stdout.log ]; then
+              tail -n 220 research/v14_8_strict_all_ten_output/backtest_stdout.log
+            else
+              echo "No V14.8 backtest log was produced."
+            fi
+            echo '```'
+          } > research/V14_8_RUN_STATUS.md
+
+          if [ -f research/v14_8_strict_all_ten_output/BACKTEST_REPORT.md ]; then
+            cp research/v14_8_strict_all_ten_output/BACKTEST_REPORT.md research/V14_8_RESULTS.md
+          fi
+          if [ -f research/v14_8_strict_all_ten_output/v14_8_results.json ]; then
+            cp research/v14_8_strict_all_ten_output/v14_8_results.json research/v14_8_results.json
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/V14_8_RUN_STATUS.md
+          [ -f research/V14_8_RESULTS.md ] && git add research/V14_8_RESULTS.md
+          [ -f research/v14_8_results.json ] && git add research/v14_8_results.json
+          git commit -m "Record V14.8 strict all-ten results" || exit 0
+          git push origin HEAD:${{ github.event.pull_request.head.ref }} || true
+      - name: Upload complete V14.8 research package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-8-strict-all-ten-20k
+          path: research/v14_8_strict_all_ten_output/
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Enforce successful research gate
+        if: always()
+        run: |
+          if [ "${{ steps.backtest.outcome }}" != "success" ] || [ "${{ steps.validation.outcome }}" != "success" ]; then
+            echo "V14.8 backtest or validation failed; diagnostics were persisted first."
+            exit 1
+          fi
