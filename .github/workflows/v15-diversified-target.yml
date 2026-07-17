@@ -1,4 +1,4 @@
-name: V15 diversified target research
+name: V15.1 currency factor and session research
 
 on:
   pull_request:
@@ -7,7 +7,9 @@ on:
     paths:
       - "research/download_fxcm_diversified_universe.py"
       - "mt5_ai_bridge/v15_diversified_strategies.py"
+      - "mt5_ai_bridge/v15_1_currency_systems.py"
       - "research/v15_diversified_target_backtest.py"
+      - "research/v15_1_currency_factor_entrypoint.py"
       - "research/v14_9_fxcm_walk_forward.py"
       - "research/v14_8_dukascopy_2016_2026_backtest.py"
       - ".github/workflows/v15-diversified-target.yml"
@@ -36,12 +38,14 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: python -m pip install --upgrade pip pandas numpy matplotlib requests pytest
-      - name: Compile V15 research
+      - name: Compile V15.1 research
         run: >-
           python -m py_compile
           research/download_fxcm_diversified_universe.py
           mt5_ai_bridge/v15_diversified_strategies.py
+          mt5_ai_bridge/v15_1_currency_systems.py
           research/v15_diversified_target_backtest.py
+          research/v15_1_currency_factor_entrypoint.py
       - name: Restore expanded FXCM cache
         id: fxcm-cache
         uses: actions/cache@v4
@@ -75,30 +79,37 @@ jobs:
           print('available_symbols', len(available), sorted(available))
           print('unavailable_symbols', manifest.get('unavailable', {}))
           PY
-      - name: Run V15 diversified replay
+      - name: Run V15.1 frozen profile replay
         run: |
           set -o pipefail
-          rm -rf research/v15_diversified_target_output
-          mkdir -p research/v15_diversified_target_output
-          python research/v15_diversified_target_backtest.py 2>&1 \
-            | tee research/v15_diversified_target_output/backtest_stdout.log
-      - name: Validate improvement safety and outputs
+          rm -rf research/v15_1_currency_factor_output
+          mkdir -p research/v15_1_currency_factor_output
+          python research/v15_1_currency_factor_entrypoint.py 2>&1 \
+            | tee research/v15_1_currency_factor_output/backtest_stdout.log
+      - name: Validate improvement safety and holdout
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
 
-          root = Path('research/v15_diversified_target_output')
-          payload = json.loads((root / 'v15_diversified_target_results.json').read_text())
+          root = Path('research/v15_1_currency_factor_output')
+          payload = json.loads((root / 'v15_1_currency_factor_results.json').read_text())
           baseline = payload['baseline_v14_9']
-          primary = payload['primary_portfolio']
-          holdout = payload['final_holdout_2024_2026']
-          new = payload['new_system_contribution']
+          fitted = payload['confirmation_fit_portfolio']
+          forward = payload['forward_holdout_portfolio']
+          holdout = payload['forward_2024_2026_combined']
+          new = payload['forward_new_system_contribution']
 
-          assert primary['net_profit'] > baseline['net_profit'], (baseline, primary)
-          assert primary['profit_factor'] > 1.0, primary
-          assert primary['max_closed_drawdown_percent'] <= 9.60, primary
-          assert primary['stress_drawdown_percent'] <= 10.00, primary
+          assert payload['selection_protocol']['holdout_used_for_selection'] is False
+          assert payload['selection_protocol']['confirmation_fit_is_out_of_sample'] is False
+          assert payload['selection_protocol']['forward_holdout_is_out_of_sample_for_profile_selection'] is True
+          assert len(payload['selected_profiles']) > 0
+          assert fitted['net_profit'] > baseline['net_profit'], (baseline, fitted)
+          assert fitted['profit_factor'] > 1.0, fitted
+          assert fitted['max_closed_drawdown_percent'] <= 9.60, fitted
+          assert fitted['stress_drawdown_percent'] <= 10.00, fitted
+          assert forward['max_closed_drawdown_percent'] <= 9.60, forward
+          assert forward['stress_drawdown_percent'] <= 10.00, forward
           assert new['trades'] > 0, new
           assert new['net_profit'] > 0.0, new
           assert holdout['net_profit'] > 0.0, holdout
@@ -107,14 +118,18 @@ jobs:
 
           for expected in (
               'BACKTEST_REPORT.md',
-              'all_v15_diversified_candidates.csv',
-              'v15_trailing_gate.csv',
-              'risk_feasibility_grid.csv',
-              'combined_gate_and_admission.csv',
-              'admitted_candidates.csv',
+              'all_v15_1_candidates.csv',
+              'profile_evidence.csv',
+              'selected_profiles.json',
+              'selected_confirmation_candidates.csv',
+              'selected_forward_candidates.csv',
+              'confirmation_risk_grid.csv',
+              'forward_risk_grid.csv',
+              'confirmation_gate_and_admission.csv',
+              'forward_gate_and_admission.csv',
               'baseline_v14_9_closed_trades.csv',
-              'closed_trades.csv',
-              'skipped_candidates.csv',
+              'confirmation_closed_trades.csv',
+              'forward_closed_trades.csv',
               'monthly_equity_profit_drawdown.csv',
               'annual_profit_fees_drawdown.csv',
               'monthly_equity_2016_2026.png',
@@ -127,11 +142,11 @@ jobs:
               assert (root / expected).exists(), expected
 
           print('baseline', baseline)
-          print('primary', primary)
-          print('improvement', payload['improvement_over_v14_9'])
-          print('new_system_contribution', new)
+          print('selected_profiles', [item['sleeve_id'] for item in payload['selected_profiles']])
+          print('confirmation_fit', fitted)
+          print('forward_holdout', forward)
+          print('forward_new_systems', new)
           print('holdout_2024_2026', holdout)
-          print('best_safe', payload['best_safe_feasibility'])
           print('targets', {
               '20k': payload['target_20k_reached'],
               '20k_gap': payload['target_20k_gap'],
@@ -139,12 +154,12 @@ jobs:
               '40k_gap': payload['target_40k_gap'],
           })
           PY
-      - name: Upload V15 results
+      - name: Upload V15.1 results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v15-diversified-target-results
-          path: research/v15_diversified_target_output/
+          name: v15-1-currency-factor-results
+          path: research/v15_1_currency_factor_output/
           if-no-files-found: error
           retention-days: 90
       - name: Upload expanded data manifest
