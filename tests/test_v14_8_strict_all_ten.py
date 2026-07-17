@@ -21,8 +21,10 @@ def test_projected_stress_governor_caps_new_risk() -> None:
         existing_open_risk_dollars=300.0,
     )
     assert maximum == pytest.approx(195.0 / 9_500.0 * 100.0)
+    # A proposal larger than the available risk must be clipped to the
+    # calculated maximum; a smaller proposal would correctly remain unchanged.
     assert governor.apply(
-        1.0,
+        3.0,
         balance=9_500.0,
         peak_balance=10_000.0,
         existing_open_risk_dollars=300.0,
@@ -34,9 +36,11 @@ def test_projected_stress_governor_rejects_subminimum_trade() -> None:
         maximum_stress_drawdown_percent=9.95,
         minimum_trade_risk_percent=0.025,
     )
+    # Only one dollar of stress capacity remains: about 0.0111% of balance,
+    # below the 0.025% minimum executable risk tier.
     approved = governor.apply(
         0.50,
-        balance=9_010.0,
+        balance=9_006.0,
         peak_balance=10_000.0,
         existing_open_risk_dollars=0.0,
     )
