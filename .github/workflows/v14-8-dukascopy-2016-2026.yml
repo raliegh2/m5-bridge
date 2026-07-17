@@ -1,0 +1,131 @@
+name: V14.8 FXCM 2016-2026 external test
+
+on:
+  pull_request:
+    branches:
+      - v14-7-five-symbol-20k-target
+    paths:
+      - "research/download_fxcm_h1_2015_2026.py"
+      - "research/v14_8_dukascopy_2016_2026_backtest.py"
+      - "research/v14_8_fxcm_2016_2026.py"
+      - "research/v14_8_strict_all_ten_20k.py"
+      - "mt5_ai_bridge/v14_7_strategy_families.py"
+      - "mt5_ai_bridge/v14_3_all_symbol_ict.py"
+      - ".github/workflows/v14-8-dukascopy-2016-2026.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  external-data-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 210
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest requests
+      - name: Compile external replay
+        run: >-
+          python -m py_compile
+          research/download_fxcm_h1_2015_2026.py
+          research/v14_8_dukascopy_2016_2026_backtest.py
+          research/v14_8_fxcm_2016_2026.py
+          research/v14_8_strict_all_ten_20k.py
+      - name: Restore verified FXCM H1 bid-ask dataset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p research/fxcm_2016_2026_data
+          curl --fail --location \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/raliegh2/m5-bridge/actions/artifacts/8394816921/zip \
+            --output /tmp/fxcm_h1.zip
+          unzip -o /tmp/fxcm_h1.zip -d research/fxcm_2016_2026_data
+      - name: Validate downloaded market data
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/fxcm_2016_2026_data')
+          manifest = json.loads((root / 'manifest.json').read_text())
+          assert set(manifest['symbols']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          for symbol in manifest['symbols']:
+              for side in ('bid', 'ask'):
+                  path = root / f'{symbol}_H1_{side}.csv'
+                  assert path.exists() and path.stat().st_size > 1_000_000, path
+                  frame = pd.read_csv(path, usecols=['time'])
+                  times = pd.to_datetime(frame['time'], utc=True)
+                  assert len(frame) > 50_000, (path, len(frame))
+                  assert times.min() <= pd.Timestamp('2015-01-05', tz='UTC'), (path, times.min())
+                  assert times.max() >= pd.Timestamp('2026-05-01 20:00', tz='UTC'), (path, times.max())
+          print(json.dumps(manifest, indent=2))
+          PY
+      - name: Run frozen V14.8 external-data replay
+        id: backtest
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_8_dukascopy_2016_2026_output
+          python research/v14_8_fxcm_2016_2026.py 2>&1 \
+            | tee research/v14_8_dukascopy_2016_2026_output/backtest_stdout.log
+      - name: Validate accounting and chart outputs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('research/v14_8_dukascopy_2016_2026_output')
+          payload = json.loads((root / 'v14_8_dukascopy_results.json').read_text())
+          assert payload['provider'] == 'FXCM official weekly H1 candle archive'
+          assert payload['window']['start'].startswith('2016-01-01')
+          assert payload['window']['end'].startswith('2026-05-01')
+          assert set(payload['data_quality']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          assert len(payload['sleeves']) == 10
+          assert len(payload['monthly']) >= 125
+          assert len(payload['annual']) == 11
+          portfolio = payload['portfolio']
+          assert portfolio['ending_balance'] > 0
+          assert portfolio['closed_trades'] > 0
+          assert payload['target_reached'] == (portfolio['net_profit'] >= 20000.0)
+          assert payload['target_gap'] == round(max(0.0, 20000.0 - portfolio['net_profit']), 2)
+          for expected in (
+              'BACKTEST_REPORT.md',
+              'all_external_candidates.csv',
+              'external_validated_swing_candidates.csv',
+              'external_validated_ict_candidates.csv',
+              'closed_trades.csv',
+              'monthly_equity_profit_drawdown.csv',
+              'annual_profit_fees_drawdown.csv',
+              'monthly_equity_2016_2026.png',
+              'annual_net_profit_2016_2026.png',
+              'monthly_drawdown_2016_2026.png',
+              'profit_by_symbol.png',
+              'profit_by_mode.png',
+              'cumulative_modeled_fees.png',
+          ):
+              assert (root / expected).exists(), expected
+          print('coverage', payload['coverage'])
+          print('portfolio', portfolio)
+          print('target_reached', payload['target_reached'])
+          print('target_gap', payload['target_gap'])
+          print('fees', payload['total_modeled_fee_dollars'])
+          PY
+      - name: Upload external backtest results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-8-fxcm-2016-2026-results
+          path: research/v14_8_dukascopy_2016_2026_output/
+          if-no-files-found: error
+          retention-days: 90
