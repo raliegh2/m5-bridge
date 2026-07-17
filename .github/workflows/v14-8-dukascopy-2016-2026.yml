@@ -7,6 +7,7 @@ on:
     paths:
       - "research/download_dukascopy_api_h1_2015_2026.py"
       - "research/v14_8_dukascopy_2016_2026_backtest.py"
+      - "research/v14_8_dukascopy_api_2016_2026.py"
       - "research/v14_8_strict_all_ten_20k.py"
       - "mt5_ai_bridge/v14_7_strategy_families.py"
       - "mt5_ai_bridge/v14_3_all_symbol_ict.py"
@@ -39,6 +40,7 @@ jobs:
           python -m py_compile
           research/download_dukascopy_api_h1_2015_2026.py
           research/v14_8_dukascopy_2016_2026_backtest.py
+          research/v14_8_dukascopy_api_2016_2026.py
           research/v14_8_strict_all_ten_20k.py
       - name: Download Dukascopy H1 bid and ask history
         run: python research/download_dukascopy_api_h1_2015_2026.py
@@ -68,7 +70,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p research/v14_8_dukascopy_2016_2026_output
-          python research/v14_8_dukascopy_2016_2026_backtest.py 2>&1 \
+          python research/v14_8_dukascopy_api_2016_2026.py 2>&1 \
             | tee research/v14_8_dukascopy_2016_2026_output/backtest_stdout.log
       - name: Validate accounting and chart outputs
         run: |
