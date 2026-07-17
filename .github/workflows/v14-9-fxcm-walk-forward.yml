@@ -6,6 +6,7 @@ on:
       - v14-8-dukascopy-2016-2026
     paths:
       - "research/v14_9_fxcm_walk_forward.py"
+      - "research/v14_9_fxcm_walk_forward_strict.py"
       - "research/v14_8_dukascopy_2016_2026_backtest.py"
       - "research/v14_8_strict_all_ten_20k.py"
       - "mt5_ai_bridge/v14_7_strategy_families.py"
@@ -35,6 +36,7 @@ jobs:
         run: >-
           python -m py_compile
           research/v14_9_fxcm_walk_forward.py
+          research/v14_9_fxcm_walk_forward_strict.py
           research/v14_8_dukascopy_2016_2026_backtest.py
           research/v14_8_strict_all_ten_20k.py
       - name: Restore verified FXCM H1 bid-ask dataset
@@ -68,11 +70,11 @@ jobs:
                   assert times.min() <= pd.Timestamp('2015-01-05', tz='UTC')
                   assert times.max() >= pd.Timestamp('2026-05-01 20:00', tz='UTC')
           PY
-      - name: Run V14.9 walk-forward replay
+      - name: Run strict V14.9 walk-forward replay
         run: |
           set -o pipefail
           mkdir -p research/v14_9_fxcm_walk_forward_output
-          python research/v14_9_fxcm_walk_forward.py 2>&1 \
+          python research/v14_9_fxcm_walk_forward_strict.py 2>&1 \
             | tee research/v14_9_fxcm_walk_forward_output/backtest_stdout.log
       - name: Validate results and improvement
         run: |
@@ -88,14 +90,16 @@ jobs:
           assert payload['portfolio_window']['start'].startswith('2019-01-01')
           assert len(payload['sleeves']) == 10
           assert payload['coverage']['all_five_symbols_have_swing_and_ict_candidates'] is True
+          assert payload['risk_limits']['projected_stress_admission_limit_percent'] == 9.45
           portfolio = payload['portfolio']
           baseline = payload['baseline_v14_8']
           assert baseline['available'] is True
           assert portfolio['net_profit'] > baseline['summary']['net_profit'], (portfolio, baseline)
           assert portfolio['ending_balance'] > 0
           assert portfolio['closed_trades'] > 0
-          assert portfolio['max_closed_drawdown_percent'] <= 10.0
-          assert portfolio['stress_drawdown_percent'] <= 10.0
+          assert portfolio['max_closed_drawdown_percent'] <= 9.60, portfolio
+          assert portfolio['stress_drawdown_percent'] <= 10.0, portfolio
+          assert portfolio['safe'] is True
           assert payload['target_reached'] == (portfolio['net_profit'] >= 20_000.0)
           assert payload['target_gap'] == round(max(0.0, 20_000.0 - portfolio['net_profit']), 2)
           for expected in (
