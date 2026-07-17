@@ -1,4 +1,4 @@
-name: V14.7 five-symbol 20k research
+name: V14.7.1 five-symbol 20k research
 
 on:
   pull_request:
@@ -7,6 +7,7 @@ on:
     paths:
       - "mt5_ai_bridge/v14_7_strategy_families.py"
       - "research/v14_7_five_symbol_20k_backtest.py"
+      - "research/v14_7_1_broad_walk_forward.py"
       - "tests/test_v14_7_strategy_families.py"
       - "research/v14_6_candidate_fixture/**"
       - ".github/workflows/v14-7-five-symbol-20k.yml"
@@ -56,17 +57,18 @@ jobs:
           python -m py_compile
           mt5_ai_bridge/v14_7_strategy_families.py
           research/v14_7_five_symbol_20k_backtest.py
+          research/v14_7_1_broad_walk_forward.py
           tests/test_v14_7_strategy_families.py
       - name: Run focused tests
         run: python -m pytest -q tests/test_v14_7_strategy_families.py
-      - name: Run five-symbol walk-forward replay
+      - name: Run broadened five-symbol walk-forward replay
         id: backtest
         continue-on-error: true
         run: |
           set -o pipefail
-          mkdir -p research/v14_7_five_symbol_20k_output
-          python research/v14_7_five_symbol_20k_backtest.py 2>&1 \
-            | tee research/v14_7_five_symbol_20k_output/backtest_stdout.log
+          mkdir -p research/v14_7_1_five_symbol_20k_output
+          python research/v14_7_1_broad_walk_forward.py 2>&1 \
+            | tee research/v14_7_1_five_symbol_20k_output/backtest_stdout.log
       - name: Validate research accounting
         id: validation
         continue-on-error: true
@@ -75,7 +77,7 @@ jobs:
           import json
           from pathlib import Path
 
-          root = Path('research/v14_7_five_symbol_20k_output')
+          root = Path('research/v14_7_1_five_symbol_20k_output')
           payload = json.loads((root / 'v14_7_results.json').read_text())
           assert payload['target'] == {
               'starting_balance': 5000.0,
@@ -130,47 +132,47 @@ jobs:
         if: always() && github.event_name == 'pull_request'
         run: |
           {
-            echo "# V14.7 workflow status"
+            echo "# V14.7.1 workflow status"
             echo
             echo "- Backtest outcome: ${{ steps.backtest.outcome }}"
             echo "- Validation outcome: ${{ steps.validation.outcome }}"
             echo "- Commit: ${{ github.sha }}"
             echo
             echo '```text'
-            if [ -f research/v14_7_five_symbol_20k_output/backtest_stdout.log ]; then
-              tail -n 180 research/v14_7_five_symbol_20k_output/backtest_stdout.log
+            if [ -f research/v14_7_1_five_symbol_20k_output/backtest_stdout.log ]; then
+              tail -n 180 research/v14_7_1_five_symbol_20k_output/backtest_stdout.log
             else
-              echo "No V14.7 backtest log was produced."
+              echo "No V14.7.1 backtest log was produced."
             fi
             echo '```'
-          } > research/V14_7_RUN_STATUS.md
+          } > research/V14_7_1_RUN_STATUS.md
 
-          if [ -f research/v14_7_five_symbol_20k_output/BACKTEST_REPORT.md ]; then
-            cp research/v14_7_five_symbol_20k_output/BACKTEST_REPORT.md research/V14_7_RESULTS.md
+          if [ -f research/v14_7_1_five_symbol_20k_output/BACKTEST_REPORT.md ]; then
+            cp research/v14_7_1_five_symbol_20k_output/BACKTEST_REPORT.md research/V14_7_1_RESULTS.md
           fi
-          if [ -f research/v14_7_five_symbol_20k_output/v14_7_results.json ]; then
-            cp research/v14_7_five_symbol_20k_output/v14_7_results.json research/v14_7_results.json
+          if [ -f research/v14_7_1_five_symbol_20k_output/v14_7_results.json ]; then
+            cp research/v14_7_1_five_symbol_20k_output/v14_7_results.json research/v14_7_1_results.json
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add research/V14_7_RUN_STATUS.md
-          [ -f research/V14_7_RESULTS.md ] && git add research/V14_7_RESULTS.md
-          [ -f research/v14_7_results.json ] && git add research/v14_7_results.json
-          git commit -m "Record V14.7 five-symbol research results" || exit 0
+          git add research/V14_7_1_RUN_STATUS.md
+          [ -f research/V14_7_1_RESULTS.md ] && git add research/V14_7_1_RESULTS.md
+          [ -f research/v14_7_1_results.json ] && git add research/v14_7_1_results.json
+          git commit -m "Record V14.7.1 broadened walk-forward results" || exit 0
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
       - name: Upload complete research package
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v14-7-five-symbol-20k
-          path: research/v14_7_five_symbol_20k_output/
+          name: v14-7-1-five-symbol-20k
+          path: research/v14_7_1_five_symbol_20k_output/
           if-no-files-found: warn
           retention-days: 90
       - name: Enforce successful research gate
         if: always()
         run: |
           if [ "${{ steps.backtest.outcome }}" != "success" ] || [ "${{ steps.validation.outcome }}" != "success" ]; then
-            echo "V14.7 backtest or validation failed; diagnostics were persisted first."
+            echo "V14.7.1 backtest or validation failed; diagnostics were persisted first."
             exit 1
           fi
