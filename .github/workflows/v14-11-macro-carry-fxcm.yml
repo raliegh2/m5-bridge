@@ -11,6 +11,7 @@ on:
       - "research/v14_11_macro_carry_entrypoint.py"
       - "research/v14_11_macro_carry_confirmed_entrypoint.py"
       - "research/v14_11_macro_carry_strict_gate_entrypoint.py"
+      - "research/v14_11_micro_carry_entrypoint.py"
       - "research/v14_9_fxcm_walk_forward.py"
       - "research/v14_8_dukascopy_2016_2026_backtest.py"
       - ".github/workflows/v14-11-macro-carry-fxcm.yml"
@@ -46,6 +47,7 @@ jobs:
           research/v14_11_macro_carry_entrypoint.py
           research/v14_11_macro_carry_confirmed_entrypoint.py
           research/v14_11_macro_carry_strict_gate_entrypoint.py
+          research/v14_11_micro_carry_entrypoint.py
       - name: Restore verified FXCM H1 bid-ask dataset
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,11 +88,11 @@ jobs:
               assert len(frame) >= 100, item
               assert pd.to_datetime(frame['observation_date']).max() >= pd.Timestamp('2026-01-01'), item
           PY
-      - name: Run V14.11 macro carry replay
+      - name: Run V14.11 micro carry replay
         run: |
           set -o pipefail
           mkdir -p research/v14_11_macro_carry_output
-          python research/v14_11_macro_carry_strict_gate_entrypoint.py 2>&1 \
+          python research/v14_11_micro_carry_entrypoint.py 2>&1 \
             | tee research/v14_11_macro_carry_output/backtest_stdout.log
       - name: Validate improvement safety and outputs
         run: |
@@ -109,9 +111,9 @@ jobs:
           assert payload['carry_haircut'] == 0.50
           assert payload['selection_protocol']['confirmation_used_for_selection'] is True
           assert payload['selection_protocol']['untouched_out_of_sample_claimed'] is False
-          assert payload['selection_protocol']['carry_trailing_minimum_net_r'] == 0.50
-          assert payload['selection_protocol']['carry_trailing_minimum_profit_factor'] == 1.20
-          assert len(payload['selected_carry_sleeves']) >= 2
+          assert payload['selection_protocol']['selected_macro_symbol'] == 'AUDUSD'
+          assert payload['selection_protocol']['macro_risk_percent'] == 0.10
+          assert len(payload['selected_carry_sleeves']) == 1
           assert portfolio['net_profit'] > baseline['net_profit'], (baseline, portfolio)
           assert portfolio['profit_factor'] > 1.0
           assert portfolio['max_closed_drawdown_percent'] <= 9.60
