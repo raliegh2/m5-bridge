@@ -1,0 +1,134 @@
+name: V14.9 FXCM walk-forward external test
+
+on:
+  pull_request:
+    branches:
+      - v14-8-dukascopy-2016-2026
+    paths:
+      - "research/v14_9_fxcm_walk_forward.py"
+      - "research/v14_9_fxcm_walk_forward_strict.py"
+      - "research/v14_8_dukascopy_2016_2026_backtest.py"
+      - "research/v14_8_strict_all_ten_20k.py"
+      - "mt5_ai_bridge/v14_7_strategy_families.py"
+      - "mt5_ai_bridge/v14_3_all_symbol_ict.py"
+      - ".github/workflows/v14-9-fxcm-walk-forward.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  walk-forward-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest requests
+      - name: Compile walk-forward replay
+        run: >-
+          python -m py_compile
+          research/v14_9_fxcm_walk_forward.py
+          research/v14_9_fxcm_walk_forward_strict.py
+          research/v14_8_dukascopy_2016_2026_backtest.py
+          research/v14_8_strict_all_ten_20k.py
+      - name: Restore verified FXCM H1 bid-ask dataset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p research/fxcm_2016_2026_data
+          curl --fail --location \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/raliegh2/m5-bridge/actions/artifacts/8394816921/zip \
+            --output /tmp/fxcm_h1.zip
+          unzip -o /tmp/fxcm_h1.zip -d research/fxcm_2016_2026_data
+      - name: Validate source data
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/fxcm_2016_2026_data')
+          manifest = json.loads((root / 'manifest.json').read_text())
+          assert set(manifest['symbols']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          for symbol in manifest['symbols']:
+              for side in ('bid', 'ask'):
+                  path = root / f'{symbol}_H1_{side}.csv'
+                  frame = pd.read_csv(path, usecols=['time'])
+                  times = pd.to_datetime(frame['time'], utc=True)
+                  assert len(frame) > 50_000, (path, len(frame))
+                  assert times.min() <= pd.Timestamp('2015-01-05', tz='UTC')
+                  assert times.max() >= pd.Timestamp('2026-05-01 20:00', tz='UTC')
+          PY
+      - name: Run strict V14.9 walk-forward replay
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_9_fxcm_walk_forward_output
+          python research/v14_9_fxcm_walk_forward_strict.py 2>&1 \
+            | tee research/v14_9_fxcm_walk_forward_output/backtest_stdout.log
+      - name: Validate results and improvement
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('research/v14_9_fxcm_walk_forward_output')
+          payload = json.loads((root / 'v14_9_fxcm_walk_forward_results.json').read_text())
+          assert payload['provider'] == 'FXCM official weekly H1 candle archive'
+          assert payload['window']['start'].startswith('2016-01-01')
+          assert payload['window']['end'].startswith('2026-05-01')
+          assert payload['portfolio_window']['start'].startswith('2019-01-01')
+          assert len(payload['sleeves']) == 10
+          assert payload['coverage']['all_five_symbols_have_swing_and_ict_candidates'] is True
+          assert payload['risk_limits']['projected_stress_admission_limit_percent'] == 9.45
+          portfolio = payload['portfolio']
+          baseline = payload['baseline_v14_8']
+          assert baseline['available'] is True
+          assert portfolio['net_profit'] > baseline['summary']['net_profit'], (portfolio, baseline)
+          assert portfolio['ending_balance'] > 0
+          assert portfolio['closed_trades'] > 0
+          assert portfolio['max_closed_drawdown_percent'] <= 9.60, portfolio
+          assert portfolio['stress_drawdown_percent'] <= 10.0, portfolio
+          assert portfolio['safe'] is True
+          assert payload['target_reached'] == (portfolio['net_profit'] >= 20_000.0)
+          assert payload['target_gap'] == round(max(0.0, 20_000.0 - portfolio['net_profit']), 2)
+          for expected in (
+              'BACKTEST_REPORT.md',
+              'sleeve_evidence.csv',
+              'walk_forward_gate_and_admission.csv',
+              'admitted_swing_candidates.csv',
+              'admitted_ict_candidates.csv',
+              'closed_trades.csv',
+              'monthly_equity_profit_drawdown.csv',
+              'annual_profit_fees_drawdown.csv',
+              'monthly_equity_2016_2026.png',
+              'annual_net_profit_2016_2026.png',
+              'monthly_drawdown_2016_2026.png',
+              'profit_by_symbol.png',
+              'profit_by_mode.png',
+              'cumulative_modeled_fees.png',
+          ):
+              assert (root / expected).exists(), expected
+          print('baseline', baseline['summary'])
+          print('v14_9', portfolio)
+          print('fresh', payload['fresh_2022_2026'])
+          print('target_gap', payload['target_gap'])
+          PY
+      - name: Upload V14.9 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-9-fxcm-walk-forward-results
+          path: research/v14_9_fxcm_walk_forward_output/
+          if-no-files-found: error
+          retention-days: 90
