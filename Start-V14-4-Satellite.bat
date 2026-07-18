@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title V14.4 Profit-Guarded Research-Parity Trading Bot
+title V14.12 Net-Positive After-Cost Satellite Trading Bot
 
 if not exist ".venv\Scripts\python.exe" (
     echo.
@@ -15,10 +15,12 @@ if not exist ".venv\Scripts\python.exe" (
 
 set "PYTHONPATH=%CD%;%CD%\research"
 set "V14_3_LEGACY_GBP_ICT_PROVIDER=v14_3_signals_research_parity"
+rem Preserve the V14.4 state path so broker-net expectancy, equity peak, and
+rem processed-deal history are not reset when upgrading to V14.12.
 set "V14_3_LIVE_STATE_PATH=state/v14_4_profit_guard_live_state.json"
 call ".venv\Scripts\activate.bat"
 
-echo Running exact V14.3 research-risk parity preflight...
+echo Running research-risk parity and broker compatibility preflight...
 python v14_3_research_parity_preflight.py
 if errorlevel 1 (
     echo.
@@ -30,7 +32,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo Starting V14.4 Satellite Bot with live profit guards...
+echo Starting V14.12 with retail-cost allocation and broker-net promotion gates...
 python v14_4_satellite_bot.py
 
 if errorlevel 1 (
