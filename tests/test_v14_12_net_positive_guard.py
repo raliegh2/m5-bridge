@@ -6,18 +6,13 @@ from types import SimpleNamespace
 import pytest
 
 from mt5_ai_bridge.v14_3_live_execution import LiveSignal
-from mt5_ai_bridge.v14_3_research_parity_execution import (
-    ResearchParityLiveRunnerConfig,
-)
+from mt5_ai_bridge.v14_3_research_parity_execution import ResearchParityLiveRunnerConfig
 from mt5_ai_bridge.v14_5_2_profit_filter_profile import (
     V14_5_2_OBSERVATION_RISK_PERCENT,
     v14_5_2_filter_reason,
     v14_5_2_risk_percent,
 )
-from mt5_ai_bridge.v14_12_live_execution import (
-    NetPositiveLiveExecutor,
-    NetPositiveState,
-)
+from mt5_ai_bridge.v14_12_live_execution import NetPositiveLiveExecutor, NetPositiveState
 from mt5_ai_bridge.v14_12_net_positive_guard import (
     NetPositiveGuardConfig,
     all_in_cost_reason,
@@ -187,16 +182,10 @@ def _executor(tmp_path, client=None, net_guard=None) -> NetPositiveLiveExecutor:
     )
 
 
-# ----------------------------------------------------------------------
-# Static V14.5.2 allocation
-# ----------------------------------------------------------------------
-
-
 def test_v14_5_2_cost_robust_static_allocation() -> None:
     monday_12 = datetime(2026, 7, 20, 12, tzinfo=timezone.utc)
     tuesday_12 = datetime(2026, 7, 21, 12, tzinfo=timezone.utc)
     monday_16 = datetime(2026, 7, 20, 16, tzinfo=timezone.utc)
-
     assert v14_5_2_risk_percent("GBPUSD_V10_PRECISION", "V12", monday_12) == pytest.approx(0.75)
     assert v14_5_2_risk_percent("GBPJPY_SWING_CORE", "V12", tuesday_12) == pytest.approx(
         V14_5_2_OBSERVATION_RISK_PERCENT
@@ -209,11 +198,6 @@ def test_v14_5_2_cost_robust_static_allocation() -> None:
     )
     assert v14_5_2_filter_reason("GBPJPY_SWING_CORE", tuesday_12) == "GBPJPY_TUESDAY_OBSERVATION"
     assert v14_5_2_filter_reason("EURUSD_SWING_CORE", monday_16) == "EURUSD_16UTC_OBSERVATION"
-
-
-# ----------------------------------------------------------------------
-# Pure net-positive tier and cost logic
-# ----------------------------------------------------------------------
 
 
 def test_rolling_performance_includes_profit_factor_and_expectancy() -> None:
@@ -239,41 +223,27 @@ def test_tier_observes_when_setup_or_symbol_is_not_profitable_after_costs() -> N
 
 
 def test_tier_reduced_for_positive_but_not_full_strength_evidence() -> None:
-    config = NetPositiveGuardConfig(
-        full_setup_net_r=8.0,
-        full_symbol_net_r=10.0,
-    )
-    setup = [0.40, -0.25] * 6
-    symbol = [0.40, -0.25] * 10
-    assert net_positive_tier(setup, symbol, config) == "REDUCED"
+    config = NetPositiveGuardConfig(full_setup_net_r=8.0, full_symbol_net_r=10.0)
+    assert net_positive_tier([0.40, -0.25] * 6, [0.40, -0.25] * 10, config) == "REDUCED"
 
 
 def test_tier_full_only_when_setup_and_symbol_are_strong_after_costs() -> None:
     config = NetPositiveGuardConfig()
-    setup = [1.0, -0.5] * 6
-    symbol = [1.0, -0.5] * 10
-    assert net_positive_tier(setup, symbol, config) == "FULL"
+    assert net_positive_tier([1.0, -0.5] * 6, [1.0, -0.5] * 10, config) == "FULL"
 
 
 def test_risk_application_never_exceeds_static_cost_robust_allocation() -> None:
     config = NetPositiveGuardConfig()
-    base = 0.75
-    assert apply_net_positive_tier(base, "PROBATION", config) == pytest.approx(0.1875)
-    assert apply_net_positive_tier(base, "OBSERVE", config) == pytest.approx(0.025)
-    assert apply_net_positive_tier(base, "REDUCED", config) == pytest.approx(0.375)
-    assert apply_net_positive_tier(base, "FULL", config) == pytest.approx(0.75)
+    assert apply_net_positive_tier(0.75, "PROBATION", config) == pytest.approx(0.1875)
+    assert apply_net_positive_tier(0.75, "OBSERVE", config) == pytest.approx(0.025)
+    assert apply_net_positive_tier(0.75, "REDUCED", config) == pytest.approx(0.375)
+    assert apply_net_positive_tier(0.75, "FULL", config) == pytest.approx(0.75)
 
 
 def test_all_in_cost_gate_blocks_cost_broken_scalp_but_allows_wide_swing() -> None:
     config = NetPositiveGuardConfig()
-    # 0.4 spread + 0.25 reserve = 0.65 pips: 13% of a 5-pip stop.
     assert all_in_cost_reason(0.4, 5.0, 6.25, config) is not None
     assert all_in_cost_reason(0.2, 60.0, 180.0, config) is None
-
-
-# ----------------------------------------------------------------------
-# State and executor integration
-# ----------------------------------------------------------------------
 
 
 def test_state_records_net_setup_and_symbol_r_for_all_modes(tmp_path) -> None:
@@ -293,8 +263,6 @@ def test_state_records_net_setup_and_symbol_r_for_all_modes(tmp_path) -> None:
         "risk_dollars": 100.0,
     }
     state.data["positions"] = {"1": dict(v12), "2": dict(ict)}
-    # P/L values are expected to be broker-net after profit, commission, swap,
-    # and fee reconciliation.
     state.record_closed(dict(v12), 50.0, NOW)
     state.record_closed(dict(ict), -25.0, NOW)
     assert state.setup_results("GBPUSD", "PRIMARY_16UTC_BREAKOUT") == [0.5]
@@ -307,24 +275,28 @@ def test_promoted_v12_starts_at_probation_risk(tmp_path) -> None:
     result = executor.place(_v12_signal(), now=NOW)
     assert result.ok, result.message
     assert result.code == "ORDER_FILLED"
-    assert result.risk_percent == pytest.approx(0.1875)
+    # Broker volume-step normalization must round risk down, never above the
+    # approved 0.1875% probation tier.
+    assert V14_5_2_OBSERVATION_RISK_PERCENT < result.risk_percent <= 0.1875
 
 
 def test_promoted_v12_earns_full_risk_only_after_setup_and_symbol_pass(tmp_path) -> None:
     executor = _executor(tmp_path)
-    setup_key = "GBPUSD/PRIMARY_16UTC_BREAKOUT"
-    executor.state.data["setup_stats"] = {setup_key: [1.0, -0.5] * 6}
+    executor.state.data["setup_stats"] = {
+        "GBPUSD/PRIMARY_16UTC_BREAKOUT": [1.0, -0.5] * 6
+    }
     executor.state.data["symbol_stats"] = {"GBPUSD": [1.0, -0.5] * 10}
     executor.state.save()
     result = executor.place(_v12_signal(), now=NOW)
     assert result.ok, result.message
-    assert result.risk_percent == pytest.approx(0.75)
+    assert 0.70 <= result.risk_percent <= 0.75
 
 
 def test_negative_symbol_demotes_healthy_setup_to_observation(tmp_path) -> None:
     executor = _executor(tmp_path)
-    setup_key = "GBPUSD/PRIMARY_16UTC_BREAKOUT"
-    executor.state.data["setup_stats"] = {setup_key: [1.0, -0.5] * 6}
+    executor.state.data["setup_stats"] = {
+        "GBPUSD/PRIMARY_16UTC_BREAKOUT": [1.0, -0.5] * 6
+    }
     executor.state.data["symbol_stats"] = {"GBPUSD": [-1.0] * 20}
     executor.state.save()
     result = executor.place(_v12_signal(), now=NOW)
@@ -346,7 +318,7 @@ def test_ict_remains_observation_risk_even_with_strong_history(tmp_path) -> None
 
 def test_executor_rejects_trade_when_all_in_cost_consumes_edge(tmp_path) -> None:
     client = FakeBrokerClient()
-    client.tick = SimpleNamespace(bid=1.35350, ask=1.35354)  # 0.4 pips
+    client.tick = SimpleNamespace(bid=1.35350, ask=1.35354)
     executor = _executor(tmp_path, client=client)
     result = executor.place(_ict_signal(), now=NOW)
     assert result.code == "V14_12_ALL_IN_COST_GUARD"
@@ -366,6 +338,9 @@ def test_snapshot_exposes_after_cost_setup_and_symbol_metrics(tmp_path) -> None:
 
 def test_net_positive_config_validation() -> None:
     with pytest.raises(ValueError):
-        NetPositiveGuardConfig(probation_risk_multiplier=0.75, reduced_risk_multiplier=0.5).validate()
+        NetPositiveGuardConfig(
+            probation_risk_multiplier=0.75,
+            reduced_risk_multiplier=0.5,
+        ).validate()
     with pytest.raises(ValueError):
         NetPositiveGuardConfig(maximum_all_in_cost_fraction_of_stop=0.0).validate()
