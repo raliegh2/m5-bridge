@@ -55,7 +55,7 @@ jobs:
           python -m pytest -q \
             tests/test_v14_4_profit_guard.py \
             tests/test_v14_13_cost_regime.py \
-            tests/test_v14_14_extended_cost_regime.py \
+            tests/test_v14_14_extended_cost.py \
             tests/test_v14_15_unified_reasoning.py 2>&1 \
             | tee research/v14_15_unified_reasoning_output/pytest.log
       - name: Run exact ten-year unified dual-engine replay
@@ -96,8 +96,8 @@ jobs:
               if scenario != 'zero_cost':
                   assert summary['net_profit'] > reference[scenario], (scenario, summary, reference[scenario])
 
-          # The user requirement is explicit: every symbol has funded V12 and ICT
-          # representation even at the highest modeled transaction-cost tier.
+          # Every symbol must retain funded V12 and ICT representation at the
+          # highest modeled transaction-cost tier.
           extreme_coverage = payload['dual_mode_coverage']['extreme_cost']
           for symbol, modes in extreme_coverage.items():
               assert modes['V12'] > 0, (symbol, modes)
@@ -108,8 +108,8 @@ jobs:
               probation = ledger[ledger['cost_regime'] == 'DUAL_ENGINE_PROBATION']
               assert len(probation) > 0, scenario
               assert probation['pnl'].sum() > 0, (scenario, probation['pnl'].sum())
-              assert (probation['risk_percent'] <= probation['executed_risk_percent'].clip(lower=0.0) + 1e-9).all() or True
               assert probation['risk_percent'].max() <= 0.10 + 1e-12
+              assert (probation['executed_risk_percent'] <= probation['risk_percent'] + 1e-12).all()
 
           for expected in (
               'V14_15_REPORT.md',
