@@ -61,14 +61,16 @@ jobs:
           research/v14_12_live_net_positive_backtest.py
           tests/test_v14_12_net_positive_guard.py
       - name: Run live cost and reconciliation tests
-        run: >-
-          python -m pytest -q
-          tests/test_v14_4_profit_guard.py
-          tests/test_v14_12_net_positive_guard.py
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_12_live_net_positive_output
+          python -m pytest -q \
+            tests/test_v14_4_profit_guard.py \
+            tests/test_v14_12_net_positive_guard.py 2>&1 \
+            | tee research/v14_12_live_net_positive_output/pytest.log
       - name: Run V14.12 exact-ten-year retail-cost replay
         run: |
           set -o pipefail
-          rm -rf research/v14_12_live_net_positive_output
           mkdir -p research/v14_12_live_net_positive_output
           python research/v14_12_live_net_positive_backtest.py 2>&1 \
             | tee research/v14_12_live_net_positive_output/backtest_stdout.log
@@ -106,6 +108,7 @@ jobs:
               'full_history_v14_12_net_positive_closed_trades.json',
               'exact_ten_year_v14_5_2_static_closed_trades.json',
               'exact_ten_year_v14_12_net_positive_closed_trades.json',
+              'pytest.log',
               'backtest_stdout.log',
           ):
               assert (root / expected).exists(), expected
