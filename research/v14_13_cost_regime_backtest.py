@@ -292,7 +292,14 @@ def baseline_case(
         governor,
     )
     summary["modeled_cost_dollars"] = (
-        float((trades["risk_dollars"] * trades["cost_r"]).sum())
+        float(
+            (
+                trades["risk_dollars"]
+                * trades["engine_group"].map(
+                    {"V12": float(costs["V12"]), "ICT": float(costs["ICT"])}
+                )
+            ).sum()
+        )
         if not trades.empty
         else 0.0
     )
