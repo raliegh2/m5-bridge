@@ -5,6 +5,7 @@ replacing only the cost policy and adding severe/extreme cost scenarios.
 """
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -81,6 +82,9 @@ def main() -> None:
     base.cost_regime_decision = extended_cost_regime_decision
     base.strict_profile_evidence = extended_profile_evidence
     base.main()
+    source = OUT / "v14_13_results.json"
+    if source.exists():
+        shutil.copy2(source, OUT / "v14_14_results.json")
 
 
 if __name__ == "__main__":
