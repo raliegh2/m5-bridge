@@ -7,6 +7,7 @@ on:
     paths:
       - "research/v16_live_cost_five_symbol_entrypoint.py"
       - "research/v16_1_cost_aware_entrypoint.py"
+      - "research/v16_2_schema_safe_entrypoint.py"
       - "research/v15_diversified_target_backtest.py"
       - "research/v15_1_currency_factor_entrypoint.py"
       - "research/download_fxcm_diversified_universe.py"
@@ -19,6 +20,7 @@ on:
     paths:
       - "research/v16_live_cost_five_symbol_entrypoint.py"
       - "research/v16_1_cost_aware_entrypoint.py"
+      - "research/v16_2_schema_safe_entrypoint.py"
       - "research/v15_diversified_target_backtest.py"
       - "research/v15_1_currency_factor_entrypoint.py"
       - "research/download_fxcm_diversified_universe.py"
@@ -59,6 +61,7 @@ jobs:
           research/v15_diversified_target_backtest.py
           research/v16_live_cost_five_symbol_entrypoint.py
           research/v16_1_cost_aware_entrypoint.py
+          research/v16_2_schema_safe_entrypoint.py
       - name: Restore FXCM cache
         id: fxcm-cache
         uses: actions/cache/restore@v4
@@ -100,7 +103,7 @@ jobs:
           set -o pipefail
           rm -rf research/v16_live_cost_five_symbol_output
           mkdir -p research/v16_live_cost_five_symbol_output
-          python research/v16_1_cost_aware_entrypoint.py 2>&1 \
+          python research/v16_2_schema_safe_entrypoint.py 2>&1 \
             | tee research/v16_live_cost_five_symbol_output/backtest_stdout.log
       - name: Validate generated evidence
         run: |
