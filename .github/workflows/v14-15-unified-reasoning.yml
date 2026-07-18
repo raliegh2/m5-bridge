@@ -86,15 +86,14 @@ jobs:
           zero = results['zero_cost/v14_13']['summary']
           assert abs(zero['net_profit'] - reference['zero_cost']) <= 0.02, zero
           assert zero['closed_trades'] == 4974, zero
+          assert zero['stress_drawdown_percent'] <= 10.00, zero
 
-          for scenario in reference:
+          for scenario in ('demo_cost', 'retail_cost', 'stress_cost', 'severe_cost', 'extreme_cost'):
               summary = results[f'{scenario}/v14_13']['summary']
-              assert summary['net_profit'] > 0, (scenario, summary)
+              assert summary['net_profit'] > reference[scenario], (scenario, summary, reference[scenario])
               assert summary['profit_factor'] > 1.0, (scenario, summary)
               assert summary['max_closed_drawdown_percent'] <= 9.60, (scenario, summary)
               assert summary['stress_drawdown_percent'] <= 10.00, (scenario, summary)
-              if scenario != 'zero_cost':
-                  assert summary['net_profit'] > reference[scenario], (scenario, summary, reference[scenario])
 
           # Every symbol must retain funded V12 and ICT representation at the
           # highest modeled transaction-cost tier.
