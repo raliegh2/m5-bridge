@@ -1,0 +1,144 @@
+name: V14.13 cost-regime research parity
+
+on:
+  push:
+    branches:
+      - v14-13-cost-regime-research-parity
+    paths:
+      - "mt5_ai_bridge/v14_13_cost_regime_profile.py"
+      - "mt5_ai_bridge/v14_13_cost_regime_execution.py"
+      - "v14_4_satellite_bot.py"
+      - ".env.v14-4-profit-guard.example"
+      - "research/v14_13_cost_regime_backtest.py"
+      - "tests/test_v14_13_cost_regime.py"
+      - ".github/workflows/v14-13-cost-regime.yml"
+  pull_request:
+    branches:
+      - v14-4-live-profit-guard
+    paths:
+      - "mt5_ai_bridge/v14_13_cost_regime_profile.py"
+      - "mt5_ai_bridge/v14_13_cost_regime_execution.py"
+      - "v14_4_satellite_bot.py"
+      - ".env.v14-4-profit-guard.example"
+      - "research/v14_13_cost_regime_backtest.py"
+      - "tests/test_v14_13_cost_regime.py"
+      - ".github/workflows/v14-13-cost-regime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-backtest-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest
+      - name: Compile live model and replay
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_13_cost_regime_profile.py
+          mt5_ai_bridge/v14_13_cost_regime_execution.py
+          v14_4_satellite_bot.py
+          research/v14_13_cost_regime_backtest.py
+          tests/test_v14_13_cost_regime.py
+      - name: Run live guard and cost-regime tests
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_13_cost_regime_output
+          python -m pytest -q \
+            tests/test_v14_4_profit_guard.py \
+            tests/test_v14_13_cost_regime.py 2>&1 \
+            | tee research/v14_13_cost_regime_output/pytest.log
+      - name: Run exact zero demo retail and stress replay
+        run: |
+          set -o pipefail
+          python research/v14_13_cost_regime_backtest.py 2>&1 \
+            | tee research/v14_13_cost_regime_output/backtest_stdout.log
+      - name: Validate profit consistency and retained risk controls
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/v14_13_cost_regime_output')
+          payload = json.loads((root / 'v14_13_results.json').read_text())
+          results = payload['results']
+
+          assert payload['research_only'] is True
+          zero_current = results['zero_cost/current_v14_3']['summary']
+          zero_new = results['zero_cost/v14_13']['summary']
+          assert abs(zero_current['net_profit'] - 34690.840749742056) <= 0.02, zero_current
+          assert abs(zero_new['net_profit'] - zero_current['net_profit']) <= 0.02, zero_new
+          assert zero_new['closed_trades'] == 4974, zero_new
+          assert all(zero_new['by_symbol'][symbol]['net'] > 0 for symbol in (
+              'GBPUSD', 'GBPJPY', 'EURUSD', 'AUDUSD', 'USDJPY'
+          )), zero_new['by_symbol']
+
+          for cost in ('demo_cost', 'retail_cost', 'stress_cost'):
+              current = results[f'{cost}/current_v14_3']['summary']
+              improved = results[f'{cost}/v14_13']['summary']
+              assert improved['net_profit'] > 0, (cost, improved)
+              assert improved['net_profit'] > current['net_profit'], (cost, current, improved)
+              assert improved['profit_factor'] > 1.0, (cost, improved)
+              assert improved['max_closed_drawdown_percent'] <= 9.60, (cost, improved)
+              assert improved['stress_drawdown_percent'] <= 10.00, (cost, improved)
+              assert improved['modeled_cost_dollars'] > 0, (cost, improved)
+
+          retail = results['retail_cost/v14_13']['summary']
+          assert retail['net_profit'] >= 6000.0, retail
+          assert retail['profit_factor'] >= 1.40, retail
+          assert retail['max_closed_drawdown_percent'] <= 7.0, retail
+          for symbol in ('GBPUSD', 'GBPJPY', 'EURUSD', 'AUDUSD'):
+              assert retail['by_symbol'][symbol]['net'] > 0, (symbol, retail['by_symbol'])
+          assert 'USDJPY' not in retail['by_symbol'] or retail['by_symbol']['USDJPY']['trades'] == 0
+
+          evidence = payload['strict_profile_evidence']
+          for cost in ('retail_cost', 'stress_cost'):
+              for year in ('2023', '2024', '2025'):
+                  block = evidence[cost][year]
+                  assert block['trades'] >= 40, (cost, year, block)
+                  assert block['net_r'] > 0, (cost, year, block)
+                  assert block['profit_factor'] > 1.0, (cost, year, block)
+
+          decisions = pd.read_csv(
+              root / 'ledgers' / 'retail_cost' / 'v14_13_cost_regime_decisions.csv'
+          )
+          assert len(decisions) >= 4500, len(decisions)
+          assert {'STRICT_RETAIL_GBP', 'COST_ROBUST_V12', 'COST_ROBUST_SATELLITE', 'SHADOW'} <= set(decisions['regime'])
+
+          for expected in (
+              'BACKTEST_REPORT.md',
+              'v14_13_results.json',
+              'comparison_summary.csv',
+              'pytest.log',
+              'backtest_stdout.log',
+              'ledgers/zero_cost/v14_13_trades.csv',
+              'ledgers/demo_cost/v14_13_trades.csv',
+              'ledgers/retail_cost/v14_13_trades.csv',
+              'ledgers/stress_cost/v14_13_trades.csv',
+          ):
+              assert (root / expected).exists(), expected
+
+          print('zero_cost', zero_new)
+          print('demo_cost', results['demo_cost/v14_13']['summary'])
+          print('retail_cost', retail)
+          print('stress_cost', results['stress_cost/v14_13']['summary'])
+          PY
+      - name: Upload V14.13 validation package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-13-cost-regime-research-parity
+          path: research/v14_13_cost_regime_output/
+          if-no-files-found: error
+          retention-days: 90
