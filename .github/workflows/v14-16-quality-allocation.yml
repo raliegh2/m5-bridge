@@ -8,6 +8,7 @@ on:
       - "mt5_ai_bridge/v14_16_quality_allocation.py"
       - "mt5_ai_bridge/v14_16_quality_allocation_execution.py"
       - "research/v14_16_quality_allocation_backtest.py"
+      - "research/v14_16_quality_allocation_backtest_run.py"
       - "tests/test_v14_16_quality_allocation.py"
       - "v14_4_satellite_bot.py"
       - ".github/workflows/v14-16-quality-allocation.yml"
@@ -18,6 +19,7 @@ on:
       - "mt5_ai_bridge/v14_16_quality_allocation.py"
       - "mt5_ai_bridge/v14_16_quality_allocation_execution.py"
       - "research/v14_16_quality_allocation_backtest.py"
+      - "research/v14_16_quality_allocation_backtest_run.py"
       - "tests/test_v14_16_quality_allocation.py"
       - "v14_4_satellite_bot.py"
       - ".github/workflows/v14-16-quality-allocation.yml"
@@ -46,6 +48,7 @@ jobs:
           mt5_ai_bridge/v14_16_quality_allocation.py
           mt5_ai_bridge/v14_16_quality_allocation_execution.py
           research/v14_16_quality_allocation_backtest.py
+          research/v14_16_quality_allocation_backtest_run.py
           tests/test_v14_16_quality_allocation.py
           v14_4_satellite_bot.py
       - name: Run inherited and V14.16 tests
@@ -62,7 +65,7 @@ jobs:
       - name: Run exact ten-year quality allocation replay
         run: |
           set -o pipefail
-          python research/v14_16_quality_allocation_backtest.py 2>&1 \
+          python research/v14_16_quality_allocation_backtest_run.py 2>&1 \
             | tee research/v14_16_quality_allocation_output/backtest_stdout.log
       - name: Validate profit improvement and retained controls
         run: |
