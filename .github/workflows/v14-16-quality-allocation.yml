@@ -7,9 +7,12 @@ on:
     paths:
       - "mt5_ai_bridge/v14_16_quality_allocation.py"
       - "mt5_ai_bridge/v14_16_quality_allocation_execution.py"
+      - "mt5_ai_bridge/v14_16_quality_allocation_live.py"
+      - "mt5_ai_bridge/v14_16_quality_nominal.py"
       - "research/v14_16_quality_allocation_backtest.py"
       - "research/v14_16_quality_allocation_backtest_run.py"
       - "tests/test_v14_16_quality_allocation.py"
+      - "tests/test_v14_16_quality_nominal.py"
       - "v14_4_satellite_bot.py"
       - ".github/workflows/v14-16-quality-allocation.yml"
   pull_request:
@@ -18,9 +21,12 @@ on:
     paths:
       - "mt5_ai_bridge/v14_16_quality_allocation.py"
       - "mt5_ai_bridge/v14_16_quality_allocation_execution.py"
+      - "mt5_ai_bridge/v14_16_quality_allocation_live.py"
+      - "mt5_ai_bridge/v14_16_quality_nominal.py"
       - "research/v14_16_quality_allocation_backtest.py"
       - "research/v14_16_quality_allocation_backtest_run.py"
       - "tests/test_v14_16_quality_allocation.py"
+      - "tests/test_v14_16_quality_nominal.py"
       - "v14_4_satellite_bot.py"
       - ".github/workflows/v14-16-quality-allocation.yml"
   workflow_dispatch:
@@ -47,9 +53,12 @@ jobs:
           python -m py_compile
           mt5_ai_bridge/v14_16_quality_allocation.py
           mt5_ai_bridge/v14_16_quality_allocation_execution.py
+          mt5_ai_bridge/v14_16_quality_allocation_live.py
+          mt5_ai_bridge/v14_16_quality_nominal.py
           research/v14_16_quality_allocation_backtest.py
           research/v14_16_quality_allocation_backtest_run.py
           tests/test_v14_16_quality_allocation.py
+          tests/test_v14_16_quality_nominal.py
           v14_4_satellite_bot.py
       - name: Run inherited and V14.16 tests
         run: |
@@ -60,7 +69,8 @@ jobs:
             tests/test_v14_13_cost_regime.py \
             tests/test_v14_14_extended_cost.py \
             tests/test_v14_15_unified_reasoning.py \
-            tests/test_v14_16_quality_allocation.py 2>&1 \
+            tests/test_v14_16_quality_allocation.py \
+            tests/test_v14_16_quality_nominal.py 2>&1 \
             | tee research/v14_16_quality_allocation_output/pytest.log
       - name: Run exact ten-year quality allocation replay
         run: |
@@ -113,6 +123,18 @@ jobs:
                   quality['pre_quality_risk_percent'] + 1e-9
                   >= quality['nominal_risk_percent']
               ).all(), scenario
+
+              reduced_primary = quality[
+                  (quality['engine'] == 'GBPUSD_V10_PRECISION')
+                  & (quality['setup'] == 'PRIMARY_16UTC_BREAKOUT')
+                  & (quality['nominal_risk_percent'] < 0.50 - 1e-9)
+              ]
+              reduced_aud = quality[
+                  (quality['engine'] == 'AUDUSD_TREND_PULLBACK')
+                  & (quality['nominal_risk_percent'] < 0.55 - 1e-9)
+              ]
+              assert reduced_primary.empty, (scenario, reduced_primary)
+              assert reduced_aud.empty, (scenario, reduced_aud)
 
           demo = results['demo_cost/v14_13']['summary']
           assert demo['net_profit'] >= 12000.0, demo
