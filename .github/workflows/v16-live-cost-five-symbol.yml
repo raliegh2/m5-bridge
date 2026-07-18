@@ -1,0 +1,169 @@
+name: V16 live-cost five-symbol replacement research
+
+on:
+  push:
+    branches:
+      - v16-live-cost-five-symbol-20k
+    paths:
+      - "research/v16_live_cost_five_symbol_entrypoint.py"
+      - "research/v16_1_cost_aware_entrypoint.py"
+      - "research/v16_2_schema_safe_entrypoint.py"
+      - "research/v16_3_fail_closed_entrypoint.py"
+      - "research/v15_diversified_target_backtest.py"
+      - "research/v15_1_currency_factor_entrypoint.py"
+      - "research/download_fxcm_diversified_universe.py"
+      - "mt5_ai_bridge/v15_diversified_strategies.py"
+      - "mt5_ai_bridge/v15_1_currency_systems.py"
+      - ".github/workflows/v16-live-cost-five-symbol.yml"
+  pull_request:
+    branches:
+      - v15-diversified-target-20k
+    paths:
+      - "research/v16_live_cost_five_symbol_entrypoint.py"
+      - "research/v16_1_cost_aware_entrypoint.py"
+      - "research/v16_2_schema_safe_entrypoint.py"
+      - "research/v16_3_fail_closed_entrypoint.py"
+      - "research/v15_diversified_target_backtest.py"
+      - "research/v15_1_currency_factor_entrypoint.py"
+      - "research/download_fxcm_diversified_universe.py"
+      - "mt5_ai_bridge/v15_diversified_strategies.py"
+      - "mt5_ai_bridge/v15_1_currency_systems.py"
+      - ".github/workflows/v16-live-cost-five-symbol.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  live-cost-five-symbol-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+      FXCM_OUT: research/fxcm_diversified_2013_2026_data
+      FXCM_FROM: "2013-01-01T00:00:00Z"
+      FXCM_TO: "2026-05-31T23:59:59Z"
+      FXCM_WORKERS: "32"
+      FXCM_MIN_BARS: "18000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib requests pytest
+      - name: Compile V16 model
+        run: >-
+          python -m py_compile
+          research/download_fxcm_diversified_universe.py
+          mt5_ai_bridge/v15_diversified_strategies.py
+          mt5_ai_bridge/v15_1_currency_systems.py
+          research/v15_diversified_target_backtest.py
+          research/v16_live_cost_five_symbol_entrypoint.py
+          research/v16_1_cost_aware_entrypoint.py
+          research/v16_2_schema_safe_entrypoint.py
+          research/v16_3_fail_closed_entrypoint.py
+      - name: Restore FXCM cache
+        id: fxcm-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: research/fxcm_diversified_2013_2026_data
+          key: fxcm-diversified-h1-2013-2026-v1
+      - name: Download FXCM bid-ask universe
+        if: steps.fxcm-cache.outputs.cache-hit != 'true'
+        run: python research/download_fxcm_diversified_universe.py
+      - name: Validate five-symbol data
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/fxcm_diversified_2013_2026_data')
+          manifest = json.loads((root / 'manifest.json').read_text())
+          core = {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          available = set(manifest['available'])
+          assert core <= available, core - available
+          for symbol in core:
+              for side in ('bid', 'ask'):
+                  frame = pd.read_csv(root / f'{symbol}_H1_{side}.csv', usecols=['time'])
+                  times = pd.to_datetime(frame['time'], utc=True)
+                  assert times.min() <= pd.Timestamp('2013-01-07T00:00:00Z'), (symbol, side, times.min())
+                  assert times.max() >= pd.Timestamp('2026-05-01T00:00:00Z'), (symbol, side, times.max())
+          print('validated', sorted(core))
+          PY
+      - name: Save FXCM cache before model execution
+        if: steps.fxcm-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: research/fxcm_diversified_2013_2026_data
+          key: fxcm-diversified-h1-2013-2026-v1
+      - name: Run V16 ten-year live-cost replay
+        run: |
+          set -o pipefail
+          rm -rf research/v16_live_cost_five_symbol_output
+          mkdir -p research/v16_live_cost_five_symbol_output
+          python research/v16_3_fail_closed_entrypoint.py 2>&1 \
+            | tee research/v16_live_cost_five_symbol_output/backtest_stdout.log
+      - name: Validate generated evidence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('research/v16_live_cost_five_symbol_output')
+          payload = json.loads((root / 'v16_live_cost_five_symbol_results.json').read_text())
+          portfolio = payload['portfolio']
+          assert payload['research_only'] is True
+          assert payload['live_execution_changed'] is False
+          assert set(payload['symbols']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          assert portfolio['profit_factor'] > 0.0
+          assert portfolio['max_closed_drawdown_percent'] <= 9.60, portfolio
+          assert portfolio['stress_drawdown_percent'] <= 10.00, portfolio
+          assert payload['cost_model']['fxcm_bid_ask_embedded'] is True
+          assert len(payload['selected_profiles']) >= 5
+          for expected in (
+              'BACKTEST_REPORT.md',
+              'all_v16_candidates.csv',
+              'profile_evidence.json',
+              'selected_profiles.json',
+              'selected_walk_forward_candidates.csv',
+              'risk_grid.csv',
+              'gate_and_admission.csv',
+              'closed_trades.csv',
+              'skipped_candidates.csv',
+              'monthly_equity_profit_drawdown.csv',
+              'annual_profit_fees_drawdown.csv',
+              'monthly_equity_2016_2026.png',
+              'annual_net_profit_2016_2026.png',
+              'monthly_drawdown_2016_2026.png',
+              'profit_by_symbol.png',
+              'profit_by_mode.png',
+              'cumulative_modeled_fees.png',
+          ):
+              assert (root / expected).exists(), expected
+          print('portfolio', portfolio)
+          print('audit', payload['audit_2022_2026'])
+          print('holdout', payload['holdout_2024_2026'])
+          print('target_20k_reached', payload['target_20k_reached'])
+          print('promotion_eligible', payload['promotion_eligible'])
+          PY
+      - name: Upload V16 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v16-live-cost-five-symbol-results
+          path: research/v16_live_cost_five_symbol_output/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload FXCM manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v16-fxcm-manifest
+          path: research/fxcm_diversified_2013_2026_data/manifest.json
+          if-no-files-found: warn
+          retention-days: 30
