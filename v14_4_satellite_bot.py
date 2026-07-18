@@ -1,9 +1,9 @@
-"""Windows-safe launcher for the V14.4 profit-guarded research-parity bot.
+"""Windows-safe launcher for V14.13 cost-regime research parity.
 
-Identical to the V14.3 research-risk parity launcher, plus the V14.4 live
-profit guards: spread-cost admission gate, M1 staleness limit, portfolio
-daily loss stop, per-setup live expectancy tiers, and peak-equity
-reconstruction from broker history.
+V14.13 retains the V14.3 completed-candle signals, setup-specific risk,
+portfolio controls and V14.4 live guards. It adds all-in transaction-cost
+classification so the zero/low-cost allocation is preserved while cost-negative
+candidates are reduced or held in shadow.
 """
 from __future__ import annotations
 
@@ -18,7 +18,8 @@ from mt5_ai_bridge.v14_3_research_parity_execution import (
     ResearchParityLiveRunnerConfig,
 )
 from mt5_ai_bridge.v14_4_profit_guard import ProfitGuardConfig
-from mt5_ai_bridge.v14_4_profit_guard_execution import ProfitGuardedLiveExecutor
+from mt5_ai_bridge.v14_13_cost_regime_execution import CostRegimeLiveExecutor
+from mt5_ai_bridge.v14_13_cost_regime_profile import CostRegimeConfig
 from v14_3_satellite_bot_windows import WindowsSafeLiveDashboard
 
 
@@ -26,13 +27,14 @@ def _create_compatible_client() -> MT5BrokerCompatibilityClient:
     return MT5BrokerCompatibilityClient(create_raw_client())
 
 
-def _profit_guard_banner(
+def _cost_regime_banner(
     config: ResearchParityLiveRunnerConfig,
     dashboard_url: str,
 ) -> None:
-    guard = ProfitGuardConfig.from_env()
+    profit_guard = ProfitGuardConfig.from_env()
+    cost = CostRegimeConfig.from_env()
     print("=" * 76)
-    print(" V14.4 SATELLITE BOT — RESEARCH-RISK PARITY + LIVE PROFIT GUARD")
+    print(" V14.13 SATELLITE BOT — V14.3 PARITY + COST-REGIME GOVERNOR")
     print("=" * 76)
     print(f" Mode                 : {config.execution_mode}")
     print(f" Symbols              : {', '.join(bot.SYMBOLS)}")
@@ -42,20 +44,29 @@ def _profit_guard_banner(
     print(f" Max ICT entries/hour : {PARITY_MAX_TOTAL_ENTRIES_PER_HOUR}")
     print(" Drawdown governor    : 7.50 / 8.50 / 9.00 / 9.60% hard stop")
     print(
-        " Spread cost gate     : spread <= "
-        f"{guard.max_spread_fraction_of_stop * 100.0:.0f}% of stop distance"
+        " Cost regimes         : parity <= "
+        f"{cost.parity_cost_r:.2f}R, medium <= {cost.medium_cost_r:.2f}R, "
+        f"funding limit {cost.maximum_supported_cost_r:.2f}R"
     )
     print(
-        f" M1 staleness limit   : {guard.max_m1_signal_age_minutes:.0f} minutes"
+        " Cost reserves        : commission "
+        f"{cost.commission_reserve_pips:.2f}p, slippage "
+        f"{cost.slippage_reserve_pips:.2f}p, non-M1 swap "
+        f"{cost.non_m1_swap_reserve_pips:.2f}p, latency "
+        f"{cost.latency_reserve_r:.3f}R"
     )
     print(
-        f" Daily loss stop      : {guard.daily_loss_stop_percent:.2f}% of day-start equity"
+        " Spread guard         : spread <= "
+        f"{profit_guard.max_spread_fraction_of_stop * 100.0:.0f}% of stop"
     )
     print(
-        " Expectancy tiers     : reduce at "
-        f"{guard.reduce_threshold_r:+.1f}R, observe at "
-        f"{guard.observe_threshold_r:+.1f}R over last {guard.expectancy_window}"
+        f" M1 staleness limit   : {profit_guard.max_m1_signal_age_minutes:.0f} minutes"
     )
+    print(
+        f" Daily loss stop      : {profit_guard.daily_loss_stop_percent:.2f}%"
+        " of day-start equity"
+    )
+    print(" Shadow mode          : cost-negative candidates logged, no order funded")
     print(" Peak-equity seeding  : reconstructed from broker deal history")
     print(" Transmission         : confirmed MT5 demo account only")
     print(f" Dashboard            : {dashboard_url}")
@@ -64,10 +75,10 @@ def _profit_guard_banner(
 
 
 bot.LiveRunnerConfig = ResearchParityLiveRunnerConfig
-bot.SatelliteLiveExecutor = ProfitGuardedLiveExecutor
+bot.SatelliteLiveExecutor = CostRegimeLiveExecutor
 bot.LiveDashboard = WindowsSafeLiveDashboard
 bot.create_client = _create_compatible_client
-bot._startup_banner = _profit_guard_banner
+bot._startup_banner = _cost_regime_banner
 
 
 if __name__ == "__main__":
