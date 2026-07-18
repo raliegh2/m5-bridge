@@ -1,0 +1,150 @@
+name: V14.16 cost-efficient quality allocation
+
+on:
+  push:
+    branches:
+      - v14-16-cost-efficient-quality-allocation
+    paths:
+      - "mt5_ai_bridge/v14_16_quality_allocation.py"
+      - "mt5_ai_bridge/v14_16_quality_allocation_execution.py"
+      - "research/v14_16_quality_allocation_backtest.py"
+      - "tests/test_v14_16_quality_allocation.py"
+      - "v14_4_satellite_bot.py"
+      - ".github/workflows/v14-16-quality-allocation.yml"
+  pull_request:
+    branches:
+      - v14-15-unified-dual-engine-reasoning
+    paths:
+      - "mt5_ai_bridge/v14_16_quality_allocation.py"
+      - "mt5_ai_bridge/v14_16_quality_allocation_execution.py"
+      - "research/v14_16_quality_allocation_backtest.py"
+      - "tests/test_v14_16_quality_allocation.py"
+      - "v14_4_satellite_bot.py"
+      - ".github/workflows/v14-16-quality-allocation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-backtest-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest
+      - name: Compile V14.16 live and research modules
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_16_quality_allocation.py
+          mt5_ai_bridge/v14_16_quality_allocation_execution.py
+          research/v14_16_quality_allocation_backtest.py
+          tests/test_v14_16_quality_allocation.py
+          v14_4_satellite_bot.py
+      - name: Run inherited and V14.16 tests
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_16_quality_allocation_output
+          python -m pytest -q \
+            tests/test_v14_4_profit_guard.py \
+            tests/test_v14_13_cost_regime.py \
+            tests/test_v14_14_extended_cost.py \
+            tests/test_v14_15_unified_reasoning.py \
+            tests/test_v14_16_quality_allocation.py 2>&1 \
+            | tee research/v14_16_quality_allocation_output/pytest.log
+      - name: Run exact ten-year quality allocation replay
+        run: |
+          set -o pipefail
+          python research/v14_16_quality_allocation_backtest.py 2>&1 \
+            | tee research/v14_16_quality_allocation_output/backtest_stdout.log
+      - name: Validate profit improvement and retained controls
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/v14_16_quality_allocation_output')
+          payload = json.loads((root / 'v14_16_results.json').read_text())
+          results = payload['results']
+          reference = {
+              'zero_cost': 34690.840749742056,
+              'demo_cost': 7895.01,
+              'retail_cost': 7189.08,
+              'stress_cost': 5652.20,
+              'severe_cost': 4185.77,
+              'extreme_cost': 2891.88,
+          }
+
+          assert payload['model'] == 'V14.16_COST_EFFICIENT_QUALITY_ALLOCATION'
+          assert payload['quality_risk_ceiling_percent'] == 0.80
+
+          zero = results['zero_cost/v14_13']['summary']
+          assert abs(zero['net_profit'] - reference['zero_cost']) <= 0.02, zero
+          assert zero['closed_trades'] == 4974, zero
+          assert zero.get('quality_allocated_trades', 0) == 0, zero
+          assert zero['stress_drawdown_percent'] <= 10.00, zero
+
+          for scenario in ('demo_cost', 'retail_cost', 'stress_cost', 'severe_cost', 'extreme_cost'):
+              summary = results[f'{scenario}/v14_13']['summary']
+              assert summary['net_profit'] > reference[scenario], (scenario, summary)
+              assert summary['profit_factor'] > 1.0, (scenario, summary)
+              assert summary['max_closed_drawdown_percent'] <= 9.60, (scenario, summary)
+              assert summary['stress_drawdown_percent'] <= 10.00, (scenario, summary)
+              assert summary.get('quality_allocated_trades', 0) > 0, (scenario, summary)
+
+              ledger = pd.read_csv(root / 'ledgers' / scenario / 'v14_13_trades.csv')
+              quality = ledger[ledger['cost_regime'] == 'QUALITY_ALLOCATED']
+              assert len(quality) > 0, scenario
+              assert quality['pnl'].sum() > 0, (scenario, quality['pnl'].sum())
+              assert quality['risk_percent'].max() <= 0.80 + 1e-12
+              assert quality['executed_risk_percent'].max() <= 0.80 + 1e-12
+              assert (
+                  quality['pre_quality_risk_percent'] + 1e-9
+                  >= quality['nominal_risk_percent']
+              ).all(), scenario
+
+          demo = results['demo_cost/v14_13']['summary']
+          assert demo['net_profit'] >= 12000.0, demo
+          assert demo['net_profit'] - reference['demo_cost'] >= 4000.0, demo
+          assert demo['profit_factor'] >= 1.20, demo
+
+          extreme_coverage = payload['dual_mode_coverage']['extreme_cost']
+          for symbol, modes in extreme_coverage.items():
+              assert modes['V12'] > 0, (symbol, modes)
+              assert modes['ICT'] > 0, (symbol, modes)
+
+          for expected in (
+              'V14_16_REPORT.md',
+              'v14_16_results.json',
+              'comparison_summary.csv',
+              'pytest.log',
+              'backtest_stdout.log',
+              'ledgers/demo_cost/v14_13_trades.csv',
+              'ledgers/extreme_cost/v14_13_trades.csv',
+              'ledgers/demo_cost/v14_13_cost_regime_decisions.csv',
+          ):
+              assert (root / expected).exists(), expected
+
+          print('zero', zero)
+          print('demo', demo)
+          for scenario in ('retail_cost', 'stress_cost', 'severe_cost', 'extreme_cost'):
+              print(scenario, results[f'{scenario}/v14_13']['summary'])
+          print('demo_quality', payload['quality_attribution']['demo_cost'])
+          print('extreme_coverage', extreme_coverage)
+          PY
+      - name: Upload V14.16 validation package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-16-cost-efficient-quality-allocation
+          path: research/v14_16_quality_allocation_output/
+          if-no-files-found: error
+          retention-days: 90
