@@ -13,6 +13,7 @@ on:
       - "research/v14_16_quality_allocation_backtest_run.py"
       - "tests/test_v14_16_quality_allocation.py"
       - "tests/test_v14_16_quality_nominal.py"
+      - "tests/test_v14_16_quality_live.py"
       - "v14_4_satellite_bot.py"
       - ".github/workflows/v14-16-quality-allocation.yml"
   pull_request:
@@ -27,6 +28,7 @@ on:
       - "research/v14_16_quality_allocation_backtest_run.py"
       - "tests/test_v14_16_quality_allocation.py"
       - "tests/test_v14_16_quality_nominal.py"
+      - "tests/test_v14_16_quality_live.py"
       - "v14_4_satellite_bot.py"
       - ".github/workflows/v14-16-quality-allocation.yml"
   workflow_dispatch:
@@ -59,6 +61,7 @@ jobs:
           research/v14_16_quality_allocation_backtest_run.py
           tests/test_v14_16_quality_allocation.py
           tests/test_v14_16_quality_nominal.py
+          tests/test_v14_16_quality_live.py
           v14_4_satellite_bot.py
       - name: Run inherited and V14.16 tests
         run: |
@@ -70,7 +73,8 @@ jobs:
             tests/test_v14_14_extended_cost.py \
             tests/test_v14_15_unified_reasoning.py \
             tests/test_v14_16_quality_allocation.py \
-            tests/test_v14_16_quality_nominal.py 2>&1 \
+            tests/test_v14_16_quality_nominal.py \
+            tests/test_v14_16_quality_live.py 2>&1 \
             | tee research/v14_16_quality_allocation_output/pytest.log
       - name: Run exact ten-year quality allocation replay
         run: |
