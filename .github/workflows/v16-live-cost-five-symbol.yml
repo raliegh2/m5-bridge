@@ -12,6 +12,17 @@ on:
       - "mt5_ai_bridge/v15_diversified_strategies.py"
       - "mt5_ai_bridge/v15_1_currency_systems.py"
       - ".github/workflows/v16-live-cost-five-symbol.yml"
+  pull_request:
+    branches:
+      - v15-diversified-target-20k
+    paths:
+      - "research/v16_live_cost_five_symbol_entrypoint.py"
+      - "research/v15_diversified_target_backtest.py"
+      - "research/v15_1_currency_factor_entrypoint.py"
+      - "research/download_fxcm_diversified_universe.py"
+      - "mt5_ai_bridge/v15_diversified_strategies.py"
+      - "mt5_ai_bridge/v15_1_currency_systems.py"
+      - ".github/workflows/v16-live-cost-five-symbol.yml"
   workflow_dispatch:
 
 permissions:
@@ -92,7 +103,7 @@ jobs:
           portfolio = payload['portfolio']
           assert payload['research_only'] is True
           assert payload['live_execution_changed'] is False
-          assert payload['symbols'] == ['GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'] or set(payload['symbols']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          assert set(payload['symbols']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
           assert portfolio['profit_factor'] > 0.0
           assert portfolio['max_closed_drawdown_percent'] <= 9.60, portfolio
           assert portfolio['stress_drawdown_percent'] <= 10.00, portfolio
