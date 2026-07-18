@@ -61,7 +61,7 @@ jobs:
           research/v16_1_cost_aware_entrypoint.py
       - name: Restore FXCM cache
         id: fxcm-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: research/fxcm_diversified_2013_2026_data
           key: fxcm-diversified-h1-2013-2026-v1
@@ -88,6 +88,13 @@ jobs:
                   assert times.max() >= pd.Timestamp('2026-05-01T00:00:00Z'), (symbol, side, times.max())
           print('validated', sorted(core))
           PY
+      - name: Save FXCM cache before model execution
+        if: steps.fxcm-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: research/fxcm_diversified_2013_2026_data
+          key: fxcm-diversified-h1-2013-2026-v1
       - name: Run V16 ten-year live-cost replay
         run: |
           set -o pipefail
