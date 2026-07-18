@@ -1,0 +1,159 @@
+name: V15.2 safe diversified ten-year backtest
+
+on:
+  pull_request:
+    branches:
+      - v14-9-fxcm-walk-forward
+    paths:
+      - "research/v15_2_safe_ten_year_entrypoint.py"
+      - "research/v15_1_currency_factor_entrypoint.py"
+      - "research/v15_diversified_target_backtest.py"
+      - "research/download_fxcm_diversified_universe.py"
+      - "mt5_ai_bridge/v15_diversified_strategies.py"
+      - "mt5_ai_bridge/v15_1_currency_systems.py"
+      - ".github/workflows/v15-2-safe-ten-year.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  safe-ten-year-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+      FXCM_OUT: research/fxcm_diversified_2013_2026_data
+      FXCM_FROM: "2013-01-01T00:00:00Z"
+      FXCM_TO: "2026-05-31T23:59:59Z"
+      FXCM_WORKERS: "32"
+      FXCM_MIN_BARS: "18000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib requests pytest
+      - name: Compile research model
+        run: >-
+          python -m py_compile
+          research/download_fxcm_diversified_universe.py
+          mt5_ai_bridge/v15_diversified_strategies.py
+          mt5_ai_bridge/v15_1_currency_systems.py
+          research/v15_diversified_target_backtest.py
+          research/v15_1_currency_factor_entrypoint.py
+          research/v15_2_safe_ten_year_entrypoint.py
+      - name: Restore expanded FXCM cache
+        id: fxcm-cache
+        uses: actions/cache@v4
+        with:
+          path: research/fxcm_diversified_2013_2026_data
+          key: fxcm-diversified-h1-2013-2026-v1
+      - name: Download expanded FXCM bid-ask universe
+        if: steps.fxcm-cache.outputs.cache-hit != 'true'
+        run: python research/download_fxcm_diversified_universe.py
+      - name: Validate ten-year dataset
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/fxcm_diversified_2013_2026_data')
+          manifest = json.loads((root / 'manifest.json').read_text())
+          available = set(manifest['available'])
+          core = {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          assert core <= available, core - available
+          assert len(available) >= 12, sorted(available)
+          for symbol in available:
+              for side in ('bid', 'ask'):
+                  path = root / f'{symbol}_H1_{side}.csv'
+                  frame = pd.read_csv(path, usecols=['time'])
+                  times = pd.to_datetime(frame['time'], utc=True)
+                  assert len(frame) >= 18_000, (symbol, side, len(frame))
+                  assert times.min() <= pd.Timestamp('2016-01-04T00:00:00Z'), (symbol, side, times.min())
+                  assert times.max() >= pd.Timestamp('2026-05-01T00:00:00Z'), (symbol, side, times.max())
+          print('available_symbols', len(available), sorted(available))
+          PY
+      - name: Run V15.2 safe ten-year replay
+        run: |
+          set -o pipefail
+          rm -rf research/v15_2_safe_ten_year_output
+          mkdir -p research/v15_2_safe_ten_year_output
+          python research/v15_2_safe_ten_year_entrypoint.py 2>&1 \
+            | tee research/v15_2_safe_ten_year_output/backtest_stdout.log
+      - name: Validate results and risk limits
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('research/v15_2_safe_ten_year_output')
+          payload = json.loads((root / 'v15_2_safe_ten_year_results.json').read_text())
+          baseline = payload['baseline_v14_9']
+          portfolio = payload['portfolio']
+
+          assert payload['research_only'] is True
+          assert payload['live_execution_changed'] is False
+          assert portfolio['net_profit'] > baseline['net_profit'], (baseline, portfolio)
+          assert portfolio['profit_factor'] > 1.0, portfolio
+          assert portfolio['max_closed_drawdown_percent'] <= 9.60, portfolio
+          assert portfolio['stress_drawdown_percent'] <= 10.00, portfolio
+          assert payload['new_system_contribution']['trades'] > 0
+          assert payload['new_system_contribution']['net_profit'] > 0.0
+          assert payload['selected_risk_multiplier'] in payload['selection_protocol']['bounded_allocation_grid']
+          assert payload['target_20k_reached'] == (portfolio['net_profit'] >= 20_000.0)
+          assert payload['target_40k_reached'] == (portfolio['net_profit'] >= 40_000.0)
+
+          for expected in (
+              'BACKTEST_REPORT.md',
+              'all_v15_2_candidates.csv',
+              'profile_evidence.csv',
+              'selected_profiles.json',
+              'selected_candidates.csv',
+              'bounded_risk_grid.csv',
+              'gate_and_admission.csv',
+              'closed_trades.csv',
+              'skipped_candidates.csv',
+              'monthly_equity_profit_drawdown.csv',
+              'annual_profit_fees_drawdown.csv',
+              'monthly_equity_2016_2026.png',
+              'annual_net_profit_2016_2026.png',
+              'monthly_drawdown_2016_2026.png',
+              'profit_by_symbol.png',
+              'profit_by_mode.png',
+              'cumulative_modeled_fees.png',
+          ):
+              assert (root / expected).exists(), expected
+
+          print('selected_multiplier', payload['selected_risk_multiplier'])
+          print('baseline', baseline)
+          print('portfolio', portfolio)
+          print('holdout', payload['holdout_2024_2026'])
+          print('new_systems', payload['new_system_contribution'])
+          print('targets', {
+              '20k': payload['target_20k_reached'],
+              '20k_gap': payload['target_20k_gap'],
+              '40k': payload['target_40k_reached'],
+              '40k_gap': payload['target_40k_gap'],
+          })
+          PY
+      - name: Upload V15.2 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v15-2-safe-ten-year-results
+          path: research/v15_2_safe_ten_year_output/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload expanded data manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v15-2-fxcm-expanded-manifest
+          path: research/fxcm_diversified_2013_2026_data/manifest.json
+          if-no-files-found: warn
+          retention-days: 30
