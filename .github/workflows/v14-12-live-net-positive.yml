@@ -5,6 +5,7 @@ on:
     branches:
       - v14-12-live-net-positive-after-costs
     paths:
+      - ".env.v14-4-profit-guard.example"
       - "mt5_ai_bridge/v14_5_cost_robust_profile.py"
       - "mt5_ai_bridge/v14_5_2_profit_filter_profile.py"
       - "mt5_ai_bridge/v14_12_net_positive_guard.py"
@@ -20,6 +21,7 @@ on:
     branches:
       - v14-4-live-profit-guard
     paths:
+      - ".env.v14-4-profit-guard.example"
       - "mt5_ai_bridge/v14_5_cost_robust_profile.py"
       - "mt5_ai_bridge/v14_5_2_profit_filter_profile.py"
       - "mt5_ai_bridge/v14_12_net_positive_guard.py"
