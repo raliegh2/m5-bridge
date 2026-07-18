@@ -1,9 +1,10 @@
 """Input-normalized, stress-buffered entry point for the V14.16 replay.
 
 The historical GBP ICT source does not carry a ``risk_percent`` column because
-its nominal setup allocation is installed at runtime.  V14.16 also reserves
-projected drawdown capacity before a 0.80% quality allocation so an early cluster
-of open stop risk cannot prematurely trigger the 9.60% hard stop.
+its nominal setup allocation is installed at runtime. V14.16 also reserves
+projected drawdown capacity before a 0.80% quality allocation and compares V12
+candidates against frozen full-strength setup tiers so prior reductions remain
+untouched.
 """
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ from mt5_ai_bridge.v14_3_profit_preserving_profile import (
     scaled_risk_percent,
 )
 from mt5_ai_bridge.v14_16_quality_allocation import QUALITY_RISK_PERCENT
+from mt5_ai_bridge.v14_16_quality_nominal import strict_quality_risk_target
 
 QUALITY_PROJECTED_STRESS_LIMIT_PERCENT = 9.40
 
@@ -83,6 +85,9 @@ class InputNormalizedQualityAllocationReplay(study.QualityAllocationReplay):
             ]
             self.ict = frame
 
+        # The replay module resolves this function at runtime. Substitute the
+        # strict wrapper so already-reduced V12 candidates cannot be promoted.
+        study.quality_risk_target = strict_quality_risk_target
         base_governor = self.governor
         self.governor = StressBufferedGovernor(base_governor, self)
         summary, trades, skipped = super().run()
@@ -96,6 +101,7 @@ class InputNormalizedQualityAllocationReplay(study.QualityAllocationReplay):
 
 
 def main() -> None:
+    study.quality_risk_target = strict_quality_risk_target
     study.QualityAllocationReplay = InputNormalizedQualityAllocationReplay
     study.main()
 
