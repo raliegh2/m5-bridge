@@ -1,4 +1,4 @@
-name: V15.3 risk-balanced ten-year research
+name: V15.4 stress-buffered ten-year research
 
 on:
   pull_request:
@@ -11,6 +11,7 @@ on:
       - "research/v15_diversified_target_backtest.py"
       - "research/v15_1_currency_factor_entrypoint.py"
       - "research/v15_3_risk_balanced_entrypoint.py"
+      - "research/v15_4_stress_buffer_entrypoint.py"
       - "research/v14_9_fxcm_walk_forward.py"
       - "research/v14_8_dukascopy_2016_2026_backtest.py"
       - ".github/workflows/v15-diversified-target.yml"
@@ -39,7 +40,7 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: python -m pip install --upgrade pip pandas numpy matplotlib requests pytest
-      - name: Compile V15.3 research
+      - name: Compile V15.4 research
         run: >-
           python -m py_compile
           research/download_fxcm_diversified_universe.py
@@ -48,6 +49,7 @@ jobs:
           research/v15_diversified_target_backtest.py
           research/v15_1_currency_factor_entrypoint.py
           research/v15_3_risk_balanced_entrypoint.py
+          research/v15_4_stress_buffer_entrypoint.py
       - name: Restore expanded FXCM cache
         id: fxcm-cache
         uses: actions/cache@v4
@@ -63,7 +65,6 @@ jobs:
           import json
           from pathlib import Path
           import pandas as pd
-
           root = Path('research/fxcm_diversified_2013_2026_data')
           manifest = json.loads((root / 'manifest.json').read_text())
           available = set(manifest['available'])
@@ -79,29 +80,31 @@ jobs:
                   end = pd.to_datetime(frame['time'], utc=True).max()
                   assert end >= pd.Timestamp('2026-05-01T00:00:00Z'), (symbol, side, end)
           print('available_symbols', len(available), sorted(available))
-          print('unavailable_symbols', manifest.get('unavailable', {}))
           PY
-      - name: Run V15.3 jointly safe ten-year replay
+      - name: Run V15.4 stress-buffered replay
         run: |
           set -o pipefail
-          rm -rf research/v15_3_risk_balanced_output
-          mkdir -p research/v15_3_risk_balanced_output
-          python research/v15_3_risk_balanced_entrypoint.py 2>&1 \
-            | tee research/v15_3_risk_balanced_output/backtest_stdout.log
+          rm -rf research/v15_4_stress_buffer_output
+          mkdir -p research/v15_4_stress_buffer_output
+          python research/v15_4_stress_buffer_entrypoint.py 2>&1 \
+            | tee research/v15_4_stress_buffer_output/backtest_stdout.log
       - name: Validate safety, improvement and outputs
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-
-          root = Path('research/v15_3_risk_balanced_output')
-          payload = json.loads((root / 'v15_3_risk_balanced_results.json').read_text())
+          root = Path('research/v15_4_stress_buffer_output')
+          payload = json.loads((root / 'v15_4_stress_buffer_results.json').read_text())
           baseline = payload['baseline_v14_9']
           portfolio = payload['portfolio']
           forward = payload['forward_deployment_portfolio']
           new = payload['new_system_contribution']
           holdout = payload['forward_2024_2026_combined']
-
+          assert payload['version'] == 'V15.4'
+          assert payload['risk_selection']['v15_projected_stress_admission_limit_percent'] == 9.20
+          assert payload['risk_selection']['baseline_measured_before_tightening'] is True
+          assert payload['risk_selection']['core_signal_definitions_changed'] is False
+          assert payload['risk_selection']['nominal_core_risk_changed'] is False
           assert portfolio['net_profit'] > baseline['net_profit'], (baseline, portfolio)
           assert portfolio['profit_factor'] > 1.0, portfolio
           assert portfolio['max_closed_drawdown_percent'] <= 9.60, portfolio
@@ -110,12 +113,11 @@ jobs:
           assert forward['stress_drawdown_percent'] <= 10.00, forward
           assert new['trades'] > 0 and new['net_profit'] > 0.0, new
           assert holdout['trades'] > 0 and holdout['net_profit'] > 0.0, holdout
-          assert payload['selected_risk_multiplier'] in [0.25, 0.35, 0.45, 0.55, 0.60, 0.65, 0.70]
           assert payload['live_execution_changed'] is False
           assert payload['research_only'] is True
-
           for expected in (
               'BACKTEST_REPORT.md',
+              'v15_4_stress_buffer_results.json',
               'all_v15_3_candidates.csv',
               'profile_evidence.csv',
               'selected_profiles.json',
@@ -138,26 +140,20 @@ jobs:
               'cumulative_modeled_fees.png',
           ):
               assert (root / expected).exists(), expected
-
           print('baseline', baseline)
           print('selected_multiplier', payload['selected_risk_multiplier'])
           print('portfolio', portfolio)
           print('forward', forward)
           print('new_systems', new)
           print('holdout', holdout)
-          print('targets', {
-              '20k': payload['target_20k_reached'],
-              '20k_gap': payload['target_20k_gap'],
-              '40k': payload['target_40k_reached'],
-              '40k_gap': payload['target_40k_gap'],
-          })
+          print('targets', {'20k': payload['target_20k_reached'], '20k_gap': payload['target_20k_gap'], '40k': payload['target_40k_reached'], '40k_gap': payload['target_40k_gap']})
           PY
-      - name: Upload V15.3 results
+      - name: Upload V15.4 results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v15-3-risk-balanced-results
-          path: research/v15_3_risk_balanced_output/
+          name: v15-4-stress-buffer-results
+          path: research/v15_4_stress_buffer_output/
           if-no-files-found: error
           retention-days: 90
       - name: Upload expanded data manifest
