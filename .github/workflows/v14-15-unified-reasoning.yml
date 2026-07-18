@@ -1,0 +1,137 @@
+name: V14.15 unified dual-engine reasoning
+
+on:
+  push:
+    branches:
+      - v14-15-unified-dual-engine-reasoning
+    paths:
+      - "mt5_ai_bridge/v14_15_unified_reasoning.py"
+      - "mt5_ai_bridge/v14_15_unified_reasoning_execution.py"
+      - "v14_4_satellite_bot.py"
+      - "research/v14_15_unified_reasoning_backtest.py"
+      - "tests/test_v14_15_unified_reasoning.py"
+      - ".github/workflows/v14-15-unified-reasoning.yml"
+  pull_request:
+    branches:
+      - v14-14-extended-live-cost-regime
+    paths:
+      - "mt5_ai_bridge/v14_15_unified_reasoning.py"
+      - "mt5_ai_bridge/v14_15_unified_reasoning_execution.py"
+      - "v14_4_satellite_bot.py"
+      - "research/v14_15_unified_reasoning_backtest.py"
+      - "tests/test_v14_15_unified_reasoning.py"
+      - ".github/workflows/v14-15-unified-reasoning.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-backtest-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest
+      - name: Compile V14.15 live and research modules
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_15_unified_reasoning.py
+          mt5_ai_bridge/v14_15_unified_reasoning_execution.py
+          v14_4_satellite_bot.py
+          research/v14_15_unified_reasoning_backtest.py
+          tests/test_v14_15_unified_reasoning.py
+      - name: Run inherited and unified reasoning tests
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_15_unified_reasoning_output
+          python -m pytest -q \
+            tests/test_v14_4_profit_guard.py \
+            tests/test_v14_13_cost_regime.py \
+            tests/test_v14_14_extended_cost.py \
+            tests/test_v14_15_unified_reasoning.py 2>&1 \
+            | tee research/v14_15_unified_reasoning_output/pytest.log
+      - name: Run exact ten-year unified dual-engine replay
+        run: |
+          set -o pipefail
+          python research/v14_15_unified_reasoning_backtest.py 2>&1 \
+            | tee research/v14_15_unified_reasoning_output/backtest_stdout.log
+      - name: Validate portfolio improvement and dual-engine coverage
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/v14_15_unified_reasoning_output')
+          payload = json.loads((root / 'v14_15_results.json').read_text())
+          results = payload['results']
+          reference = {
+              'zero_cost': 34690.840749742056,
+              'demo_cost': 7832.04,
+              'retail_cost': 6956.20,
+              'stress_cost': 5482.54,
+              'severe_cost': 4069.61,
+              'extreme_cost': 2672.53,
+          }
+
+          assert payload['model'] == 'V14.15_UNIFIED_DUAL_ENGINE_REASONING'
+          zero = results['zero_cost/v14_13']['summary']
+          assert abs(zero['net_profit'] - reference['zero_cost']) <= 0.02, zero
+          assert zero['closed_trades'] == 4974, zero
+          assert zero['stress_drawdown_percent'] <= 10.00, zero
+
+          for scenario in ('demo_cost', 'retail_cost', 'stress_cost', 'severe_cost', 'extreme_cost'):
+              summary = results[f'{scenario}/v14_13']['summary']
+              assert summary['net_profit'] > reference[scenario], (scenario, summary, reference[scenario])
+              assert summary['profit_factor'] > 1.0, (scenario, summary)
+              assert summary['max_closed_drawdown_percent'] <= 9.60, (scenario, summary)
+              assert summary['stress_drawdown_percent'] <= 10.00, (scenario, summary)
+
+          # Every symbol must retain funded V12 and ICT representation at the
+          # highest modeled transaction-cost tier.
+          extreme_coverage = payload['dual_mode_coverage']['extreme_cost']
+          for symbol, modes in extreme_coverage.items():
+              assert modes['V12'] > 0, (symbol, modes)
+              assert modes['ICT'] > 0, (symbol, modes)
+
+          for scenario in ('retail_cost', 'stress_cost', 'severe_cost', 'extreme_cost'):
+              ledger = pd.read_csv(root / 'ledgers' / scenario / 'v14_13_trades.csv')
+              probation = ledger[ledger['cost_regime'] == 'DUAL_ENGINE_PROBATION']
+              assert len(probation) > 0, scenario
+              assert probation['pnl'].sum() > 0, (scenario, probation['pnl'].sum())
+              assert probation['risk_percent'].max() <= 0.10 + 1e-12
+              assert (probation['executed_risk_percent'] <= probation['risk_percent'] + 1e-12).all()
+
+          for expected in (
+              'V14_15_REPORT.md',
+              'v14_15_results.json',
+              'comparison_summary.csv',
+              'pytest.log',
+              'backtest_stdout.log',
+              'ledgers/extreme_cost/v14_13_trades.csv',
+              'ledgers/extreme_cost/v14_13_cost_regime_decisions.csv',
+          ):
+              assert (root / expected).exists(), expected
+
+          print('zero', zero)
+          for scenario in ('demo_cost', 'retail_cost', 'stress_cost', 'severe_cost', 'extreme_cost'):
+              print(scenario, results[f'{scenario}/v14_13']['summary'])
+          print('extreme_coverage', extreme_coverage)
+          print('extreme_probation', payload['probation_attribution']['extreme_cost'])
+          PY
+      - name: Upload V14.15 validation package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-15-unified-dual-engine-reasoning
+          path: research/v14_15_unified_reasoning_output/
+          if-no-files-found: error
+          retention-days: 90
