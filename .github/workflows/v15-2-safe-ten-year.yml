@@ -6,6 +6,7 @@ on:
       - v14-9-fxcm-walk-forward
     paths:
       - "research/v15_2_safe_ten_year_entrypoint.py"
+      - "research/v15_2_buffered_ten_year_entrypoint.py"
       - "research/v15_1_currency_factor_entrypoint.py"
       - "research/v15_diversified_target_backtest.py"
       - "research/download_fxcm_diversified_universe.py"
@@ -46,6 +47,7 @@ jobs:
           research/v15_diversified_target_backtest.py
           research/v15_1_currency_factor_entrypoint.py
           research/v15_2_safe_ten_year_entrypoint.py
+          research/v15_2_buffered_ten_year_entrypoint.py
       - name: Restore expanded FXCM cache
         id: fxcm-cache
         uses: actions/cache@v4
@@ -83,7 +85,7 @@ jobs:
           set -o pipefail
           rm -rf research/v15_2_safe_ten_year_output
           mkdir -p research/v15_2_safe_ten_year_output
-          python research/v15_2_safe_ten_year_entrypoint.py 2>&1 \
+          python research/v15_2_buffered_ten_year_entrypoint.py 2>&1 \
             | tee research/v15_2_safe_ten_year_output/backtest_stdout.log
       - name: Validate results and risk limits
         run: |
