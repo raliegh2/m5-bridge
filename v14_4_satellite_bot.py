@@ -1,9 +1,8 @@
-"""Windows-safe launcher for V14.13 cost-regime research parity.
+"""Windows-safe launcher for V14.14 extended cost-regime research parity.
 
-V14.13 retains the V14.3 completed-candle signals, setup-specific risk,
-portfolio controls and V14.4 live guards. It adds all-in transaction-cost
-classification so the zero/low-cost allocation is preserved while cost-negative
-candidates are reduced or held in shadow.
+V14.14 retains the V14.3 completed-candle signals, setup-specific risk,
+portfolio controls and V14.4 live guards. It extends the all-in cost policy
+above 0.18R only for engine groups with supporting cost-adjusted evidence.
 """
 from __future__ import annotations
 
@@ -18,8 +17,8 @@ from mt5_ai_bridge.v14_3_research_parity_execution import (
     ResearchParityLiveRunnerConfig,
 )
 from mt5_ai_bridge.v14_4_profit_guard import ProfitGuardConfig
-from mt5_ai_bridge.v14_13_cost_regime_execution import CostRegimeLiveExecutor
-from mt5_ai_bridge.v14_13_cost_regime_profile import CostRegimeConfig
+from mt5_ai_bridge.v14_14_extended_cost_execution import ExtendedCostRegimeLiveExecutor
+from mt5_ai_bridge.v14_14_extended_cost_profile import ExtendedCostRegimeConfig
 from v14_3_satellite_bot_windows import WindowsSafeLiveDashboard
 
 
@@ -32,9 +31,9 @@ def _cost_regime_banner(
     dashboard_url: str,
 ) -> None:
     profit_guard = ProfitGuardConfig.from_env()
-    cost = CostRegimeConfig.from_env()
+    cost = ExtendedCostRegimeConfig.from_env()
     print("=" * 76)
-    print(" V14.13 SATELLITE BOT — V14.3 PARITY + COST-REGIME GOVERNOR")
+    print(" V14.14 SATELLITE BOT — EXTENDED ENGINE-SPECIFIC COST REGIME")
     print("=" * 76)
     print(f" Mode                 : {config.execution_mode}")
     print(f" Symbols              : {', '.join(bot.SYMBOLS)}")
@@ -44,9 +43,15 @@ def _cost_regime_banner(
     print(f" Max ICT entries/hour : {PARITY_MAX_TOTAL_ENTRIES_PER_HOUR}")
     print(" Drawdown governor    : 7.50 / 8.50 / 9.00 / 9.60% hard stop")
     print(
-        " Cost regimes         : parity <= "
+        " Cost tiers           : parity <= "
         f"{cost.parity_cost_r:.2f}R, medium <= {cost.medium_cost_r:.2f}R, "
-        f"funding limit {cost.maximum_supported_cost_r:.2f}R"
+        f"standard <= {cost.standard_cost_r:.2f}R"
+    )
+    print(
+        " Extended ceilings    : V12 "
+        f"{cost.maximum_v12_cost_r:.2f}R, satellite ICT "
+        f"{cost.maximum_satellite_ict_cost_r:.2f}R, strict GBP ICT "
+        f"{cost.maximum_strict_gbp_cost_r:.2f}R"
     )
     print(
         " Cost reserves        : commission "
@@ -75,7 +80,7 @@ def _cost_regime_banner(
 
 
 bot.LiveRunnerConfig = ResearchParityLiveRunnerConfig
-bot.SatelliteLiveExecutor = CostRegimeLiveExecutor
+bot.SatelliteLiveExecutor = ExtendedCostRegimeLiveExecutor
 bot.LiveDashboard = WindowsSafeLiveDashboard
 bot.create_client = _create_compatible_client
 bot._startup_banner = _cost_regime_banner
