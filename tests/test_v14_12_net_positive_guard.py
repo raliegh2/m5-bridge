@@ -275,8 +275,6 @@ def test_promoted_v12_starts_at_probation_risk(tmp_path) -> None:
     result = executor.place(_v12_signal(), now=NOW)
     assert result.ok, result.message
     assert result.code == "ORDER_FILLED"
-    # Broker volume-step normalization must round risk down, never above the
-    # approved 0.1875% probation tier.
     assert V14_5_2_OBSERVATION_RISK_PERCENT < result.risk_percent <= 0.1875
 
 
@@ -289,7 +287,7 @@ def test_promoted_v12_earns_full_risk_only_after_setup_and_symbol_pass(tmp_path)
     executor.state.save()
     result = executor.place(_v12_signal(), now=NOW)
     assert result.ok, result.message
-    assert 0.70 <= result.risk_percent <= 0.75
+    assert result.risk_percent == pytest.approx(0.75, abs=1e-9)
 
 
 def test_negative_symbol_demotes_healthy_setup_to_observation(tmp_path) -> None:
