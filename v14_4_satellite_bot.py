@@ -21,7 +21,7 @@ from mt5_ai_bridge.v14_3_research_parity_execution import (
 from mt5_ai_bridge.v14_4_profit_guard import ProfitGuardConfig
 from mt5_ai_bridge.v14_14_extended_cost_profile import ExtendedCostRegimeConfig
 from mt5_ai_bridge.v14_15_unified_reasoning import DUAL_ENGINE_REGISTRY
-from mt5_ai_bridge.v14_16_quality_allocation_execution import (
+from mt5_ai_bridge.v14_16_quality_allocation_live import (
     QualityAllocationLiveExecutor,
 )
 from v14_3_satellite_bot_windows import WindowsSafeLiveDashboard
@@ -56,7 +56,7 @@ def _quality_banner(
     )
     print(" Quality profiles     : GBPUSD/EURUSD/AUDUSD cost-resilient sleeves")
     print(" Live uplift evidence : >=12 engine and >=16 symbol/mode broker-net trades")
-    print(" Reduction authority  : pressure/expectancy/DD reductions cannot be reversed")
+    print(" Reduction authority  : frozen nominal/pressure/expectancy/DD reductions hold")
     print(" Cross-engine logic   : aligned exposure recognized; conflicts shadowed")
     print(
         " Spread guard         : spread <= "
