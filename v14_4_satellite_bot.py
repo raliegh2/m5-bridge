@@ -1,9 +1,9 @@
-"""Windows-safe launcher for the V14.4 profit-guarded research-parity bot.
+"""Windows-safe launcher for the V14.12 net-positive live model.
 
-Identical to the V14.3 research-risk parity launcher, plus the V14.4 live
-profit guards: spread-cost admission gate, M1 staleness limit, portfolio
-daily loss stop, per-setup live expectancy tiers, and peak-equity
-reconstruction from broker history.
+This remains the existing V14.4 startup surface so current operators do not
+need a new command. V14.12 adds the V14.5.2 cost-robust allocation, all-in
+spread/commission/slippage/swap admission, and broker-net setup/symbol
+promotion gates while retaining every V14.4 safety control.
 """
 from __future__ import annotations
 
@@ -18,7 +18,12 @@ from mt5_ai_bridge.v14_3_research_parity_execution import (
     ResearchParityLiveRunnerConfig,
 )
 from mt5_ai_bridge.v14_4_profit_guard import ProfitGuardConfig
-from mt5_ai_bridge.v14_4_profit_guard_execution import ProfitGuardedLiveExecutor
+from mt5_ai_bridge.v14_5_cost_robust_profile import (
+    PROMOTED_V12_ENGINES,
+    V14_5_OBSERVATION_RISK_PERCENT,
+)
+from mt5_ai_bridge.v14_12_live_execution import NetPositiveLiveExecutor
+from mt5_ai_bridge.v14_12_net_positive_guard import NetPositiveGuardConfig
 from v14_3_satellite_bot_windows import WindowsSafeLiveDashboard
 
 
@@ -31,11 +36,17 @@ def _profit_guard_banner(
     dashboard_url: str,
 ) -> None:
     guard = ProfitGuardConfig.from_env()
+    net = NetPositiveGuardConfig.from_env()
     print("=" * 76)
-    print(" V14.4 SATELLITE BOT — RESEARCH-RISK PARITY + LIVE PROFIT GUARD")
+    print(" V14.12 SATELLITE BOT — NET-POSITIVE AFTER-COST LIVE MODEL")
     print("=" * 76)
     print(f" Mode                 : {config.execution_mode}")
     print(f" Symbols              : {', '.join(bot.SYMBOLS)}")
+    print(
+        " Promoted V12 engines : "
+        + ", ".join(sorted(PROMOTED_V12_ENGINES))
+    )
+    print(f" Observation risk     : {V14_5_OBSERVATION_RISK_PERCENT:.3f}%")
     print(f" ICT open-risk cap    : {PARITY_MAX_ICT_OPEN_RISK_PERCENT:.2f}%")
     print(f" Combined-risk cap    : {PARITY_MAX_COMBINED_OPEN_RISK_PERCENT:.2f}%")
     print(f" Max ICT positions    : {PARITY_MAX_SIMULTANEOUS_ICT_POSITIONS}")
@@ -46,15 +57,30 @@ def _profit_guard_banner(
         f"{guard.max_spread_fraction_of_stop * 100.0:.0f}% of stop distance"
     )
     print(
+        " All-in cost gate     : total cost <= "
+        f"{net.maximum_all_in_cost_fraction_of_stop * 100.0:.0f}% stop / "
+        f"{net.maximum_all_in_cost_fraction_of_target * 100.0:.0f}% target"
+    )
+    print(
+        " Cost reserve         : commission "
+        f"{net.commission_equivalent_pips:.2f} + slippage "
+        f"{net.slippage_buffer_pips:.2f} + swap "
+        f"{net.swap_reserve_pips:.2f} pips"
+    )
+    print(
+        " Net-positive gate    : setup/symbol require "
+        f"{net.minimum_setup_trades}/{net.minimum_symbol_trades} broker-net trades"
+    )
+    print(
+        " Full-risk evidence   : setup PF >= "
+        f"{net.full_setup_profit_factor:.2f}, symbol PF >= "
+        f"{net.full_symbol_profit_factor:.2f}"
+    )
+    print(
         f" M1 staleness limit   : {guard.max_m1_signal_age_minutes:.0f} minutes"
     )
     print(
         f" Daily loss stop      : {guard.daily_loss_stop_percent:.2f}% of day-start equity"
-    )
-    print(
-        " Expectancy tiers     : reduce at "
-        f"{guard.reduce_threshold_r:+.1f}R, observe at "
-        f"{guard.observe_threshold_r:+.1f}R over last {guard.expectancy_window}"
     )
     print(" Peak-equity seeding  : reconstructed from broker deal history")
     print(" Transmission         : confirmed MT5 demo account only")
@@ -64,7 +90,7 @@ def _profit_guard_banner(
 
 
 bot.LiveRunnerConfig = ResearchParityLiveRunnerConfig
-bot.SatelliteLiveExecutor = ProfitGuardedLiveExecutor
+bot.SatelliteLiveExecutor = NetPositiveLiveExecutor
 bot.LiveDashboard = WindowsSafeLiveDashboard
 bot.create_client = _create_compatible_client
 bot._startup_banner = _profit_guard_banner
