@@ -1,0 +1,110 @@
+name: V14.21 demo-only automatic runner
+
+on:
+  push:
+    branches:
+      - v14-21-demo-auto-runner
+    paths:
+      - "mt5_ai_bridge/v14_21_demo_auto_execution.py"
+      - "v14_21_demo_auto_runner.py"
+      - "v14_21_demo_auto_preflight.py"
+      - "tests/test_v14_21_demo_auto_execution.py"
+      - "V14_21_DEMO_AUTO_RUNNER.md"
+      - ".env.v14-21-demo-auto.example"
+      - "Start-V14-21-Demo-Auto.bat"
+      - ".github/workflows/v14-21-demo-auto-runner.yml"
+  pull_request:
+    branches:
+      - v14-20-range-anti-consensus-integration
+      - v14-21-demo-auto-runner
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-validate-demo-auto:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip pandas numpy python-dotenv pytest
+      - name: Compile V14.21 runner and execution modules
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_21_demo_auto_execution.py
+          v14_21_demo_auto_runner.py
+          v14_21_demo_auto_preflight.py
+          tests/test_v14_21_demo_auto_execution.py
+      - name: Run inherited execution and V14.21 safety tests
+        run: |
+          set -o pipefail
+          mkdir -p v14_21_validation
+          python -m pytest -q \
+            tests/test_v14_3_mt5_broker_compat.py \
+            tests/test_v14_3_position_reconciliation.py \
+            tests/test_v14_3_research_parity_execution.py \
+            tests/test_v14_4_profit_guard.py \
+            tests/test_v14_20_range_anti_consensus.py \
+            tests/test_v14_21_demo_auto_execution.py 2>&1 \
+            | tee v14_21_validation/pytest.log
+      - name: Validate immutable safety boundaries
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from mt5_ai_bridge.v14_21_demo_auto_execution import V1421DemoAutoConfig
+
+          config = V1421DemoAutoConfig()
+          config.validate()
+          assert config.execution_mode == 'READ_ONLY'
+          assert config.max_live_risk_percent == 0.80
+          assert config.max_open_risk_percent == 3.25
+          assert config.live_hard_drawdown_percent == 9.60
+          assert config.daily_loss_limit_dollars == 250.0
+          assert config.overall_loss_limit_dollars == 500.0
+          assert config.maximum_consecutive_losses == 2
+
+          payload = {
+              'model': 'V14.21_DEMO_AUTO_RUNNER',
+              'default_mode': config.requested_mode,
+              'demo_only': True,
+              'funded_account_supported': False,
+              'direct_range_orders': False,
+              'v14_20_filter_active': True,
+              'order_check_required': True,
+              'risk_boundaries': {
+                  'single_trade_percent': config.max_live_risk_percent,
+                  'combined_percent': config.max_open_risk_percent,
+                  'hard_drawdown_percent': config.live_hard_drawdown_percent,
+                  'daily_loss_dollars': config.daily_loss_limit_dollars,
+                  'overall_loss_dollars': config.overall_loss_limit_dollars,
+                  'consecutive_losses': config.maximum_consecutive_losses,
+              },
+          }
+          Path('v14_21_validation/safety_manifest.json').write_text(
+              json.dumps(payload, indent=2),
+              encoding='utf-8',
+          )
+          print(json.dumps(payload, indent=2))
+          PY
+      - name: Confirm no credentials are committed
+        run: |
+          ! grep -R --line-number -E \
+            'MT5_PASSWORD=[^Y[:space:]]|MT5_LOGIN=[0-9]{4,}' \
+            .env.v14-21-demo-auto.example
+      - name: Upload V14.21 validation package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-21-demo-auto-runner-validation
+          path: v14_21_validation/
+          if-no-files-found: error
+          retention-days: 90
