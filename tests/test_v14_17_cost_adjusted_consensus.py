@@ -126,3 +126,5 @@ def test_live_context_requires_reconciled_mature_samples():
     )
     assert not denied
     assert denied_reason == "LIVE_CONTEXT_NOT_BROKER_RECONCILED"
+
+# Validation child branch trigger; no production behavior change.
