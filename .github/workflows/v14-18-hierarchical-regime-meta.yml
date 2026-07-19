@@ -1,0 +1,165 @@
+name: V14.18 hierarchical regime meta-labeler
+
+on:
+  push:
+    branches:
+      - v14-18-hierarchical-regime-meta-labeler
+    paths:
+      - "mt5_ai_bridge/v14_18_hierarchical_regime_meta.py"
+      - "mt5_ai_bridge/v14_18_hierarchical_regime_meta_live.py"
+      - "research/v14_18_hierarchical_regime_meta_backtest.py"
+      - "research/v14_18_hierarchical_regime_meta_backtest_run.py"
+      - "tests/test_v14_18_hierarchical_regime_meta.py"
+      - "V14_18_HIERARCHICAL_REGIME_META.md"
+      - ".github/workflows/v14-18-hierarchical-regime-meta.yml"
+  pull_request:
+    branches:
+      - v14-17-cost-adjusted-consensus
+      - v14-18-hierarchical-regime-meta-labeler
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-backtest-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib pytest
+      - name: Compile V14.18 modules
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_18_hierarchical_regime_meta.py
+          mt5_ai_bridge/v14_18_hierarchical_regime_meta_live.py
+          research/v14_18_hierarchical_regime_meta_backtest.py
+          research/v14_18_hierarchical_regime_meta_backtest_run.py
+          tests/test_v14_18_hierarchical_regime_meta.py
+      - name: Run inherited and V14.18 tests
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_18_hierarchical_regime_meta_output
+          python -m pytest -q \
+            tests/test_v14_4_profit_guard.py \
+            tests/test_v14_13_cost_regime.py \
+            tests/test_v14_14_extended_cost.py \
+            tests/test_v14_15_unified_reasoning.py \
+            tests/test_v14_16_quality_allocation.py \
+            tests/test_v14_16_quality_nominal.py \
+            tests/test_v14_16_quality_live.py \
+            tests/test_v14_17_cost_adjusted_consensus.py \
+            tests/test_v14_18_hierarchical_regime_meta.py 2>&1 \
+            | tee research/v14_18_hierarchical_regime_meta_output/pytest.log
+      - name: Run exact ten-year six-scenario chronological replay
+        run: |
+          set -o pipefail
+          python research/v14_18_hierarchical_regime_meta_backtest_run.py 2>&1 \
+            | tee research/v14_18_hierarchical_regime_meta_output/backtest_stdout.log
+      - name: Validate V14.18 improvement and retained controls
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/v14_18_hierarchical_regime_meta_output')
+          payload = json.loads((root / 'v14_18_results.json').read_text())
+          results = payload['results']
+          reference = payload['v14_17_reference_net']
+
+          assert payload['model'] == 'V14.18_HIERARCHICAL_REGIME_META_LABELER'
+          assert payload['parent_model'] == 'V14.17_COST_ADJUSTED_CONSENSUS'
+          assert payload['chronological_hierarchy_only'] is True
+          assert payload['risk_uplift_allowed'] is False
+          assert payload['range_mean_reversion']['implemented'] is False
+          assert payload['range_mean_reversion']['future_mode'] == 'SHADOW_ONLY'
+
+          zero = results['zero_cost/v14_13']['summary']
+          assert abs(zero['net_profit'] - reference['zero_cost']) <= 0.02, zero
+          assert zero['closed_trades'] == 4974, zero
+          assert zero.get('v14_18_reduced_labels', 0) == 0, zero
+          assert zero.get('v14_18_observation_labels', 0) == 0, zero
+          assert zero.get('v14_18_shadow_labels', 0) == 0, zero
+          assert zero['stress_drawdown_percent'] <= 10.00, zero
+
+          for scenario in ('demo_cost', 'retail_cost', 'stress_cost', 'severe_cost', 'extreme_cost'):
+              summary = results[f'{scenario}/v14_13']['summary']
+              assert summary['net_profit'] > reference[scenario], (scenario, summary)
+              assert summary['profit_factor'] > 1.0, (scenario, summary)
+              assert summary['max_closed_drawdown_percent'] <= 9.60, (scenario, summary)
+              assert summary['stress_drawdown_percent'] <= 10.00, (scenario, summary)
+
+              ledger = pd.read_csv(root / 'ledgers' / scenario / 'v14_13_trades.csv')
+              assert ledger['risk_percent'].max() <= 0.80 + 1e-12, scenario
+              assert ledger['executed_risk_percent'].max() <= 0.80 + 1e-12, scenario
+              assert 'v14_18_market_regime' in ledger.columns, scenario
+              assert 'v14_18_meta_label' in ledger.columns, scenario
+              assert set(ledger['v14_18_market_regime'].dropna()).issubset(
+                  {'TREND', 'RANGE', 'TRANSITION', 'DISLOCATED'}
+              ), scenario
+
+              decisions = pd.read_csv(
+                  root / 'ledgers' / scenario / 'v14_13_cost_regime_decisions.csv'
+              )
+              for column in (
+                  'v14_18_market_regime',
+                  'v14_18_meta_label',
+                  'v14_18_hierarchical_score_r',
+                  'v14_18_hierarchical_confidence',
+              ):
+                  assert column in decisions.columns, (scenario, column)
+
+              active = decisions[
+                  pd.to_numeric(decisions['v14_18_parent_risk_percent'], errors='coerce').fillna(0) > 0
+              ]
+              changed = active[
+                  pd.to_numeric(active['v14_18_final_risk_percent'], errors='coerce').fillna(0)
+                  < pd.to_numeric(active['v14_18_parent_risk_percent'], errors='coerce').fillna(0) - 1e-12
+              ]
+              assert len(changed) > 0, scenario
+              assert (changed['mode'].astype(str).str.upper() == 'V12').all(), scenario
+              assert changed['v14_18_market_regime'].isin(['TREND', 'TRANSITION']).all(), scenario
+              assert not changed['v14_18_meta_label'].isin(['FULL']).any(), scenario
+              assert (
+                  pd.to_numeric(active['v14_18_final_risk_percent'], errors='coerce').fillna(0)
+                  <= pd.to_numeric(active['v14_18_parent_risk_percent'], errors='coerce').fillna(0) + 1e-12
+              ).all(), scenario
+
+          extreme_coverage = payload['dual_mode_coverage']['extreme_cost']
+          for symbol, modes in extreme_coverage.items():
+              assert modes['V12'] > 0, (symbol, modes)
+              assert modes['ICT'] > 0, (symbol, modes)
+
+          for expected in (
+              'V14_18_REPORT.md',
+              'v14_18_results.json',
+              'comparison_summary.csv',
+              'pytest.log',
+              'backtest_stdout.log',
+              'ledgers/demo_cost/v14_13_trades.csv',
+              'ledgers/extreme_cost/v14_13_trades.csv',
+              'ledgers/demo_cost/v14_13_cost_regime_decisions.csv',
+          ):
+              assert (root / expected).exists(), expected
+
+          print('zero', zero)
+          for scenario in ('demo_cost', 'retail_cost', 'stress_cost', 'severe_cost', 'extreme_cost'):
+              print(scenario, results[f'{scenario}/v14_13']['summary'])
+          print('extreme_coverage', extreme_coverage)
+          PY
+      - name: Upload V14.18 validation package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-18-hierarchical-regime-meta-labeler
+          path: research/v14_18_hierarchical_regime_meta_output/
+          if-no-files-found: error
+          retention-days: 90
