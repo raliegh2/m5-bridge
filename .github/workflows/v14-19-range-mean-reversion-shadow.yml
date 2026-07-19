@@ -1,0 +1,177 @@
+name: V14.19 range mean-reversion shadow
+
+on:
+  push:
+    branches:
+      - v14-19-range-mean-reversion-shadow
+    paths:
+      - "mt5_ai_bridge/v14_19_range_mean_reversion_shadow.py"
+      - "research/download_fxcm_v14_19_range_core.py"
+      - "research/v14_19_range_shadow_backtest.py"
+      - "research/v14_19_range_shadow_backtest_run.py"
+      - "tests/test_v14_19_range_shadow.py"
+      - "V14_19_RANGE_MEAN_REVERSION_SHADOW.md"
+      - ".github/workflows/v14-19-range-mean-reversion-shadow.yml"
+  pull_request:
+    branches:
+      - v14-18-hierarchical-regime-meta-labeler
+      - v14-19-range-mean-reversion-shadow
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-download-backtest-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+      FXCM_OUT: research/fxcm_v14_19_range_2013_2026_data
+      FXCM_FROM: "2013-01-01T00:00:00Z"
+      FXCM_TO: "2026-05-31T23:59:59Z"
+      FXCM_SYMBOLS: "GBPUSD,EURUSD,GBPJPY,AUDUSD,USDJPY"
+      FXCM_WORKERS: "32"
+      FXCM_MIN_BARS: "18000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy matplotlib requests pytest
+      - name: Compile V14.19 modules
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_19_range_mean_reversion_shadow.py
+          research/download_fxcm_v14_19_range_core.py
+          research/v14_19_range_shadow_backtest.py
+          research/v14_19_range_shadow_backtest_run.py
+          tests/test_v14_19_range_shadow.py
+      - name: Run inherited and V14.19 tests
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_19_range_mean_reversion_shadow_output
+          python -m pytest -q \
+            tests/test_v14_4_profit_guard.py \
+            tests/test_v14_13_cost_regime.py \
+            tests/test_v14_14_extended_cost.py \
+            tests/test_v14_15_unified_reasoning.py \
+            tests/test_v14_16_quality_allocation.py \
+            tests/test_v14_16_quality_nominal.py \
+            tests/test_v14_16_quality_live.py \
+            tests/test_v14_17_cost_adjusted_consensus.py \
+            tests/test_v14_18_hierarchical_regime_meta.py \
+            tests/test_v14_19_range_shadow.py 2>&1 \
+            | tee research/v14_19_range_mean_reversion_shadow_output/pytest.log
+      - name: Restore FXCM core cache
+        id: fxcm-cache
+        uses: actions/cache@v4
+        with:
+          path: research/fxcm_v14_19_range_2013_2026_data
+          key: fxcm-v14-19-range-core-h1-2013-2026-v1
+      - name: Download official FXCM bid-ask data
+        if: steps.fxcm-cache.outputs.cache-hit != 'true'
+        run: python research/download_fxcm_v14_19_range_core.py
+      - name: Validate FXCM dataset
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/fxcm_v14_19_range_2013_2026_data')
+          manifest = json.loads((root / 'manifest.json').read_text())
+          core = {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          assert core <= set(manifest['available']), (core - set(manifest['available']))
+          for symbol in sorted(core):
+              for side in ('bid', 'ask'):
+                  path = root / f'{symbol}_H1_{side}.csv'
+                  frame = pd.read_csv(path, usecols=['time'])
+                  times = pd.to_datetime(frame['time'], utc=True)
+                  assert len(frame) >= 18_000, (symbol, side, len(frame))
+                  assert times.min() <= pd.Timestamp('2016-01-04T00:00:00Z'), (symbol, side, times.min())
+                  assert times.max() >= pd.Timestamp('2026-05-01T00:00:00Z'), (symbol, side, times.max())
+          print('validated_core', sorted(core))
+          PY
+      - name: Run V14.18 parity and V14.19 range shadow replay
+        run: |
+          set -o pipefail
+          python research/v14_19_range_shadow_backtest_run.py 2>&1 \
+            | tee research/v14_19_range_mean_reversion_shadow_output/backtest_stdout.log
+      - name: Validate principal parity and shadow integrity
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/v14_19_range_mean_reversion_shadow_output')
+          payload = json.loads((root / 'v14_19_results.json').read_text())
+          assert payload['model'] == 'V14.19_RANGE_MEAN_REVERSION_SHADOW'
+          assert payload['parent_model'] == 'V14.18_HIERARCHICAL_REGIME_META_LABELER'
+          assert payload['shadow_only'] is True
+          assert payload['live_execution_changed'] is False
+          assert payload['principal_portfolio_changed'] is False
+
+          for scenario, reference in payload['principal_reference_net'].items():
+              summary = payload['principal_results'][f'{scenario}/v14_13']['summary']
+              assert abs(summary['net_profit'] - reference) <= 0.02, (scenario, summary, reference)
+              assert summary['max_closed_drawdown_percent'] <= 9.60, (scenario, summary)
+              assert summary['stress_drawdown_percent'] <= 10.00, (scenario, summary)
+
+          source = pd.read_csv(root / 'range_shadow_source_trades.csv')
+          assert len(source) >= 100, len(source)
+          assert set(source['symbol']) == {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          assert source['shadow_only'].astype(str).str.lower().eq('true').all()
+          assert pd.to_numeric(source['requested_risk_percent'], errors='coerce').fillna(0).eq(0).all()
+          assert pd.to_numeric(source['executed_risk_percent'], errors='coerce').fillna(0).eq(0).all()
+          assert source['transmitted'].astype(str).str.lower().eq('false').all()
+          assert (
+              pd.to_datetime(source['entry_time'], utc=True)
+              > pd.to_datetime(source['signal_available_at'], utc=True)
+          ).all()
+
+          scenario_order = ('zero_cost', 'demo_cost', 'retail_cost', 'stress_cost', 'severe_cost', 'extreme_cost')
+          net_values = []
+          for scenario in scenario_order:
+              item = payload['range_shadow']['scenarios'][scenario]
+              assert item['summary']['trades'] == len(source), (scenario, item['summary'])
+              ledger = pd.read_csv(root / f'range_shadow_{scenario}_trades.csv')
+              assert len(ledger) == len(source), scenario
+              assert ledger['shadow_only'].astype(str).str.lower().eq('true').all(), scenario
+              assert pd.to_numeric(ledger['executed_risk_percent'], errors='coerce').fillna(0).eq(0).all(), scenario
+              net_values.append(item['summary']['net_r'])
+          assert all(left >= right - 1e-9 for left, right in zip(net_values, net_values[1:])), net_values
+
+          gate = payload['range_shadow']['promotion_gate']
+          assert gate['live_promotion_authorized'] is False
+          assert gate['status'] == 'SHADOW_ONLY_REGARDLESS_OF_BACKTEST'
+
+          for expected in (
+              'V14_19_REPORT.md',
+              'v14_19_results.json',
+              'range_shadow_source_trades.csv',
+              'range_shadow_retail_cost_trades.csv',
+              'range_shadow_stress_cost_trades.csv',
+              'pytest.log',
+              'backtest_stdout.log',
+              'ledgers/demo_cost/v14_13_trades.csv',
+              'ledgers/extreme_cost/v14_13_trades.csv',
+          ):
+              assert (root / expected).exists(), expected
+
+          print('source_trades', len(source))
+          for scenario in scenario_order:
+              print(scenario, payload['range_shadow']['scenarios'][scenario]['summary'])
+          print('promotion_gate', gate)
+          PY
+      - name: Upload V14.19 validation package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-19-range-mean-reversion-shadow
+          path: research/v14_19_range_mean_reversion_shadow_output/
+          if-no-files-found: error
+          retention-days: 90
