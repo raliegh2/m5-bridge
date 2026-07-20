@@ -25,6 +25,26 @@ def pip_size(client, symbol: str) -> Optional[float]:
     return info.point
 
 
+def pip_value_per_lot(client, symbol: str, pip: float,
+                      fallback: float) -> float:
+    """$/pip per 1.0 lot for ``symbol``, derived from the broker's tick data.
+
+    MT5 exposes ``trade_tick_value`` ($ move per ``trade_tick_size`` price move
+    for 1 lot). One pip is ``pip`` price units, so
+    pip_value = trade_tick_value * (pip / trade_tick_size). This makes sizing
+    correct for JPY-quote pairs (~$6.5/pip) as well as USD-quote (~$10/pip).
+    Falls back to ``fallback`` (the configured constant) when the broker does
+    not supply the tick fields, e.g. in backtests.
+    """
+    info = client.symbol_info(symbol) if client is not None else None
+    tick_value = getattr(info, "trade_tick_value", None)
+    tick_size = getattr(info, "trade_tick_size", None)
+    if info is not None and tick_value and tick_size and tick_size > 0 \
+            and pip and pip > 0:
+        return tick_value * (pip / tick_size)
+    return fallback
+
+
 def place_market_order(client, symbol: str, order_type, volume: float,
                        stop_loss_pips: Optional[float] = None,
                        take_profit_pips: Optional[float] = None,

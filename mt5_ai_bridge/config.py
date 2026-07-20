@@ -70,6 +70,9 @@ class Settings:
     risk_percent: float
     intraday_risk_percent: float
     swing_risk_percent: float
+    # Optional per-symbol overrides, tuples of (SYMBOL, percent).
+    swing_risk_overrides: tuple
+    intraday_risk_overrides: tuple
     pip_value_per_lot: float
     max_lot: float
 
@@ -115,6 +118,16 @@ class Settings:
         """The higher timeframes that must all agree to confirm a trend."""
         return (self.trend_tf_mid, self.swing_tf_high, self.swing_tf_higher)
 
+    def swing_risk_for(self, symbol: str) -> float:
+        """Swing risk %% for a symbol (per-symbol override, else the global)."""
+        return dict(self.swing_risk_overrides).get(
+            (symbol or "").upper(), self.swing_risk_percent)
+
+    def intraday_risk_for(self, symbol: str) -> float:
+        """Intraday risk %% for a symbol (per-symbol override, else the global)."""
+        return dict(self.intraday_risk_overrides).get(
+            (symbol or "").upper(), self.intraday_risk_percent)
+
 
 def _get_int(name: str, default: Optional[int] = None) -> Optional[int]:
     raw = os.getenv(name)
@@ -153,6 +166,21 @@ def load_settings(dotenv: bool = True) -> Settings:
     symbols = tuple(dict.fromkeys(
         t.strip().upper() for t in raw_symbols.replace(",", " ").split() if t.strip()
     )) or (symbol,)
+
+    def _risk_overrides(prefix: str) -> tuple:
+        out = []
+        for key, val in os.environ.items():
+            if key.startswith(prefix) and val.strip():
+                sym = key[len(prefix):].strip().upper()
+                try:
+                    if sym:
+                        out.append((sym, float(val.strip())))
+                except ValueError:
+                    pass
+        return tuple(sorted(out))
+
+    swing_overrides = _risk_overrides("SWING_RISK_PERCENT_")
+    intraday_overrides = _risk_overrides("INTRADAY_RISK_PERCENT_")
     return Settings(
         login=_get_int("MT5_LOGIN"),
         password=os.getenv("MT5_PASSWORD"),
@@ -200,6 +228,8 @@ def load_settings(dotenv: bool = True) -> Settings:
         risk_percent=_get_float("RISK_PERCENT", 0.5),
         intraday_risk_percent=_get_float("INTRADAY_RISK_PERCENT", 0.11),
         swing_risk_percent=_get_float("SWING_RISK_PERCENT", 1.05),
+        swing_risk_overrides=swing_overrides,
+        intraday_risk_overrides=intraday_overrides,
         pip_value_per_lot=_get_float("PIP_VALUE_PER_LOT", 10.0),
         max_lot=_get_float("MAX_LOT", 2.0),
         multi_book=_get_bool("MULTI_BOOK", True),
