@@ -324,6 +324,28 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
     }
 
 
+def _engine_breakdown(client, settings, strategy_fn) -> list:
+    """Per-SYMBOL engine breakdown for the dashboard.
+
+    For every configured symbol, returns the SAME read _bot_thinking produces
+    (both engines' ready/waiting state + bias + confidence + the plain-English
+    reason, plus the per-timeframe reads that feed the decision) tagged with the
+    symbol. This powers the "all engines / decision process" panel so the user
+    can see how each of the intraday and swing engines is deciding on EVERY
+    pair, not just the primary one. Empty when the multi-book engine is off.
+    """
+    if not settings.multi_book:
+        return []
+    rows = []
+    for sym in settings.symbols:
+        read = _bot_thinking(client, settings, strategy_fn, symbol=sym)
+        if read is not None:
+            row = dict(read)
+            row["symbol"] = sym
+            rows.append(row)
+    return rows
+
+
 def _count_side(client, positions, symbol: str, side: Signal,
                 magic: Optional[int] = None) -> int:
     target = client.POSITION_TYPE_BUY if side is Signal.BUY else client.POSITION_TYPE_SELL
@@ -366,7 +388,7 @@ def _status(settings, message: str) -> None:
 
 
 def _refresh_dashboard(client, journal, settings, control=None,
-                       thinking=None, prop=None) -> None:
+                       thinking=None, prop=None, engines=None) -> None:
     if not settings.write_dashboard:
         return
     try:
@@ -374,10 +396,12 @@ def _refresh_dashboard(client, journal, settings, control=None,
         write_dashboard_live(journal, snap, settings.dashboard_path,
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking,
-                             port=settings.dashboard_port, prop=prop)
+                             port=settings.dashboard_port, prop=prop,
+                             engines=engines)
         write_dashboard_data(journal, snap, _data_path(settings),
                              settings.dashboard_refresh_seconds,
-                             control=control, thinking=thinking, prop=prop)
+                             control=control, thinking=thinking, prop=prop,
+                             engines=engines)
     except Exception as exc:  # noqa: BLE001
         log.warning("Dashboard refresh failed: %s", exc)
 
@@ -470,8 +494,13 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
                              settings.atr_period)
     decision = strategy_fn(market)
 
-    # Higher-timeframe confirmation view (for the dashboard + setup/filter flags).
-    thinking = _bot_thinking(client, settings, strategy_fn, symbol=primary)
+    # Per-symbol engine breakdown (both engines + decision reasons for EVERY
+    # pair). The primary symbol's read is reused for the top thinking panel and
+    # the setup/filter flags, so it is not computed twice.
+    breakdown = _engine_breakdown(client, settings, strategy_fn)
+    thinking = next((r for r in breakdown if r.get("symbol") == primary), None)
+    if thinking is None:
+        thinking = _bot_thinking(client, settings, strategy_fn, symbol=primary)
     setup_flag, filtered_flag = _signal_flags(decision, thinking)
 
     journal.log_signal(primary, decision.signal.value,
@@ -531,7 +560,7 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
 
     control = {"active": active, "prop": prop_on} if state is not None else None
     _refresh_dashboard(client, journal, settings, control=control,
-                       thinking=thinking, prop=prop)
+                       thinking=thinking, prop=prop, engines=breakdown)
     _print_status(client, settings, active=active)
 
 

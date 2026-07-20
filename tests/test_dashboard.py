@@ -178,3 +178,40 @@ def test_position_pips_use_per_position_pip_size():
     fx = {"symbol": "GBPUSD", "type": "BUY", "price_open": 1.2680,
           "price_current": 1.2712, "sl": 1.26, "tp": 1.284, "pip_size": 0.0001}
     assert _position_view(fx, 0.0001)["pips"] == 32.0
+
+
+def test_engine_breakdown_panel_shows_all_symbols_and_engines(tmp_path):
+    """The all-engines panel lists every symbol with both engines + reasons."""
+    j = Journal(str(tmp_path / "eb.db"))
+    rows = [
+        {"symbol": "USDJPY", "aligned": True, "bias": "BUY",
+         "engines": [
+             {"name": "Intraday", "ready": True, "bias": "BUY", "confidence": 0.71,
+              "reason": "M15 and M30 agree; no strong H4 opposition."},
+             {"name": "Swing", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Waiting for H4/D1 trend and M30/M15 timing to agree."}],
+         "timeframes": [{"tf": "M15", "label": "Entry", "signal": "BUY",
+                         "confidence": 0.71, "reason": "EMA20>EMA50."}]},
+        {"symbol": "XAUUSD", "aligned": False, "bias": "NONE",
+         "engines": [
+             {"name": "Intraday", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Waiting for M15 and M30 to agree."},
+             {"name": "Swing", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Waiting for H4/D1 trend and M30/M15 timing to agree."}],
+         "timeframes": []},
+    ]
+    html = build_dashboard(j, live=_live(), engines=rows)
+    j.close()
+    assert "All engines" in html
+    assert "USDJPY" in html and "XAUUSD" in html
+    assert "Intraday" in html and "Swing" in html
+    assert "Decision process" in html                # per-symbol read table
+    assert "M15 and M30 agree" in html               # engine reason surfaced
+    assert 'id="engines_panel"' in html              # live-updatable container
+
+
+def test_engine_breakdown_panel_empty_when_no_rows(tmp_path):
+    j = Journal(str(tmp_path / "eb2.db"))
+    html = build_dashboard(j, live=_live(), engines=[])
+    j.close()
+    assert "All engines" not in html                 # panel omitted when empty

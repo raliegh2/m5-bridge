@@ -130,3 +130,25 @@ def test_pick_primary_defaults_to_first_when_none_have_data(monkeypatch):
     monkeypatch.setattr(app, "market_snapshot",
                         lambda *a, **k: None)
     assert app._pick_primary(object(), settings) == "GBPUSD"
+
+
+def test_engine_breakdown_covers_every_symbol(monkeypatch):
+    """_engine_breakdown returns one read per configured symbol."""
+    from mt5_ai_bridge import app
+    from mt5_ai_bridge.enums import Signal
+    from mt5_ai_bridge.strategy import Decision
+    from tests.fakes import make_settings
+
+    settings = make_settings(symbol="USDJPY",
+                             symbols=("USDJPY", "XAUUSD"), multi_book=True)
+    monkeypatch.setattr(app, "market_snapshot",
+                        lambda *a, **k: {"close": 1.0})
+    monkeypatch.setattr(app, "explain_market", lambda snap: "because reasons")
+    rows = app._engine_breakdown(object(), settings,
+                                 lambda _m: Decision(Signal.WAIT, "wait", 0.5))
+    assert [r["symbol"] for r in rows] == ["USDJPY", "XAUUSD"]
+    # Each row exposes both engines with a reason (the decision process).
+    for r in rows:
+        names = {e["name"] for e in r["engines"]}
+        assert names == {"Intraday", "Swing"}
+        assert all(e["reason"] for e in r["engines"])
