@@ -23,11 +23,13 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import List
 
+import numpy as np
 import pandas as pd
 
 from .books import build_books
 
 CONTRACT = 100_000
+_MISS = object()
 PIP = 0.0001
 _TF_FREQ = {"M1": "1min", "M5": "5min", "M15": "15min", "M30": "30min",
             "H1": "1h", "H4": "4h", "D1": "1D"}
@@ -68,6 +70,10 @@ class BacktestBroker:
                                         low=("low", "min"), close=("close", "last")).dropna()
             r["time"] = r.index.astype("int64") // 10**9
             out[tf] = r.reset_index(drop=True)
+        # Fast lookup indexes (O(log n) per bar instead of a full scan).
+        self._tf_records = {tf: rr.to_dict("records") for tf, rr in out.items()}
+        self._tf_times = {tf: np.asarray([rec["time"] for rec in recs])
+                          for tf, recs in self._tf_records.items()}
         return out
 
     def _price(self) -> float:
@@ -154,14 +160,25 @@ class BacktestBroker:
         return objs
 
     def copy_rates_from_pos(self, symbol, timeframe_name, start, count):
-        r = self._resampled.get(timeframe_name.upper())
-        if r is None or len(r) == 0:
+        tf = timeframe_name.upper()
+        times = self._tf_times.get(tf)
+        if times is None or len(times) == 0:
             return None
         now_t = int(self.df["time"].iloc[self._i])
-        sub = r[r["time"] <= now_t].tail(count)
-        if len(sub) == 0:
+        idx = int(np.searchsorted(times, now_t, side="right"))
+        if idx == 0:
             return None
-        return sub.to_dict("records")
+        return self._tf_records[tf][max(0, idx - count):idx]
+
+    def last_bar_time(self, timeframe_name):
+        """Timestamp of the most recent completed bar of ``timeframe_name``."""
+        tf = timeframe_name.upper()
+        times = self._tf_times.get(tf)
+        if times is None or len(times) == 0:
+            return None
+        now_t = int(self.df["time"].iloc[self._i])
+        idx = int(np.searchsorted(times, now_t, side="right"))
+        return None if idx == 0 else int(times[idx - 1])
 
     def order_send(self, request):
         action = request["action"]
@@ -234,6 +251,7 @@ class BookBacktestResult:
 def run_multibook_backtest(df: pd.DataFrame, settings, starting_balance: float = 10_000.0,
                            spread_pips: float = 1.5,
                            commission_per_lot: float = 0.0) -> BookBacktestResult:
+    from . import app as _appmod
     from .app import (_run_books, _update_trailing_stops, make_planner_configs,
                       make_strategy)
     from .journal import Journal
@@ -245,15 +263,38 @@ def run_multibook_backtest(df: pd.DataFrame, settings, starting_balance: float =
     strategy_fn = make_strategy(settings)
     planner = make_planner_configs(settings)
 
-    times = df["time"].astype("int64").tolist()
-    for i in range(len(df)):
-        broker.advance(i)
-        now = datetime.fromtimestamp(times[i], tz=timezone.utc)
-        _run_books(broker, journal, settings, strategy_fn, planner,
-                   broker.positions_get(), now_utc=now)
-        if settings.trail_enabled:
-            _update_trailing_stops(broker, settings)
-        broker.equity_curve.append(broker.account_info().equity)
+    # Snapshot memoization: the indicator snapshot for a timeframe only changes
+    # when a new bar of that timeframe closes, so cache it per (symbol, tf,
+    # last-bar-time). On a miss we call the ORIGINAL market_snapshot, so results
+    # are byte-for-byte identical to the unmemoized backtest -- this is a pure
+    # speedup. Restored in ``finally`` so live behaviour is untouched.
+    _orig_snapshot = _appmod.market_snapshot
+    _snap_memo = {}
+
+    def _memoized_snapshot(client, symbol, timeframe="M30", atr_period=14):
+        last = getattr(client, "last_bar_time", lambda _tf: None)(timeframe)
+        if last is None:
+            return _orig_snapshot(client, symbol, timeframe, atr_period)
+        key = (symbol, timeframe.upper(), last)
+        cached = _snap_memo.get(key, _MISS)
+        if cached is _MISS:
+            cached = _orig_snapshot(client, symbol, timeframe, atr_period)
+            _snap_memo[key] = cached
+        return cached
+
+    _appmod.market_snapshot = _memoized_snapshot
+    try:
+        times = df["time"].astype("int64").tolist()
+        for i in range(len(df)):
+            broker.advance(i)
+            now = datetime.fromtimestamp(times[i], tz=timezone.utc)
+            _run_books(broker, journal, settings, strategy_fn, planner,
+                       broker.positions_get(), now_utc=now)
+            if settings.trail_enabled:
+                _update_trailing_stops(broker, settings)
+            broker.equity_curve.append(broker.account_info().equity)
+    finally:
+        _appmod.market_snapshot = _orig_snapshot
 
     last = df.iloc[-1]
     for p in list(broker.open):
