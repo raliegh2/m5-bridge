@@ -61,6 +61,37 @@ class ControlState:
             self._prop = bool(value)
 
 
+def _inject_live_state(raw: bytes, state: ControlState) -> bytes:
+    """Overlay the authoritative ControlState (active + prop) onto a snapshot.
+
+    The bot rewrites the /data file only once per loop, so between loops the
+    file lags a Start/Pause/Prop click. Patching the live flags in here makes a
+    single click stick immediately without waiting for the next loop.
+    """
+    try:
+        data = json.loads(raw.decode("utf-8") or "{}")
+    except (ValueError, UnicodeDecodeError):
+        return raw
+    if not isinstance(data, dict) or not data:
+        return raw
+    prop_on = state.is_prop()
+    ctl = data.get("control")
+    if isinstance(ctl, dict):
+        ctl["active"] = state.is_active()
+        ctl["prop"] = prop_on
+    prop = data.get("prop")
+    if isinstance(prop, dict):
+        prop["enabled"] = prop_on
+        if not prop_on:
+            prop["status"] = "OFF"
+        elif prop.get("status") in (None, "OFF"):
+            prop["status"] = "TRADING"
+    try:
+        return json.dumps(data).encode("utf-8")
+    except (TypeError, ValueError):
+        return raw
+
+
 def route(path: str, method: str, state: ControlState,
           dashboard_path: str, data_path: Optional[str] = None
           ) -> Tuple[int, str, bytes]:
@@ -87,9 +118,14 @@ def route(path: str, method: str, state: ControlState,
         if data_path:
             try:
                 with open(data_path, "rb") as fh:
-                    return 200, "application/json; charset=utf-8", fh.read()
+                    raw = fh.read()
             except OSError:
-                pass
+                raw = b"{}"
+            # Overlay the LIVE Start/Pause + Prop flags so a click is reflected on
+            # the very next poll, instead of waiting for the bot's next loop to
+            # rewrite the snapshot file (which is what made toggles need a second
+            # click).
+            return 200, "application/json; charset=utf-8", _inject_live_state(raw, state)
         # No snapshot yet -> valid empty JSON so the page's poller no-ops.
         return 200, "application/json; charset=utf-8", b"{}"
     if p in ("/", "/index.html", "/dashboard.html"):
