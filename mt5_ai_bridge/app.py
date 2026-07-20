@@ -427,6 +427,24 @@ def _prop_off_payload(settings, account) -> dict:
     }
 
 
+def _pick_primary(client, settings) -> str:
+    """The symbol the dashboard's \"What the bot sees now\" panel reads.
+
+    Normally the first configured symbol, but if that one returns no bars (e.g.
+    it is not offered under that exact name by the broker) we fall through to
+    the first symbol that DOES have data, so the panel is never stuck showing
+    \"no market data\" while other symbols trade fine.
+    """
+    for sym in settings.symbols:
+        try:
+            if market_snapshot(client, sym, settings.timeframe,
+                               settings.atr_period) is not None:
+                return sym
+        except Exception:  # noqa: BLE001
+            continue
+    return settings.symbols[0]
+
+
 def _run_once(client, journal, settings, strategy_fn, limits, tracker,
               planner_cfgs, state: Optional[ControlState] = None,
               prop_guard=None) -> None:
@@ -445,7 +463,9 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
              risk.message, _account_kind(account), day_loss, active)
 
     # Fast ENTRY read on the PRIMARY symbol (drives the dashboard signal view).
-    primary = settings.symbols[0]
+    # Auto-pick the first symbol that actually has data so the panel never
+    # sticks on a symbol the broker does not offer under that name.
+    primary = _pick_primary(client, settings)
     market = market_snapshot(client, primary, settings.timeframe,
                              settings.atr_period)
     decision = strategy_fn(market)
