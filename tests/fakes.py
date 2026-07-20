@@ -64,6 +64,9 @@ class FakeMT5Client:
             return [p for p in self._positions if p.ticket == ticket]
         return list(self._positions)
 
+    def symbol_select(self, symbol, enable=True):
+        return True
+
     def symbol_info(self, symbol):
         return self._symbol_info
 
