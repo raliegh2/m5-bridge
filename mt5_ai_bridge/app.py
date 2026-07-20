@@ -204,7 +204,7 @@ def account_snapshot(client, symbol: str) -> dict:
     }
 
 
-def _bot_thinking(client, settings, strategy_fn) -> Optional[dict]:
+def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
     """What the bot sees now, for the dashboard.
 
     Reads the fast ENTRY timeframe (M15) and the CONFIRMATION timeframes
@@ -214,12 +214,13 @@ def _bot_thinking(client, settings, strategy_fn) -> Optional[dict]:
     if not settings.multi_book:
         return None
 
+    symbol = symbol or settings.symbol
     entry_tf = settings.timeframe
     confirm_tfs = list(settings.confirm_timeframes)
 
     def evaluate(tf, label):
         try:
-            snap = market_snapshot(client, settings.symbol, tf, settings.atr_period)
+            snap = market_snapshot(client, symbol, tf, settings.atr_period)
             decision = strategy_fn(snap)
         except Exception as exc:  # noqa: BLE001
             log.warning("Dashboard analysis unavailable for %s: %s", tf, exc)
@@ -287,10 +288,11 @@ def _count_side(client, positions, symbol: str, side: Signal,
                and (magic is None or getattr(p, "magic", None) == magic))
 
 
-def _announce_open(settings, side, volume, book, sl_pips, tp_pips) -> None:
+def _announce_open(settings, side, volume, book, sl_pips, tp_pips,
+                   symbol=None) -> None:
     if not settings.console_status:
         return
-    print(f"\n[{est_now()}] OPEN {side} {volume} {settings.symbol} "
+    print(f"\n[{est_now()}] OPEN {side} {volume} {symbol or settings.symbol} "
           f"({book})  SL {sl_pips:g}p / TP {tp_pips:g}p")
 
 
@@ -336,11 +338,12 @@ def _refresh_dashboard(client, journal, settings, control=None,
         log.warning("Dashboard refresh failed: %s", exc)
 
 
-def _update_trailing_stops(client, settings) -> None:
-    pip = pip_size(client, settings.symbol)
+def _update_trailing_stops(client, settings, symbol=None) -> None:
+    symbol = symbol or settings.symbol
+    pip = pip_size(client, symbol)
     if not pip:
         return
-    for p in client.positions_get(symbol=settings.symbol) or []:
+    for p in client.positions_get(symbol=symbol) or []:
         is_buy = p.type == client.POSITION_TYPE_BUY
         new_sl = trailing_sl(is_buy, getattr(p, "price_open", 0.0),
                              getattr(p, "price_current", 0.0), p.sl, pip,
@@ -380,27 +383,34 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
                            account.equity, len(positions))
     log.info("Risk: %s | day_loss=%.2f | active=%s", risk.message, day_loss, active)
 
-    # Fast ENTRY read (TIMEFRAME = M15).
-    market = market_snapshot(client, settings.symbol, settings.timeframe,
+    # Fast ENTRY read on the PRIMARY symbol (drives the dashboard signal view).
+    primary = settings.symbols[0]
+    market = market_snapshot(client, primary, settings.timeframe,
                              settings.atr_period)
     decision = strategy_fn(market)
 
     # Higher-timeframe confirmation view (for the dashboard + setup/filter flags).
-    thinking = _bot_thinking(client, settings, strategy_fn)
+    thinking = _bot_thinking(client, settings, strategy_fn, symbol=primary)
     setup_flag, filtered_flag = _signal_flags(decision, thinking)
 
-    journal.log_signal(settings.symbol, decision.signal.value,
+    journal.log_signal(primary, decision.signal.value,
                        decision.reason, market, setup=setup_flag,
                        filtered=filtered_flag)
-    log.info("Signal: %s (%s) confidence=%s setup=%s filtered=%s",
-             decision.signal.value, decision.reason, decision.confidence,
+    log.info("Signal[%s]: %s (%s) confidence=%s setup=%s filtered=%s",
+             primary, decision.signal.value, decision.reason, decision.confidence,
              setup_flag, filtered_flag)
 
     # Open NEW trades only while trading is ACTIVE (remote pause honoured).
+    # Every symbol shares ONE account: the combined open-risk ceiling and the
+    # account-level dollar/drawdown limits bound total risk across all pairs.
     if settings.mode is not Mode.READ_ONLY and risk.ok and active:
         if settings.multi_book:
-            _run_books(client, journal, settings, strategy_fn, planner_cfgs,
-                       positions, account=account)
+            for sym in settings.symbols:
+                # Fetch positions fresh per symbol so the combined-risk ceiling
+                # sees trades opened for earlier symbols this same iteration.
+                _run_books(client, journal, settings, strategy_fn, planner_cfgs,
+                           client.positions_get() or [], account=account,
+                           symbol=sym)
         elif decision.signal.is_trade:
             _consider_trade(client, journal, settings, decision, positions,
                             planner_cfgs)
@@ -410,7 +420,8 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
 
     # Existing positions keep trailing even while paused (protects open risk).
     if settings.mode is not Mode.READ_ONLY and settings.trail_enabled:
-        _update_trailing_stops(client, settings)
+        for sym in settings.symbols:
+            _update_trailing_stops(client, settings, symbol=sym)
 
     control = {"active": active} if state is not None else None
     _refresh_dashboard(client, journal, settings, control=control,
@@ -419,29 +430,24 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
 
 
 def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
-               now_utc: Optional[datetime] = None, account=None) -> None:
-    """Run independent intraday and swing engines with shared risk limits."""
+               now_utc: Optional[datetime] = None, account=None,
+               symbol: Optional[str] = None) -> None:
+    """Run the intraday + swing engines for ONE symbol under shared limits.
+
+    In multi-symbol mode this is called once per symbol each loop. ``positions``
+    is the full account-wide list, so the combined open-risk ceiling is
+    enforced across EVERY symbol's open positions, not just this one.
+    """
+    symbol = symbol or settings.symbol
     now_utc = now_utc or datetime.now(timezone.utc)
     session_cfg, sizing_cfg, _style, stagger_cfg = planner_cfgs
     atr_cfg = _atr_cfg(settings)
-    pip = pip_size(client, settings.symbol) or 0.0001
+    pip = pip_size(client, symbol) or 0.0001
     balance = account.balance if account is not None else (
         client.account_info().balance if client.account_info() else 0.0)
     in_ny = is_ny_session(now_utc, session_cfg)
     total_open = len(positions)
 
-    cache = {}
-
-    def decide(tf):
-        if tf not in cache:
-            snap = market_snapshot(client, settings.symbol, tf, settings.atr_period)
-            cache[tf] = (snap, strategy_fn(snap))
-        return cache[tf]
-
-    timeframes = (settings.timeframe, settings.trend_tf_mid,
-                  settings.swing_tf_high, settings.swing_tf_higher)
-    decisions = {tf: decide(tf)[1] for tf in timeframes}
-    state = _dual_engine_state(decisions, settings)
     books = build_books(settings)
     swing_book = next(b for b in books
                       if b.timeframe.upper() == settings.swing_tf_high.upper())
@@ -449,24 +455,48 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                          if b.timeframe.upper() == settings.day_timeframe.upper())
     engine_magics = {swing_book.magic, intraday_book.magic}
 
+    # Fixed-fractional sizing means each open position risks a known % of the
+    # balance (its engine's risk_percent). Aggregate open risk across ALL
+    # symbols is therefore the count-weighted sum; trailing only lowers it, so
+    # this is a conservative upper bound used for the combined-risk ceiling.
+    engine_risk = {swing_book.magic: settings.swing_risk_percent,
+                   intraday_book.magic: settings.intraday_risk_percent}
+    open_risk = sum(engine_risk.get(getattr(p, "magic", None), 0.0)
+                    for p in positions)
+
+    cache = {}
+
+    def decide(tf):
+        if tf not in cache:
+            snap = market_snapshot(client, symbol, tf, settings.atr_period)
+            cache[tf] = (snap, strategy_fn(snap))
+        return cache[tf]
+
+    timeframes = (settings.timeframe, settings.trend_tf_mid,
+                  settings.swing_tf_high, settings.swing_tf_higher)
+    decisions = {tf: decide(tf)[1] for tf in timeframes}
+    state = _dual_engine_state(decisions, settings)
+
     def has_opposing_engine_position(side: Signal) -> bool:
         opposing = (client.POSITION_TYPE_SELL if side is Signal.BUY
                     else client.POSITION_TYPE_BUY)
-        return any(p.symbol == settings.symbol and p.type == opposing
+        return any(p.symbol == symbol and p.type == opposing
                    and getattr(p, "magic", None) in engine_magics
                    for p in positions)
 
     def open_engine(name, setup, book, snap_tf, risk_percent):
-        nonlocal total_open
+        nonlocal total_open, open_risk
         if not setup["valid"]:
-            log.info("%s engine waiting: %s", name, setup["reason"])
+            log.info("%s [%s] waiting: %s", name, symbol, setup["reason"])
             return
         if book.ny_only and not in_ny:
-            log.info("%s engine waiting: outside configured intraday session.", name)
+            log.info("%s [%s] waiting: outside configured intraday session.",
+                     name, symbol)
             return
         side = setup["bias"]
         if has_opposing_engine_position(side):
-            log.info("%s engine blocked: opposite dual-engine position is open.", name)
+            log.info("%s [%s] blocked: opposite dual-engine position is open.",
+                     name, symbol)
             return
 
         strong = setup["confidence"] >= settings.strong_trend_confidence
@@ -478,11 +508,18 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
             if atr_cfg.enabled else None
         base_sl, base_tp = stops if stops else (book.sl_pips, book.tp_pips)
         risk_cfg = _risk_cfg(settings, risk_percent)
-        have = _count_side(client, positions, settings.symbol, side, book.magic)
+        have = _count_side(client, positions, symbol, side, book.magic)
         opened = 0
 
         while have + opened < desired:
             if total_open >= settings.max_open_positions:
+                return
+            # Combined open-risk ceiling across ALL symbols and engines.
+            if open_risk + risk_percent > settings.combined_risk_ceiling + 1e-9:
+                log.info("%s [%s] blocked: combined open risk "
+                         "%.2f%% + %.2f%% > ceiling %.2f%%.",
+                         name, symbol, open_risk, risk_percent,
+                         settings.combined_risk_ceiling)
                 return
             if journal.count_trades_today() >= settings.max_trades_per_day:
                 return
@@ -491,20 +528,21 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
             volume = (risk_lot(balance, sl_pips, risk_cfg)
                       if risk_cfg.enabled else position_size(in_ny, sizing_cfg))
             ok, message = place_market_order(
-                client, settings.symbol, side, volume, sl_pips, tp_pips,
+                client, symbol, side, volume, sl_pips, tp_pips,
                 magic=book.magic, comment=book.name)
-            journal.log_order(settings.symbol, side.value, volume, None,
+            journal.log_order(symbol, side.value, volume, None,
                               sl_pips, tp_pips, None,
                               "FILLED" if ok else "REJECTED",
                               f"[{book.name} lvl{level}] {message}")
-            log.info("%s: %s %s lots SL%.1f/TP%.1f conf=%.2f -> %s",
-                     book.name, side.value, volume, sl_pips, tp_pips,
+            log.info("%s [%s]: %s %s lots SL%.1f/TP%.1f conf=%.2f -> %s",
+                     book.name, symbol, side.value, volume, sl_pips, tp_pips,
                      setup["confidence"], message)
             opened += 1
             if ok:
                 total_open += 1
+                open_risk += risk_percent
                 _announce_open(settings, side.value, volume, book.name,
-                               sl_pips, tp_pips)
+                               sl_pips, tp_pips, symbol=symbol)
             else:
                 break
 
