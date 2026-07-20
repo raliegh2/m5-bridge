@@ -313,9 +313,13 @@ def _position_view(pos: dict, pip_size: float) -> dict:
     tp = pos.get("tp") or 0.0
     direction = 1.0 if side == "BUY" else -1.0
 
+    # Prefer the position's OWN pip size (gold/JPY/FX differ); fall back to the
+    # account-level pip size only when a per-position value is absent.
+    ps = pos.get("pip_size") or pip_size
+
     pips = None
-    if entry and cur and pip_size:
-        pips = round(direction * (cur - entry) / pip_size, 1)
+    if entry and cur and ps:
+        pips = round(direction * (cur - entry) / ps, 1)
 
     rr = None
     if entry and sl and tp:

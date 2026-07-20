@@ -52,6 +52,18 @@ class RealMT5Client:
     def positions_get(self, **kwargs) -> Any:
         return self._mt5.positions_get(**kwargs)
 
+    def symbol_select(self, symbol: str, enable: bool = True) -> bool:
+        """Subscribe a symbol in Market Watch so its bars/ticks are available.
+
+        MT5 only streams data for symbols present in Market Watch; a symbol that
+        is not selected returns empty rates ("no market data"). Returns False if
+        the broker has no such symbol (usually a name mismatch).
+        """
+        try:
+            return bool(self._mt5.symbol_select(symbol, enable))
+        except Exception:  # noqa: BLE001
+            return False
+
     def symbol_info(self, symbol: str) -> Any:
         return self._mt5.symbol_info(symbol)
 

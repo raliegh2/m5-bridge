@@ -173,6 +173,31 @@ def _is_real_account(account) -> bool:
     return getattr(account, "trade_mode", None) == 2
 
 
+def _subscribe_symbols(client, symbols) -> None:
+    """Enable every configured symbol in Market Watch.
+
+    MT5 only returns bars/ticks for symbols selected in Market Watch, so a
+    symbol that is not subscribed shows up as "no market data" on the dashboard
+    even though the connection is fine. We select them up front. Any that fail
+    are almost always a NAME MISMATCH (e.g. the broker uses GBPUSD.r) -- we log
+    those loudly so they can be corrected in SYMBOLS.
+    """
+    missing = []
+    for sym in symbols:
+        ok = False
+        try:
+            if hasattr(client, "symbol_select"):
+                ok = bool(client.symbol_select(sym, True))
+        except Exception:  # noqa: BLE001
+            ok = False
+        if not ok:
+            missing.append(sym)
+    if missing:
+        log.warning("Could not enable these symbols in Market Watch -- check the "
+                    "EXACT broker names (some add a suffix like .r/.m/.pro) and "
+                    "fix SYMBOLS in your .env: %s", ", ".join(missing))
+
+
 def connect(client, settings: Settings) -> None:
     if not settings.has_credentials:
         raise RuntimeError(
@@ -183,6 +208,7 @@ def connect(client, settings: Settings) -> None:
         raise RuntimeError(f"MT5 initialize failed: {client.last_error()}")
     if not client.login(settings.login, settings.password, settings.server):
         raise RuntimeError(f"MT5 login failed: {client.last_error()}")
+    _subscribe_symbols(client, settings.symbols)
     log.info("Connected to MT5 | mode=%s | strategy=%s | symbols=%s",
              settings.mode.value, settings.strategy, ",".join(settings.symbols))
 
@@ -213,6 +239,9 @@ def account_snapshot(client, symbol: str, symbols=None) -> dict:
                 "price_open": getattr(p, "price_open", None),
                 "price_current": getattr(p, "price_current", None),
                 "sl": p.sl, "tp": p.tp,
+                # Per-position pip size so the dashboard computes pips with the
+                # RIGHT scale for each instrument (gold/JPY differ from FX).
+                "pip_size": pip_size(client, p.symbol),
             }
             for p in positions
         ],

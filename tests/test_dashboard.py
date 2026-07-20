@@ -159,3 +159,22 @@ def test_day_start_equity(tmp_path):
     val = j.day_start_equity()
     j.close()
     assert val == 10000
+
+
+def test_position_pips_use_per_position_pip_size():
+    """Gold and FX in the same book must each use their OWN pip size.
+
+    The account-level pip_size is FX-sized (0.0001). A gold position that
+    carries its own pip_size (0.01) must not be scaled by the FX pip.
+    """
+    from mt5_ai_bridge.dashboard import _position_view
+    gold = {"symbol": "XAUUSD", "type": "SELL", "price_open": 4006.58,
+            "price_current": 4007.11, "sl": 4008.4, "tp": 3982.97,
+            "pip_size": 0.01}
+    view = _position_view(gold, 0.0001)   # account-level FX pip passed in
+    # 0.53 price move / 0.01 pip = 53 pips (SELL losing -> negative), NOT 5300.
+    assert view["pips"] == -53.0
+
+    fx = {"symbol": "GBPUSD", "type": "BUY", "price_open": 1.2680,
+          "price_current": 1.2712, "sl": 1.26, "tp": 1.284, "pip_size": 0.0001}
+    assert _position_view(fx, 0.0001)["pips"] == 32.0
