@@ -112,6 +112,15 @@ class Settings:
     # Safety: when True, refuse AUTOMATIC trading unless the account is a demo.
     require_demo: bool = True
 
+    # Prop-firm challenge guard (FTMO-style drawdown protection).
+    prop_firm: bool = False
+    prop_start_balance: float = 0.0
+    prop_max_daily_loss_pct: float = 5.0
+    prop_max_total_loss_pct: float = 10.0
+    prop_profit_target_pct: float = 8.0
+    prop_trailing: bool = False
+    prop_derisk_start_pct: float = 60.0
+
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
@@ -130,6 +139,20 @@ class Settings:
         """Intraday risk %% for a symbol (per-symbol override, else the global)."""
         return dict(self.intraday_risk_overrides).get(
             (symbol or "").upper(), self.intraday_risk_percent)
+
+    def prop_config(self):
+        """Build a PropConfig from these settings."""
+        from .prop import PropConfig
+        state = (self.db_path[:-3] if self.db_path.endswith(".db")
+                 else self.db_path) + "_prop.json" if self.db_path not in (
+                 "", ":memory:") else "prop_state.json"
+        return PropConfig(
+            enabled=self.prop_firm, start_balance=self.prop_start_balance,
+            max_daily_loss_pct=self.prop_max_daily_loss_pct,
+            max_total_loss_pct=self.prop_max_total_loss_pct,
+            profit_target_pct=self.prop_profit_target_pct,
+            trailing=self.prop_trailing,
+            derisk_start_pct=self.prop_derisk_start_pct, state_path=state)
 
 
 def _get_int(name: str, default: Optional[int] = None) -> Optional[int]:
@@ -262,4 +285,11 @@ def load_settings(dotenv: bool = True) -> Settings:
         reconnect_attempts=_get_int("RECONNECT_ATTEMPTS", 3),
         reconnect_delay_seconds=_get_float("RECONNECT_DELAY_SECONDS", 5),
         require_demo=_get_bool("REQUIRE_DEMO", True),
+        prop_firm=_get_bool("PROP_FIRM", False),
+        prop_start_balance=_get_float("PROP_START_BALANCE", 0.0),
+        prop_max_daily_loss_pct=_get_float("PROP_MAX_DAILY_LOSS_PCT", 5.0),
+        prop_max_total_loss_pct=_get_float("PROP_MAX_TOTAL_LOSS_PCT", 10.0),
+        prop_profit_target_pct=_get_float("PROP_PROFIT_TARGET_PCT", 8.0),
+        prop_trailing=_get_bool("PROP_TRAILING", False),
+        prop_derisk_start_pct=_get_float("PROP_DERISK_START_PCT", 60.0),
     )
