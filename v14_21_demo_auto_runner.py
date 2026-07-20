@@ -18,6 +18,9 @@ from mt5_ai_bridge.v14_21_demo_auto_execution import (
     V1421DemoAutoConfig,
     V1421DemoAutoExecutor,
 )
+from mt5_ai_bridge.v14_21_signal_freshness import (
+    load_current_m1_gbp_ict_signals,
+)
 from v14_3_satellite_bot_windows import WindowsSafeLiveDashboard
 
 
@@ -53,7 +56,7 @@ def _startup_banner(
     print(" Order path              : size -> order_check -> demo order_send")
     print(" Account boundary        : pinned MT5 demo account only")
     print(" H1 strategies           : each new completed H1 candle")
-    print(" GBP ICT                 : each new completed M1 candle")
+    print(" GBP ICT                 : each new completed M1 candle; current bar only")
     print(f" Dashboard               : {dashboard_url}")
     print(" Create the kill-switch file or press Ctrl+C to stop new execution.")
     print("-" * 78)
@@ -63,6 +66,7 @@ bot.LiveRunnerConfig = V1421DemoAutoConfig
 bot.SatelliteLiveExecutor = V1421DemoAutoExecutor
 bot.LiveDashboard = WindowsSafeLiveDashboard
 bot.create_client = _create_compatible_client
+bot.load_legacy_gbp_ict_signals = load_current_m1_gbp_ict_signals
 bot._startup_banner = _startup_banner
 
 
