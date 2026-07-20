@@ -383,6 +383,21 @@ def _signal_flags(decision, thinking) -> tuple:
     return (1 if decision.signal.is_trade else 0), 0
 
 
+def _prop_off_payload(settings, account) -> dict:
+    """A prop status dict for when challenge mode is OFF, so the dashboard
+    panel can still render (greyed) and offer the enable toggle."""
+    return {
+        "enabled": False, "status": "OFF", "allow_trading": True,
+        "risk_scale": 1.0,
+        "start_balance": round(float(getattr(account, "balance", 0.0) or 0.0), 2),
+        "equity": round(float(getattr(account, "equity", 0.0) or 0.0), 2),
+        "profit_pct": 0.0, "profit_target_pct": settings.prop_profit_target_pct,
+        "daily_loss_pct": 0.0, "max_daily_loss_pct": settings.prop_max_daily_loss_pct,
+        "total_dd_pct": 0.0, "max_total_loss_pct": settings.prop_max_total_loss_pct,
+        "trailing": settings.prop_trailing,
+    }
+
+
 def _run_once(client, journal, settings, strategy_fn, limits, tracker,
               planner_cfgs, state: Optional[ControlState] = None,
               prop_guard=None) -> None:
@@ -425,10 +440,16 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
                     "Use a demo account (or set REQUIRE_DEMO=false to override).")
 
     # Prop-firm challenge guard: gate trading + scale risk near the limits.
-    prop = prop_guard.update(account.balance, account.equity) if prop_guard else None
-    prop_ok = prop["allow_trading"] if prop else True
-    risk_scale = prop["risk_scale"] if prop else 1.0
-    if prop and not prop_ok:
+    # Prop mode can be toggled live from the dashboard (state.is_prop());
+    # when OFF we still emit a payload so the panel always shows its status.
+    prop_on = state.is_prop() if state is not None else settings.prop_firm
+    if prop_on and prop_guard is not None:
+        prop = prop_guard.update(account.balance, account.equity)
+    else:
+        prop = _prop_off_payload(settings, account)
+    prop_ok = prop["allow_trading"] if prop["enabled"] else True
+    risk_scale = prop["risk_scale"] if prop["enabled"] else 1.0
+    if prop["enabled"] and not prop_ok:
         log.warning("Prop guard [%s]: new trades paused | equity %.2f | "
                     "daily %.2f%%/%.1f%% | total DD %.2f%%/%.1f%%.",
                     prop["status"], prop["equity"], prop["daily_loss_pct"],
@@ -459,7 +480,7 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
         for sym in settings.symbols:
             _update_trailing_stops(client, settings, symbol=sym)
 
-    control = {"active": active} if state is not None else None
+    control = {"active": active, "prop": prop_on} if state is not None else None
     _refresh_dashboard(client, journal, settings, control=control,
                        thinking=thinking, prop=prop)
     _print_status(client, settings, active=active)
@@ -677,11 +698,13 @@ def run(settings: Optional[Settings] = None, client=None,
     limits = RiskLimits(settings.daily_max_loss, settings.total_max_loss,
                         settings.max_open_positions)
     tracker = DailyLossTracker()
-    prop_guard = PropGuard(settings.prop_config()) if settings.prop_firm else None
+    # Always build the guard so prop mode can be toggled ON live from the
+    # dashboard; whether it actually gates trading is driven by state.is_prop().
+    prop_guard = PropGuard(settings.prop_config())
 
     # Shared trading switch: the control server toggles it (Start/Pause on the
     # dashboard); the loop reads it. Trading starts ACTIVE.
-    state = ControlState(active=True)
+    state = ControlState(active=True, prop=settings.prop_firm)
 
     if settings.serve_dashboard and serve_dashboard:
         try:
