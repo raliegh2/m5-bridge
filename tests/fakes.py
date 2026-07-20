@@ -131,6 +131,7 @@ def make_settings(**kw) -> Settings:
         atr_min_sl_pips=8, atr_max_sl_pips=200,
         risk_based_sizing=False, risk_percent=0.5,
         intraday_risk_percent=0.15, swing_risk_percent=0.35,
+        swing_risk_overrides=(), intraday_risk_overrides=(),
         pip_value_per_lot=10.0,
         max_lot=2.0,
         multi_book=False, require_trend_alignment=True, trend_tf_mid="M30",

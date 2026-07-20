@@ -36,7 +36,7 @@ from .control import ControlState, start_control_server
 from .dashboard import (est_now, write_dashboard_data, write_dashboard_live,
                         write_status)
 from .enums import Mode, Signal
-from .execution import pip_size, place_market_order
+from .execution import pip_size, pip_value_per_lot, place_market_order
 from .explain import UNAVAILABLE, explain_market
 from .indicators import market_snapshot
 from .journal import Journal
@@ -87,11 +87,13 @@ def _atr_cfg(settings) -> AtrConfig:
                      max_sl_pips=settings.atr_max_sl_pips)
 
 
-def _risk_cfg(settings, risk_percent: Optional[float] = None) -> RiskConfig:
+def _risk_cfg(settings, risk_percent: Optional[float] = None,
+              pip_value: Optional[float] = None) -> RiskConfig:
     return RiskConfig(enabled=settings.risk_based_sizing,
                       risk_percent=(settings.risk_percent if risk_percent is None
                                     else risk_percent),
-                      pip_value_per_lot=settings.pip_value_per_lot,
+                      pip_value_per_lot=(settings.pip_value_per_lot
+                                         if pip_value is None else pip_value),
                       max_lot=settings.max_lot)
 
 
@@ -443,6 +445,7 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
     session_cfg, sizing_cfg, _style, stagger_cfg = planner_cfgs
     atr_cfg = _atr_cfg(settings)
     pip = pip_size(client, symbol) or 0.0001
+    pip_val = pip_value_per_lot(client, symbol, pip, settings.pip_value_per_lot)
     balance = account.balance if account is not None else (
         client.account_info().balance if client.account_info() else 0.0)
     in_ny = is_ny_session(now_utc, session_cfg)
@@ -456,13 +459,18 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
     engine_magics = {swing_book.magic, intraday_book.magic}
 
     # Fixed-fractional sizing means each open position risks a known % of the
-    # balance (its engine's risk_percent). Aggregate open risk across ALL
-    # symbols is therefore the count-weighted sum; trailing only lowers it, so
-    # this is a conservative upper bound used for the combined-risk ceiling.
-    engine_risk = {swing_book.magic: settings.swing_risk_percent,
-                   intraday_book.magic: settings.intraday_risk_percent}
-    open_risk = sum(engine_risk.get(getattr(p, "magic", None), 0.0)
-                    for p in positions)
+    # balance (its engine's risk_percent for ITS symbol). Aggregate open risk
+    # across ALL symbols is the sum; trailing only lowers it, so this is a
+    # conservative upper bound used for the combined-risk ceiling.
+    def _position_risk(p) -> float:
+        mg = getattr(p, "magic", None)
+        if mg == swing_book.magic:
+            return settings.swing_risk_for(getattr(p, "symbol", symbol))
+        if mg == intraday_book.magic:
+            return settings.intraday_risk_for(getattr(p, "symbol", symbol))
+        return 0.0
+
+    open_risk = sum(_position_risk(p) for p in positions)
 
     cache = {}
 
@@ -507,7 +515,7 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
         stops = atr_stops((snap or {}).get("atr"), pip, atr_cfg) \
             if atr_cfg.enabled else None
         base_sl, base_tp = stops if stops else (book.sl_pips, book.tp_pips)
-        risk_cfg = _risk_cfg(settings, risk_percent)
+        risk_cfg = _risk_cfg(settings, risk_percent, pip_value=pip_val)
         have = _count_side(client, positions, symbol, side, book.magic)
         opened = 0
 
@@ -549,9 +557,9 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
     # Swing is evaluated first; intraday may still open alongside it when both
     # engines point the same way and shared account limits permit.
     open_engine("swing", state["swing"], swing_book,
-                settings.swing_tf_high, settings.swing_risk_percent)
+                settings.swing_tf_high, settings.swing_risk_for(symbol))
     open_engine("intraday", state["intraday"], intraday_book,
-                settings.timeframe, settings.intraday_risk_percent)
+                settings.timeframe, settings.intraday_risk_for(symbol))
 
 
 def _consider_trade(client, journal, settings, decision, positions,
