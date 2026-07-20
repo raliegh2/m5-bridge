@@ -42,6 +42,7 @@ from .indicators import market_snapshot
 from .journal import Journal
 from .logging_config import get_logger, setup_logging
 from .mt5_client import create_client
+from .prop import PropGuard
 from .planner import (SessionConfig, SizingConfig, StaggerConfig, StyleConfig,
                       build_plan, is_ny_session, position_size, stagger)
 from .reasoning import ReasoningConfig, ReasoningStrategy
@@ -336,7 +337,7 @@ def _status(settings, message: str) -> None:
 
 
 def _refresh_dashboard(client, journal, settings, control=None,
-                       thinking=None) -> None:
+                       thinking=None, prop=None) -> None:
     if not settings.write_dashboard:
         return
     try:
@@ -344,10 +345,10 @@ def _refresh_dashboard(client, journal, settings, control=None,
         write_dashboard_live(journal, snap, settings.dashboard_path,
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking,
-                             port=settings.dashboard_port)
+                             port=settings.dashboard_port, prop=prop)
         write_dashboard_data(journal, snap, _data_path(settings),
                              settings.dashboard_refresh_seconds,
-                             control=control, thinking=thinking)
+                             control=control, thinking=thinking, prop=prop)
     except Exception as exc:  # noqa: BLE001
         log.warning("Dashboard refresh failed: %s", exc)
 
@@ -383,7 +384,8 @@ def _signal_flags(decision, thinking) -> tuple:
 
 
 def _run_once(client, journal, settings, strategy_fn, limits, tracker,
-              planner_cfgs, state: Optional[ControlState] = None) -> None:
+              planner_cfgs, state: Optional[ControlState] = None,
+              prop_guard=None) -> None:
     active = state.is_active() if state is not None else True
 
     account = client.account_info()
@@ -422,17 +424,29 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
         log.warning("Trading blocked: REAL account with REQUIRE_DEMO on. "
                     "Use a demo account (or set REQUIRE_DEMO=false to override).")
 
+    # Prop-firm challenge guard: gate trading + scale risk near the limits.
+    prop = prop_guard.update(account.balance, account.equity) if prop_guard else None
+    prop_ok = prop["allow_trading"] if prop else True
+    risk_scale = prop["risk_scale"] if prop else 1.0
+    if prop and not prop_ok:
+        log.warning("Prop guard [%s]: new trades paused | equity %.2f | "
+                    "daily %.2f%%/%.1f%% | total DD %.2f%%/%.1f%%.",
+                    prop["status"], prop["equity"], prop["daily_loss_pct"],
+                    prop["max_daily_loss_pct"], prop["total_dd_pct"],
+                    prop["max_total_loss_pct"])
+
     # Open NEW trades only while trading is ACTIVE (remote pause honoured).
     # Every symbol shares ONE account: the combined open-risk ceiling and the
     # account-level dollar/drawdown limits bound total risk across all pairs.
-    if settings.mode is not Mode.READ_ONLY and risk.ok and active and demo_ok:
+    if settings.mode is not Mode.READ_ONLY and risk.ok and active and demo_ok \
+            and prop_ok:
         if settings.multi_book:
             for sym in settings.symbols:
                 # Fetch positions fresh per symbol so the combined-risk ceiling
                 # sees trades opened for earlier symbols this same iteration.
                 _run_books(client, journal, settings, strategy_fn, planner_cfgs,
                            client.positions_get() or [], account=account,
-                           symbol=sym)
+                           symbol=sym, risk_scale=risk_scale)
         elif decision.signal.is_trade:
             _consider_trade(client, journal, settings, decision, positions,
                             planner_cfgs)
@@ -447,13 +461,13 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
 
     control = {"active": active} if state is not None else None
     _refresh_dashboard(client, journal, settings, control=control,
-                       thinking=thinking)
+                       thinking=thinking, prop=prop)
     _print_status(client, settings, active=active)
 
 
 def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                now_utc: Optional[datetime] = None, account=None,
-               symbol: Optional[str] = None) -> None:
+               symbol: Optional[str] = None, risk_scale: float = 1.0) -> None:
     """Run the intraday + swing engines for ONE symbol under shared limits.
 
     In multi-symbol mode this is called once per symbol each loop. ``positions``
@@ -581,9 +595,9 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
     # Swing is evaluated first; intraday may still open alongside it when both
     # engines point the same way and shared account limits permit.
     open_engine("swing", state["swing"], swing_book,
-                settings.swing_tf_high, settings.swing_risk_for(symbol))
+                settings.swing_tf_high, settings.swing_risk_for(symbol) * risk_scale)
     open_engine("intraday", state["intraday"], intraday_book,
-                settings.timeframe, settings.intraday_risk_for(symbol))
+                settings.timeframe, settings.intraday_risk_for(symbol) * risk_scale)
 
 
 def _consider_trade(client, journal, settings, decision, positions,
@@ -663,6 +677,7 @@ def run(settings: Optional[Settings] = None, client=None,
     limits = RiskLimits(settings.daily_max_loss, settings.total_max_loss,
                         settings.max_open_positions)
     tracker = DailyLossTracker()
+    prop_guard = PropGuard(settings.prop_config()) if settings.prop_firm else None
 
     # Shared trading switch: the control server toggles it (Start/Pause on the
     # dashboard); the loop reads it. Trading starts ACTIVE.
@@ -723,7 +738,7 @@ def run(settings: Optional[Settings] = None, client=None,
 
             try:
                 _run_once(client, journal, settings, strategy_fn, limits,
-                          tracker, planner_cfgs, state)
+                          tracker, planner_cfgs, state, prop_guard)
                 consecutive_failures = 0
             except Exception as exc:  # noqa: BLE001
                 consecutive_failures += 1
