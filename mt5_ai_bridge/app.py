@@ -161,6 +161,17 @@ def _data_path(settings) -> str:
     return (p[:-5] + ".json") if p.lower().endswith(".html") else (p + ".json")
 
 
+def _account_kind(account) -> str:
+    """MT5 account trade_mode -> DEMO / CONTEST / REAL / UNKNOWN."""
+    tm = getattr(account, "trade_mode", None) if account is not None else None
+    return {0: "DEMO", 1: "CONTEST", 2: "REAL"}.get(tm, "UNKNOWN")
+
+
+def _is_real_account(account) -> bool:
+    """True only when the broker explicitly reports a REAL (live) account."""
+    return getattr(account, "trade_mode", None) == 2
+
+
 def connect(client, settings: Settings) -> None:
     if not settings.has_credentials:
         raise RuntimeError(
@@ -171,8 +182,8 @@ def connect(client, settings: Settings) -> None:
         raise RuntimeError(f"MT5 initialize failed: {client.last_error()}")
     if not client.login(settings.login, settings.password, settings.server):
         raise RuntimeError(f"MT5 login failed: {client.last_error()}")
-    log.info("Connected to MT5 | mode=%s | strategy=%s | symbol=%s",
-             settings.mode.value, settings.strategy, settings.symbol)
+    log.info("Connected to MT5 | mode=%s | strategy=%s | symbols=%s",
+             settings.mode.value, settings.strategy, ",".join(settings.symbols))
 
 
 def account_snapshot(client, symbol: str, symbols=None) -> dict:
@@ -384,7 +395,8 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     risk = check_risk(account, positions, limits, daily_loss=day_loss)
     journal.log_risk_event(risk.ok, risk.message, account.balance,
                            account.equity, len(positions))
-    log.info("Risk: %s | day_loss=%.2f | active=%s", risk.message, day_loss, active)
+    log.info("Risk: %s | account=%s | day_loss=%.2f | active=%s",
+             risk.message, _account_kind(account), day_loss, active)
 
     # Fast ENTRY read on the PRIMARY symbol (drives the dashboard signal view).
     primary = settings.symbols[0]
@@ -403,10 +415,17 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
              primary, decision.signal.value, decision.reason, decision.confidence,
              setup_flag, filtered_flag)
 
+    # Safety guard: never place AUTOMATIC trades on a REAL account while
+    # REQUIRE_DEMO is on. Existing positions still trail; the dashboard still runs.
+    demo_ok = not (settings.require_demo and _is_real_account(account))
+    if not demo_ok:
+        log.warning("Trading blocked: REAL account with REQUIRE_DEMO on. "
+                    "Use a demo account (or set REQUIRE_DEMO=false to override).")
+
     # Open NEW trades only while trading is ACTIVE (remote pause honoured).
     # Every symbol shares ONE account: the combined open-risk ceiling and the
     # account-level dollar/drawdown limits bound total risk across all pairs.
-    if settings.mode is not Mode.READ_ONLY and risk.ok and active:
+    if settings.mode is not Mode.READ_ONLY and risk.ok and active and demo_ok:
         if settings.multi_book:
             for sym in settings.symbols:
                 # Fetch positions fresh per symbol so the combined-risk ceiling
