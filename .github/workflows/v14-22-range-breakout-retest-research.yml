@@ -1,0 +1,149 @@
+name: V14.22 range breakout-retest research
+
+on:
+  push:
+    branches:
+      - v14-22-range-breakout-retest-research
+    paths:
+      - "mt5_ai_bridge/v14_22_range_breakout_retest_shadow.py"
+      - "research/v14_22_range_breakout_retest_backtest.py"
+      - "tests/test_v14_22_range_breakout_retest.py"
+      - "V14_22_RANGE_BREAKOUT_RETEST_RESEARCH.md"
+      - ".github/workflows/v14-22-range-breakout-retest-research.yml"
+  pull_request:
+    branches:
+      - v14-21-demo-auto-runner
+      - v14-22-range-breakout-retest-research
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-download-backtest-and-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: .
+      PYTHONHASHSEED: "0"
+      FXCM_OUT: research/fxcm_v14_19_range_2013_2026_data
+      FXCM_FROM: "2013-01-01T00:00:00Z"
+      FXCM_TO: "2026-05-31T23:59:59Z"
+      FXCM_SYMBOLS: "GBPUSD,EURUSD,GBPJPY,AUDUSD,USDJPY"
+      FXCM_WORKERS: "32"
+      FXCM_MIN_BARS: "18000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy requests pytest
+      - name: Compile V14.22 modules
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/v14_22_range_breakout_retest_shadow.py
+          research/v14_22_range_breakout_retest_backtest.py
+          tests/test_v14_22_range_breakout_retest.py
+      - name: Run inherited range and V14.22 tests
+        run: |
+          set -o pipefail
+          mkdir -p research/v14_22_range_breakout_retest_output
+          python -m pytest -q \
+            tests/test_v14_19_range_shadow.py \
+            tests/test_v14_20_range_anti_consensus.py \
+            tests/test_v14_21_signal_freshness.py \
+            tests/test_v14_22_range_breakout_retest.py 2>&1 \
+            | tee research/v14_22_range_breakout_retest_output/pytest.log
+      - name: Restore FXCM core cache
+        id: fxcm-cache
+        uses: actions/cache@v4
+        with:
+          path: research/fxcm_v14_19_range_2013_2026_data
+          key: fxcm-v14-19-range-core-h1-2013-2026-v1
+      - name: Download official FXCM bid-ask data
+        if: steps.fxcm-cache.outputs.cache-hit != 'true'
+        run: python research/download_fxcm_v14_19_range_core.py
+      - name: Validate FXCM dataset
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/fxcm_v14_19_range_2013_2026_data')
+          manifest = json.loads((root / 'manifest.json').read_text())
+          core = {'GBPUSD', 'EURUSD', 'GBPJPY', 'AUDUSD', 'USDJPY'}
+          assert core <= set(manifest['available']), (core - set(manifest['available']))
+          for symbol in sorted(core):
+              for side in ('bid', 'ask'):
+                  path = root / f'{symbol}_H1_{side}.csv'
+                  frame = pd.read_csv(path, usecols=['time'])
+                  times = pd.to_datetime(frame['time'], utc=True)
+                  assert len(frame) >= 18_000, (symbol, side, len(frame))
+                  assert times.min() <= pd.Timestamp('2016-01-04T00:00:00Z')
+                  assert times.max() >= pd.Timestamp('2026-05-01T00:00:00Z')
+          print('validated_core', sorted(core))
+          PY
+      - name: Run V14.22 chronological replay
+        run: |
+          set -o pipefail
+          python research/v14_22_range_breakout_retest_backtest.py 2>&1 \
+            | tee research/v14_22_range_breakout_retest_output/backtest_stdout.log
+      - name: Validate research integrity
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path('research/v14_22_range_breakout_retest_output')
+          payload = json.loads((root / 'v14_22_results.json').read_text())
+          assert payload['model'] == 'V14.22_RANGE_BREAKOUT_RETEST_RESEARCH'
+          assert payload['research_only'] is True
+          assert payload['shadow_only'] is True
+          assert payload['live_execution_changed'] is False
+          assert payload['direct_v14_19_range_orders_enabled'] is False
+          assert payload['selection']['selection_window'] == '2016-01-01 through 2020-12-31 only'
+          assert payload['promotion_gate']['demo_promotion_authorized'] is False
+
+          for name, item in payload['profiles'].items():
+              source = pd.read_csv(root / f'{name.lower()}_source_trades.csv')
+              assert len(source) == item['source_trades']
+              if source.empty:
+                  continue
+              assert source['shadow_only'].astype(str).str.lower().eq('true').all()
+              assert pd.to_numeric(source['requested_risk_percent'], errors='coerce').fillna(0).eq(0).all()
+              assert pd.to_numeric(source['executed_risk_percent'], errors='coerce').fillna(0).eq(0).all()
+              assert source['transmitted'].astype(str).str.lower().eq('false').all()
+              assert (
+                  pd.to_datetime(source['entry_time'], utc=True)
+                  > pd.to_datetime(source['retest_time'], utc=True)
+              ).all()
+              assert (
+                  pd.to_datetime(source['retest_time'], utc=True)
+                  > pd.to_datetime(source['breakout_time'], utc=True)
+              ).all()
+              assert (
+                  pd.to_datetime(source['breakout_time'], utc=True)
+                  > pd.to_datetime(source['signal_available_at'], utc=True)
+              ).all()
+
+          for expected in (
+              'V14_22_REPORT.md',
+              'v14_22_results.json',
+              'pytest.log',
+              'backtest_stdout.log',
+          ):
+              assert (root / expected).exists(), expected
+          print('selection', payload['selection'])
+          print('promotion_gate', payload['promotion_gate'])
+          PY
+      - name: Upload V14.22 validation package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v14-22-range-breakout-retest-research
+          path: research/v14_22_range_breakout_retest_output/
+          if-no-files-found: error
+          retention-days: 90
