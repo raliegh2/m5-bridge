@@ -7,6 +7,7 @@ on:
     paths:
       - "mt5_ai_bridge/v14_22_range_breakout_retest_shadow.py"
       - "research/v14_22_range_breakout_retest_backtest.py"
+      - "research/v14_22_range_sleeve_selection.py"
       - "tests/test_v14_22_range_breakout_retest.py"
       - "V14_22_RANGE_BREAKOUT_RETEST_RESEARCH.md"
       - ".github/workflows/v14-22-range-breakout-retest-research.yml"
@@ -44,6 +45,7 @@ jobs:
           python -m py_compile
           mt5_ai_bridge/v14_22_range_breakout_retest_shadow.py
           research/v14_22_range_breakout_retest_backtest.py
+          research/v14_22_range_sleeve_selection.py
           tests/test_v14_22_range_breakout_retest.py
       - name: Run inherited range and V14.22 tests
         run: |
@@ -85,11 +87,16 @@ jobs:
                   assert times.max() >= pd.Timestamp('2026-05-01T00:00:00Z')
           print('validated_core', sorted(core))
           PY
-      - name: Run V14.22 chronological replay
+      - name: Run pre-registered profile replay
         run: |
           set -o pipefail
           python research/v14_22_range_breakout_retest_backtest.py 2>&1 \
             | tee research/v14_22_range_breakout_retest_output/backtest_stdout.log
+      - name: Freeze development-qualified sleeves and audit forward data
+        run: |
+          set -o pipefail
+          python research/v14_22_range_sleeve_selection.py 2>&1 \
+            | tee research/v14_22_range_breakout_retest_output/sleeve_stdout.log
       - name: Validate research integrity
         run: |
           python - <<'PY'
@@ -98,16 +105,21 @@ jobs:
           import pandas as pd
 
           root = Path('research/v14_22_range_breakout_retest_output')
-          payload = json.loads((root / 'v14_22_results.json').read_text())
-          assert payload['model'] == 'V14.22_RANGE_BREAKOUT_RETEST_RESEARCH'
-          assert payload['research_only'] is True
-          assert payload['shadow_only'] is True
-          assert payload['live_execution_changed'] is False
-          assert payload['direct_v14_19_range_orders_enabled'] is False
-          assert payload['selection']['selection_window'] == '2016-01-01 through 2020-12-31 only'
-          assert payload['promotion_gate']['demo_promotion_authorized'] is False
+          profile_payload = json.loads((root / 'v14_22_results.json').read_text())
+          sleeve_payload = json.loads((root / 'v14_22_sleeve_results.json').read_text())
+          assert profile_payload['model'] == 'V14.22_RANGE_BREAKOUT_RETEST_RESEARCH'
+          assert profile_payload['research_only'] is True
+          assert profile_payload['shadow_only'] is True
+          assert profile_payload['live_execution_changed'] is False
+          assert profile_payload['direct_v14_19_range_orders_enabled'] is False
+          assert sleeve_payload['model'] == 'V14.22_RANGE_BREAKOUT_RETEST_SLEEVES'
+          assert sleeve_payload['selection']['selection_window'] == '2016-01-01 through 2020-12-31 only'
+          assert sleeve_payload['research_only'] is True
+          assert sleeve_payload['shadow_only'] is True
+          assert sleeve_payload['live_execution_changed'] is False
+          assert sleeve_payload['promotion_gate']['demo_promotion_authorized'] is False
 
-          for name, item in payload['profiles'].items():
+          for name, item in profile_payload['profiles'].items():
               source = pd.read_csv(root / f'{name.lower()}_source_trades.csv')
               assert len(source) == item['source_trades']
               if source.empty:
@@ -118,7 +130,7 @@ jobs:
               assert source['transmitted'].astype(str).str.lower().eq('false').all()
               assert (
                   pd.to_datetime(source['entry_time'], utc=True)
-                  > pd.to_datetime(source['retest_time'], utc=True)
+                  >= pd.to_datetime(source['retest_time'], utc=True)
               ).all()
               assert (
                   pd.to_datetime(source['retest_time'], utc=True)
@@ -129,15 +141,28 @@ jobs:
                   > pd.to_datetime(source['signal_available_at'], utc=True)
               ).all()
 
+          selected = pd.read_csv(root / 'selected_arm_source_trades.csv')
+          arm = sleeve_payload['selected_arm']
+          if arm is None:
+              assert selected.empty
+          else:
+              assert len(selected) == arm['source_trades']
+              assert selected['shadow_only'].astype(str).str.lower().eq('true').all()
+              assert selected['transmitted'].astype(str).str.lower().eq('false').all()
+
           for expected in (
               'V14_22_REPORT.md',
+              'V14_22_SLEEVE_REPORT.md',
               'v14_22_results.json',
+              'v14_22_sleeve_results.json',
+              'selected_arm_source_trades.csv',
               'pytest.log',
               'backtest_stdout.log',
+              'sleeve_stdout.log',
           ):
               assert (root / expected).exists(), expected
-          print('selection', payload['selection'])
-          print('promotion_gate', payload['promotion_gate'])
+          print('selection', sleeve_payload['selection']['selected_sleeves'])
+          print('promotion_gate', sleeve_payload['promotion_gate'])
           PY
       - name: Upload V14.22 validation package
         if: always()
