@@ -31,7 +31,12 @@ class RawClient:
         )
 
     def symbol_info_tick(self, _symbol: str):
-        return SimpleNamespace(time=self.tick_time, bid=1.1, ask=1.1001)
+        return SimpleNamespace(
+            time=self.tick_time,
+            time_msc=self.tick_time * 1000 + 321,
+            bid=1.1,
+            ask=1.1001,
+        )
 
     def copy_rates_from_pos(self, _symbol, _timeframe, _start, _count):
         return [{"time": self.tick_time - 60, "open": 1.0}]
@@ -61,9 +66,16 @@ def test_whole_hour_broker_offset_is_normalized(monkeypatch) -> None:
         lambda: float(system_epoch),
     )
     client = MT5BrokerCompatibilityClient(raw)
+
     rates = client.copy_rates_from_pos("GBPUSD", "M1", 1, 1)
     assert rates[0]["time"] == system_epoch - 60
-    diagnostic = client.compatibility_diagnostics()
+
+    tick = client.symbol_info_tick("GBPUSD")
+    assert tick.time == system_epoch
+    assert tick.time_msc == system_epoch * 1000 + 321
+    assert tick.bid == 1.1
+    assert tick.ask == 1.1001
+
     # symbol_info has not been requested yet, so force the filling diagnostic.
     client.symbol_info("GBPUSD")
     diagnostic = client.compatibility_diagnostics()["GBPUSD"]
@@ -82,3 +94,6 @@ def test_non_hour_or_stale_drift_is_not_rewritten(monkeypatch) -> None:
     client = MT5BrokerCompatibilityClient(raw)
     rates = client.copy_rates_from_pos("GBPUSD", "M1", 1, 1)
     assert rates[0]["time"] == raw.tick_time - 60
+    tick = client.symbol_info_tick("GBPUSD")
+    assert tick.time == raw.tick_time
+    assert tick.time_msc == raw.tick_time * 1000 + 321
