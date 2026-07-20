@@ -7,8 +7,8 @@ especially when a symbol supports both FOK and IOC and the mask equals 3.
 
 Some demo servers also expose bar/tick epoch values shifted by a whole-hour
 server offset. The adapter detects only a stable near-whole-hour drift and
-normalizes copied bar timestamps back to UTC. It does not alter prices,
-volumes, signal logic, or risk controls.
+normalizes copied bar and live tick timestamps back to UTC. It does not alter
+prices, volumes, signal logic, or risk controls.
 """
 from __future__ import annotations
 
@@ -41,6 +41,24 @@ class _SymbolInfoView:
     def __init__(self, raw: Any, filling_mode: int) -> None:
         self._raw = raw
         self.filling_mode = int(filling_mode)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._raw, name)
+
+
+class _TickInfoView:
+    """Delegate tick fields while normalizing only epoch timestamps to UTC."""
+
+    def __init__(self, raw: Any, offset_seconds: int) -> None:
+        self._raw = raw
+        raw_time = int(getattr(raw, "time", 0) or 0)
+        raw_time_msc = int(getattr(raw, "time_msc", 0) or 0)
+        self.time = raw_time - int(offset_seconds) if raw_time > 0 else raw_time
+        self.time_msc = (
+            raw_time_msc - int(offset_seconds) * 1000
+            if raw_time_msc > 0
+            else raw_time_msc
+        )
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._raw, name)
@@ -129,6 +147,13 @@ class MT5BrokerCompatibilityClient:
                 detected_clock_offset_seconds=offset,
             )
         return offset
+
+    def symbol_info_tick(self, symbol: str) -> Any:
+        """Return the broker tick with any stable server offset removed."""
+        raw = self._client.symbol_info_tick(symbol)
+        if raw is None:
+            return None
+        return _TickInfoView(raw, self._clock_offset(symbol))
 
     @staticmethod
     def _shift_rates(rates: Any, offset: int) -> Any:
