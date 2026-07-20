@@ -267,7 +267,8 @@ def _position_view(pos: dict, pip_size: float) -> dict:
             rr = round(reward / risk, 2)
 
     return {
-        "ticket": pos.get("ticket"), "side": side, "volume": pos.get("volume"),
+        "symbol": pos.get("symbol"), "ticket": pos.get("ticket"),
+        "side": side, "volume": pos.get("volume"),
         "entry": entry, "current": cur, "pips": pips, "profit": pos.get("profit"),
         "sl": sl or None, "tp": tp or None, "rr": rr,
     }
@@ -329,6 +330,7 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
         "time_est": est_now(now_utc),
         "session": session_label(now_utc),
         "symbol": c["symbol"],
+        "symbols": (live or {}).get("symbols", [c["symbol"]]),
         "pip_size": c["pip_size"],
         "refresh_seconds": refresh_seconds,
         "control": control,
@@ -473,13 +475,18 @@ rows.forEach(function(r){h+='<tr>';r.forEach(function(c){h+='<td>'+esc(c)+'</td>
 return h+'</tbody></table></div>';}
 function posTable(ps){
 if(!ps||!ps.length)return '<p class="empty">No rows yet.</p>';
-var rows=ps.map(function(p){return [p.ticket,p.side,p.volume,
+var rows=ps.map(function(p){return [p.symbol||'—',p.ticket,p.side,p.volume,
 p.entry!=null?p.entry.toFixed(5):'—',
 p.current!=null?p.current.toFixed(5):'—',
 p.pips!=null?((p.pips>=0?'+':'')+p.pips.toFixed(1)):'—',
 money(p.profit),p.sl?p.sl.toFixed(5):'—',p.tp?p.tp.toFixed(5):'—',
 p.rr?('1:'+p.rr):'—'];});
-return rowsTable(['Ticket','Side','Vol','Entry','Current','Pips','P/L','SL','TP','R:R'],rows);}
+return rowsTable(['Symbol','Ticket','Side','Vol','Entry','Current','Pips','P/L','SL','TP','R:R'],rows);}
+function persymTable(ps,syms){var a={},ord=[];(syms||[]).forEach(function(s){a[s]=[0,0];ord.push(s);});
+(ps||[]).forEach(function(p){var s=p.symbol||'?';if(!(s in a)){a[s]=[0,0];ord.push(s);}a[s][0]++;a[s][1]+=(p.profit||0);});
+if(!ord.length)return '<p class="empty">No symbols.</p>';
+var rows=ord.map(function(s){return [s,a[s][0],money(a[s][1])];});
+return rowsTable(['Symbol','Open','P/L'],rows);}
 function spark(vals){
 if(!vals||vals.length<2)return '<p class="empty">Not enough data for an equity curve yet.</p>';
 var w=720,h=150,pad=8,n=vals.length,lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),
@@ -494,7 +501,7 @@ return '<svg viewBox="0 0 '+w+' '+h+'" class="spark" preserveAspectRatio="none">
 '<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round"/></svg>';}
 function apply(d){
 if(!d||!d.live){foot('Waiting for the first live snapshot…',false);return;}
-setTxt('m_time',d.time_est);setTxt('m_session',d.session);setTxt('m_symbol',d.symbol);
+setTxt('m_time',d.time_est);setTxt('m_session',d.session);setTxt('m_symbol',(d.symbols&&d.symbols.length)?d.symbols.join(', '):d.symbol);
 if(d.control){var cs=q('ctl_status');if(cs){cs.textContent='● '+(d.control.active?'ACTIVE':'PAUSED');
 cs.className='status '+(d.control.active?'on':'off');}}
 var c=d.cards,ch='';
@@ -527,6 +534,7 @@ setHTML('think_table','<div class="tablewrap"><table><thead><tr><th>Read</th><th
 '<th>Signal</th><th>Conf.</th><th>Why</th></tr></thead><tbody>'+tr+'</tbody></table></div>');}
 else setHTML('think_table','<p class="empty">Gathering the first read…</p>');}
 setHTML('pos_panel',posTable(d.positions));
+setHTML('persym_panel',persymTable(d.positions,d.symbols));
 setHTML('eq_panel',spark(d.equity_series));
 setHTML('sig_panel',rowsTable(['Time','Symbol','Signal','Reason'],d.signals));
 setHTML('ord_panel',rowsTable(['Time','Symbol','Side','Vol','Ticket','Status','Message'],d.orders));
@@ -546,6 +554,19 @@ for(var i=0;i<dd.length;i++){dd[i].open=true;}}
 """
 
 
+
+def _per_symbol_rows(positions, symbols) -> list:
+    """[symbol, open count, total P/L] per traded symbol."""
+    agg = {}
+    for p in positions:
+        sym = p.get("symbol") or "?"
+        cnt, pl = agg.get(sym, (0, 0.0))
+        agg[sym] = (cnt + 1, pl + (p.get("profit") or 0.0))
+    order = list(dict.fromkeys(list(symbols) + list(agg.keys())))
+    return [[s, agg.get(s, (0, 0.0))[0], _money(round(agg.get(s, (0, 0.0))[1], 2))]
+            for s in order]
+
+
 def build_dashboard(journal: Journal, live: Optional[dict] = None,
                     refresh_seconds: int = 0, now_utc: Optional[datetime] = None,
                     control: Optional[dict] = None,
@@ -554,6 +575,7 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
     c = _compute(journal, live, now_utc)
     balance, equity = c["balance"], c["equity"]
     pip_size, symbol = c["pip_size"], c["symbol"]
+    symbols = (live or {}).get("symbols", [symbol])
     positions, latest_risk = c["positions"], c["latest_risk"]
     live_dot = '<span class="live"></span>' if live else ""
 
@@ -569,7 +591,7 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
     ])
 
     pos_rows = [[
-        p["ticket"], p["side"], p["volume"],
+        p.get("symbol") or "—", p["ticket"], p["side"], p["volume"],
         f'{p["entry"]:.5f}' if p["entry"] else "—",
         f'{p["current"]:.5f}' if p["current"] else "—",
         f'{p["pips"]:+.1f}' if p["pips"] is not None else "—",
@@ -586,7 +608,8 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
         positions_section = f"""
 <h2>Open positions</h2>
 <div class="panel" id="pos_panel">{_table(
-    ["Ticket", "Side", "Vol", "Entry", "Current", "Pips", "P/L", "SL", "TP", "R:R"],
+    ["Symbol", "Ticket", "Side", "Vol", "Entry", "Current", "Pips", "P/L",
+     "SL", "TP", "R:R"],
     pos_rows)}</div>"""
 
     signals_section = _collapsible(
@@ -627,12 +650,15 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
 <div class="meta">
   <b id="m_time">{_esc(est_now(now_utc))}</b> &middot; Session:
   <b id="m_session">{_esc(session_label(now_utc))}</b>
-  &middot; Symbol: <b id="m_symbol">{_esc(symbol)}</b>
+  &middot; Symbols: <b id="m_symbol">{_esc(", ".join(symbols))}</b>
   &middot; Pip size: <b>{pip_size:g}</b>
 </div>
 {_control_bar(control)}
 
 <div class="cards" id="cards">{cards}</div>
+<h2>Per-symbol</h2>
+<div class="panel" id="persym_panel">{_table(["Symbol", "Open", "P/L"],
+    _per_symbol_rows(positions, symbols))}</div>
 {_thinking_panel(thinking, symbol)}
 {_signal_breakdown_panel(c["signal_stats"])}
 {positions_section}
