@@ -171,32 +171,57 @@ def _control_bar(control: Optional[dict]) -> str:
 
 
 
+def _prop_toggle(on: bool) -> str:
+    """The Enable/Disable prop-mode switch (POSTs /prop/on|off)."""
+    return (
+        '<label class="ptoggle" title="Turn prop-firm challenge mode on or off">'
+        f'<input type="checkbox" id="prop_switch" onclick="propToggle(this.checked)"'
+        f'{" checked" if on else ""}>'
+        '<span class="ptrack"><span class="pknob"></span></span>'
+        f'<span class="ptlabel" id="prop_switch_label">{"ON" if on else "OFF"}</span>'
+        '</label>')
+
+
 def _prop_inner(prop: Optional[dict]) -> str:
-    def bar(label, val, mx, kind):
+    def bar(label, val, mx, kind, muted):
         pct = min(100.0, max(0.0, 100.0 * val / mx)) if mx else 0.0
-        return (f'<div class="pmetric"><div class="pmlabel"><span>{_esc(label)}</span>'
+        mcls = " muted" if muted else ""
+        return (f'<div class="pmetric{mcls}"><div class="pmlabel"><span>{_esc(label)}</span>'
                 f'<span class="pmval">{val:.2f}% / {mx:g}%</span></div>'
                 f'<div class="pbar {kind}"><div class="pfill" '
                 f'style="width:{pct:.0f}%"></div></div></div>')
-    st = prop.get("status", "")
+    on = bool(prop.get("enabled"))
+    st = prop.get("status", "OFF")
     cls = {"TRADING": "ok", "DE-RISKED": "warn", "DAILY LIMIT": "bad",
-           "MAX DRAWDOWN": "bad", "TARGET HIT": "done"}.get(st, "")
+           "MAX DRAWDOWN": "bad", "TARGET HIT": "done", "OFF": "off"}.get(st, "off")
+    note = ("" if on else
+            '<div class="pofftext">Prop-firm challenge mode is OFF. Flip the '
+            'switch to protect a funded-challenge account: the bot will cap '
+            'daily loss & drawdown and ease off risk as it nears the limits.</div>')
     return (
-        f'<div class="prophead"><span class="pbadge {cls}">{_esc(st)}</span>'
+        f'<div class="prophead"><span class="pbadge {cls}" id="prop_badge">{_esc(st)}</span>'
         f'<span class="psub">Start ${prop.get("start_balance", 0):,.0f} &middot; '
         f'Equity ${prop.get("equity", 0):,.0f} &middot; '
-        f'risk &times;{prop.get("risk_scale", 1)}</span></div>'
-        + bar("Profit target", prop.get("profit_pct", 0), prop.get("profit_target_pct", 0), "good")
-        + bar("Daily loss", prop.get("daily_loss_pct", 0), prop.get("max_daily_loss_pct", 0), "loss")
-        + bar("Max drawdown", prop.get("total_dd_pct", 0), prop.get("max_total_loss_pct", 0), "loss")
+        f'risk &times;{prop.get("risk_scale", 1)}</span>'
+        f'{_prop_toggle(on)}</div>'
+        f'{note}'
+        + bar("Profit target", prop.get("profit_pct", 0), prop.get("profit_target_pct", 0), "good", not on)
+        + bar("Daily loss", prop.get("daily_loss_pct", 0), prop.get("max_daily_loss_pct", 0), "loss", not on)
+        + bar("Max drawdown", prop.get("total_dd_pct", 0), prop.get("max_total_loss_pct", 0), "loss", not on)
     )
 
 
 def _prop_panel(prop: Optional[dict]) -> str:
-    if not prop or not prop.get("enabled"):
-        return ""
-    return ('<h2>Prop challenge</h2>'
-            f'<div class="panel prop" id="prop_panel">{_prop_inner(prop)}</div>')
+    # Always render the section (even when OFF) so the toggle is discoverable.
+    inner = _prop_inner(prop) if prop else _prop_inner({"enabled": False})
+    return ('<h2>Prop challenge <span class="since">pass funded evaluations</span></h2>'
+            f'<div class="panel prop" id="prop_panel">{inner}</div>'
+            '<script>function propToggle(on){'
+            "var b=(typeof BASE!=='undefined'&&BASE)||'';"
+            "var l=document.getElementById('prop_switch_label');if(l)l.textContent=on?'ON':'OFF';"
+            "fetch(b+(on?'/prop/on':'/prop/off'),{method:'POST'}).then(function(){"
+            "setTimeout(function(){if(window.__poll)window.__poll();},200);})"
+            ".catch(function(){if(l)l.textContent='(retry…)';});}</script>")
 
 
 def _thinking_panel(thinking: Optional[dict], symbol: str = "") -> str:
@@ -496,6 +521,17 @@ th,td{padding:6px 7px;font-size:12px;max-width:150px}
 .pbar .pfill{height:100%;border-radius:6px;transition:width .4s ease}
 .pbar.good .pfill{background:linear-gradient(90deg,#16a34a,#34d399)}
 .pbar.loss .pfill{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.pbadge.off{background:#1a2440;color:#8aa0c0;border:1px solid #2c3a5c}
+.pmetric.muted{opacity:.4}
+.pofftext{color:#9fb0cc;font-size:12.5px;margin:2px 0 14px;line-height:1.5}
+.ptoggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-left:auto;user-select:none}
+.ptoggle input{position:absolute;opacity:0;width:0;height:0}
+.ptrack{position:relative;width:42px;height:23px;border-radius:999px;background:#2c3a5c;transition:background .2s}
+.pknob{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#e7ecf3;transition:transform .2s}
+.ptoggle input:checked+.ptrack{background:#16a34a}
+.ptoggle input:checked+.ptrack .pknob{transform:translateX(19px)}
+.ptlabel{font-size:12px;font-weight:700;color:#93a4bd;min-width:26px}
+.ptoggle input:checked~.ptlabel{color:#34d399}
 """
 
 
@@ -537,14 +573,20 @@ if(!ord.length)return '<p class="empty">No symbols.</p>';
 var rows=ord.map(function(s){return [s,a[s][0],money(a[s][1])];});
 return rowsTable(['Symbol','Open','P/L'],rows);}
 function propInner(pr){
+var on=!!pr.enabled;
 function bar(label,val,mx,kind){var pct=mx?Math.max(0,Math.min(100,100*val/mx)):0;
-return '<div class="pmetric"><div class="pmlabel"><span>'+esc(label)+'</span><span class="pmval">'+
+return '<div class="pmetric'+(on?'':' muted')+'"><div class="pmlabel"><span>'+esc(label)+'</span><span class="pmval">'+
 Number(val).toFixed(2)+'% / '+mx+'%</span></div><div class="pbar '+kind+
 '"><div class="pfill" style="width:'+pct.toFixed(0)+'%"></div></div></div>';}
-var st=pr.status||'';var cls=({'TRADING':'ok','DE-RISKED':'warn','DAILY LIMIT':'bad','MAX DRAWDOWN':'bad','TARGET HIT':'done'})[st]||'';
-return '<div class="prophead"><span class="pbadge '+cls+'">'+esc(st)+'</span><span class="psub">Start $'+
+var st=pr.status||'OFF';var cls=({'TRADING':'ok','DE-RISKED':'warn','DAILY LIMIT':'bad','MAX DRAWDOWN':'bad','TARGET HIT':'done','OFF':'off'})[st]||'off';
+var toggle='<label class="ptoggle" title="Turn prop-firm challenge mode on or off">'+
+'<input type="checkbox" id="prop_switch" onclick="propToggle(this.checked)"'+(on?' checked':'')+'>'+
+'<span class="ptrack"><span class="pknob"></span></span>'+
+'<span class="ptlabel" id="prop_switch_label">'+(on?'ON':'OFF')+'</span></label>';
+var note=on?'':'<div class="pofftext">Prop-firm challenge mode is OFF. Flip the switch to protect a funded-challenge account: the bot will cap daily loss & drawdown and ease off risk as it nears the limits.</div>';
+return '<div class="prophead"><span class="pbadge '+cls+'" id="prop_badge">'+esc(st)+'</span><span class="psub">Start $'+
 Number(pr.start_balance).toFixed(0)+' · Equity $'+Number(pr.equity).toFixed(0)+' · risk ×'+pr.risk_scale+
-'</span></div>'+bar('Profit target',pr.profit_pct,pr.profit_target_pct,'good')+
+'</span>'+toggle+'</div>'+note+bar('Profit target',pr.profit_pct,pr.profit_target_pct,'good')+
 bar('Daily loss',pr.daily_loss_pct,pr.max_daily_loss_pct,'loss')+
 bar('Max drawdown',pr.total_dd_pct,pr.max_total_loss_pct,'loss');}
 function spark(vals){
@@ -595,7 +637,7 @@ setHTML('think_table','<div class="tablewrap"><table><thead><tr><th>Read</th><th
 else setHTML('think_table','<p class="empty">Gathering the first read…</p>');}
 setHTML('pos_panel',posTable(d.positions));
 setHTML('persym_panel',persymTable(d.positions,d.symbols));
-if(d.prop&&d.prop.enabled)setHTML('prop_panel',propInner(d.prop));
+if(d.prop)setHTML('prop_panel',propInner(d.prop));
 setHTML('eq_panel',spark(d.equity_series));
 setHTML('sig_panel',rowsTable(['Time','Symbol','Signal','Reason'],d.signals));
 setHTML('ord_panel',rowsTable(['Time','Symbol','Side','Vol','Ticket','Status','Message'],d.orders));
