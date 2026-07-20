@@ -51,3 +51,41 @@ def test_route_state_includes_prop():
     s = ControlState(active=True, prop=True)
     status, _, body = route("/state", "GET", s, "x.html")
     assert status == 200 and b'"prop": true' in body
+
+
+def test_data_overlays_live_control_and_prop(tmp_path):
+    import json
+    snap = tmp_path / "dash.json"
+    snap.write_text(json.dumps({
+        "control": {"active": False, "prop": False},
+        "prop": {"enabled": False, "status": "OFF"},
+        "cards": {"balance": 100},
+    }), encoding="utf-8")
+    s = ControlState(active=True, prop=True)   # live state disagrees with file
+    status, ctype, body = route("/data", "GET", s, "x.html", str(snap))
+    assert status == 200
+    data = json.loads(body)
+    # Live flags win over the stale snapshot -> single click sticks.
+    assert data["control"]["active"] is True and data["control"]["prop"] is True
+    assert data["prop"]["enabled"] is True and data["prop"]["status"] != "OFF"
+    # Non-control fields are preserved untouched.
+    assert data["cards"]["balance"] == 100
+
+
+def test_data_overlays_prop_off(tmp_path):
+    import json
+    snap = tmp_path / "dash.json"
+    snap.write_text(json.dumps({
+        "control": {"active": True, "prop": True},
+        "prop": {"enabled": True, "status": "TRADING"},
+    }), encoding="utf-8")
+    s = ControlState(active=True, prop=False)
+    _, _, body = route("/data", "GET", s, "x.html", str(snap))
+    data = json.loads(body)
+    assert data["prop"]["enabled"] is False and data["prop"]["status"] == "OFF"
+
+
+def test_data_empty_snapshot_is_untouched(tmp_path):
+    status, _, body = route("/data", "GET", ControlState(), "x.html",
+                            str(tmp_path / "missing.json"))
+    assert status == 200 and body == b"{}"
