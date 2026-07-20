@@ -215,3 +215,25 @@ def test_engine_breakdown_panel_empty_when_no_rows(tmp_path):
     html = build_dashboard(j, live=_live(), engines=[])
     j.close()
     assert "All engines" not in html                 # panel omitted when empty
+
+
+def test_engine_panel_shows_disabled_and_trades_summary(tmp_path):
+    """Disabled engines render as DISABLED; the symbol shows which engines trade it."""
+    j = Journal(str(tmp_path / "ebt.db"))
+    rows = [
+        {"symbol": "AUDUSD", "aligned": False, "bias": "NONE",
+         "trades": ["Intraday"],
+         "engines": [
+             {"name": "Intraday", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Waiting for M15 and M30 to agree.",
+              "enabled": True, "risk": 0.30},
+             {"name": "Swing", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Not traded on this pair — engine risk set to 0.",
+              "enabled": False, "risk": 0.0}],
+         "timeframes": []},
+    ]
+    html = build_dashboard(j, live=_live(), engines=rows)
+    j.close()
+    assert "Trades: Intraday" in html          # per-pair engine summary
+    assert "DISABLED" in html                  # swing engine marked disabled
+    assert "risk 0.3%" in html                 # per-engine risk shown

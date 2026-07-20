@@ -308,19 +308,38 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
         for name, item in state.items()
     )
 
+    def _engine_risk(engine_key: str) -> float:
+        # The base per-trade risk % this engine is allocated for THIS symbol.
+        # 0 means the engine is disabled for the pair (it will not trade it).
+        return (settings.intraday_risk_for(symbol) if engine_key == "intraday"
+                else settings.swing_risk_for(symbol))
+
+    engines = []
+    for name, item in state.items():
+        risk = round(float(_engine_risk(name)), 3)
+        enabled = risk > 0
+        engines.append({
+            "name": name.title(),                 # "Intraday" / "Swing"
+            "ready": item["valid"] and enabled,   # a disabled engine never trades
+            "bias": item["bias"].value if item["bias"] else "NONE",
+            "confidence": round(float(item["confidence"]), 2),
+            "reason": (item["reason"] if enabled else
+                       "Not traded on this pair — engine risk set to 0."),
+            "enabled": enabled,
+            "risk": risk,
+        })
+
+    # Which engines actually trade this symbol (risk > 0), for a per-pair summary.
+    trades = [e["name"] for e in engines if e["enabled"]]
+
     return {
         "timeframes": views,
         "bias": bias.value if bias else ("MULTIPLE" if len(biases) > 1 else "NONE"),
         "aligned": aligned,
         "setup_valid": setup_valid,
         "note": note,
-        "engines": [
-            {"name": name.title(), "ready": item["valid"],
-             "bias": item["bias"].value if item["bias"] else "NONE",
-             "confidence": round(float(item["confidence"]), 2),
-             "reason": item["reason"]}
-            for name, item in state.items()
-        ],
+        "engines": engines,
+        "trades": trades,
     }
 
 
