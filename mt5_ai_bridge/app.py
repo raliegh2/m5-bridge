@@ -494,6 +494,10 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
 
     def open_engine(name, setup, book, snap_tf, risk_percent):
         nonlocal total_open, open_risk
+        if risk_percent <= 0:
+            # Engine disabled for this symbol (risk set to 0) -- e.g. a pair
+            # whose swing side loses is run day-only.
+            return
         if not setup["valid"]:
             log.info("%s [%s] waiting: %s", name, symbol, setup["reason"])
             return
