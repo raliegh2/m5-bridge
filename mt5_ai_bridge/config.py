@@ -16,6 +16,8 @@ class Settings:
     server: Optional[str]
 
     symbol: str
+    symbols: tuple          # all pairs to trade concurrently (>=1)
+    combined_risk_ceiling: float  # max aggregate OPEN risk %% across all symbols/engines
     mode: Mode
     timeframe: str
 
@@ -146,11 +148,18 @@ def load_settings(dotenv: bool = True) -> Settings:
         load_dotenv()
 
     server = os.getenv("MT5_SERVER")
+    symbol = _get_str("SYMBOL", "GBPUSD")
+    raw_symbols = os.getenv("SYMBOLS", "")
+    symbols = tuple(dict.fromkeys(
+        t.strip().upper() for t in raw_symbols.replace(",", " ").split() if t.strip()
+    )) or (symbol,)
     return Settings(
         login=_get_int("MT5_LOGIN"),
         password=os.getenv("MT5_PASSWORD"),
         server=server.strip() if server and server.strip() else None,
-        symbol=_get_str("SYMBOL", "GBPUSD"),
+        symbol=symbol,
+        symbols=symbols,
+        combined_risk_ceiling=_get_float("COMBINED_RISK_CEILING", 2.5),
         mode=Mode.from_str(_get_str("MODE", "APPROVAL")),
         timeframe=_get_str("TIMEFRAME", "M15"),
         strategy=_get_str("STRATEGY", "trend").lower(),
