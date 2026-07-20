@@ -105,3 +105,28 @@ def test_opposite_direction_allowed(tmp_path):
         client=client, journal=Journal(db), strategy_fn=_WEAK, max_iterations=1)
     assert len(client.sent_requests) == 1
     assert client.sent_requests[0]["type"] == client.ORDER_TYPE_BUY
+
+
+def test_pick_primary_skips_symbols_without_data(monkeypatch):
+    """The dashboard primary falls through to the first symbol WITH bars."""
+    from mt5_ai_bridge import app
+    from tests.fakes import make_settings
+
+    settings = make_settings(symbol="GBPUSD",
+                             symbols=("GBPUSD", "USDJPY", "XAUUSD"))
+
+    # GBPUSD has no data (broker name mismatch); USDJPY is the first with bars.
+    def fake_snapshot(client, symbol, timeframe, atr_period):
+        return None if symbol == "GBPUSD" else {"symbol": symbol}
+
+    monkeypatch.setattr(app, "market_snapshot", fake_snapshot)
+    assert app._pick_primary(object(), settings) == "USDJPY"
+
+
+def test_pick_primary_defaults_to_first_when_none_have_data(monkeypatch):
+    from mt5_ai_bridge import app
+    from tests.fakes import make_settings
+    settings = make_settings(symbol="GBPUSD", symbols=("GBPUSD", "USDJPY"))
+    monkeypatch.setattr(app, "market_snapshot",
+                        lambda *a, **k: None)
+    assert app._pick_primary(object(), settings) == "GBPUSD"
