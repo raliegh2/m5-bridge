@@ -224,6 +224,47 @@ def _prop_panel(prop: Optional[dict]) -> str:
             ".catch(function(){if(l)l.textContent='(retry…)';});}</script>")
 
 
+def _engine_breakdown_panel(rows) -> str:
+    """Per-symbol block: both engines' state + reason, plus the timeframe reads
+    that drove the decision. Shows the full decision process for EVERY pair."""
+    if not rows:
+        return ""
+    blocks = []
+    for r in rows:
+        sym = _esc(r.get("symbol", ""))
+        aligned = bool(r.get("aligned"))
+        bcls = "on" if aligned else "off"
+        blabel = f"ALIGNED {_esc(r.get('bias'))}" if aligned else "WAITING"
+        engines = "".join(
+            '<div class="engine"><div class="k">' + _esc(e.get("name")) +
+            '</div><div class="estate ' + ("ready" if e.get("ready") else "waiting") +
+            '">' + ("READY " + _esc(e.get("bias")) if e.get("ready") else "WAITING") +
+            ' &middot; ' + f'{float(e.get("confidence", 0)):.2f}' +
+            '</div><div class="ereason">' + _esc(e.get("reason")) + '</div></div>'
+            for e in r.get("engines", [])
+        )
+        tfs = r.get("timeframes", [])
+        tf_rows = "".join(
+            f'<tr><td>{_esc(v.get("label"))}</td><td>{_esc(v.get("tf"))}</td>'
+            f'<td class="{_sig_cls(v.get("signal"))}">{_esc(v.get("signal"))}</td>'
+            f'<td>{float(v.get("confidence", 0)):.2f}</td>'
+            f'<td>{_esc(v.get("reason"))}</td></tr>'
+            for v in tfs
+        )
+        proc = (f'<details class="sec"><summary>Decision process &mdash; '
+                f'timeframe reads</summary><div class="tablewrap"><table><thead>'
+                f'<tr><th>Read</th><th>Timeframe</th><th>Signal</th><th>Conf.</th>'
+                f'<th>Why</th></tr></thead><tbody>{tf_rows}</tbody></table></div>'
+                f'</details>') if tf_rows else ""
+        blocks.append(
+            f'<div class="symrow"><div class="symhead"><span class="symname">{sym}'
+            f'</span><span class="badge {bcls}">{blabel}</span></div>'
+            f'<div class="enginegrid">{engines}</div>{proc}</div>')
+    return ('<h2>All engines &mdash; decision process '
+            '<span class="since">every pair, intraday + swing</span></h2>'
+            f'<div class="panel" id="engines_panel">{"".join(blocks)}</div>')
+
+
 def _thinking_panel(thinking: Optional[dict], symbol: str = "") -> str:
     """The bot's current per-timeframe read + why, with a live indicator."""
     if not thinking:
@@ -384,7 +425,8 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
                          now_utc: Optional[datetime] = None,
                          control: Optional[dict] = None,
                          thinking: Optional[dict] = None,
-                         prop: Optional[dict] = None) -> dict:
+                         prop: Optional[dict] = None,
+                         engines: Optional[list] = None) -> dict:
     """The JSON snapshot the page polls for in-place live updates."""
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
@@ -399,6 +441,7 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
         "control": control,
         "thinking": thinking,
         "prop": prop,
+        "engines_by_symbol": engines or [],
         "cards": {
             "open_pl": c["open_pl"], "day_pl": c["day_pl"],
             "rr": c["rr_headline"], "balance": c["balance"], "equity": c["equity"],
@@ -536,6 +579,12 @@ th,td{padding:6px 7px;font-size:12px;max-width:150px}
 .ptoggle input:checked+.ptrack .pknob{transform:translateX(19px)}
 .ptlabel{font-size:12px;font-weight:700;color:#93a4bd;min-width:26px}
 .ptoggle input:checked~.ptlabel{color:#34d399}
+.symrow{border:1px solid #223052;border-radius:10px;padding:12px;margin:0 0 12px;background:#0f1730}
+.symhead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.symname{font-size:15px;font-weight:700;letter-spacing:.02em}
+.symrow .enginegrid{margin:0 0 8px}
+.symrow details.sec{margin-top:6px;border-top:1px solid #1a2440;padding-top:2px}
+.symrow details.sec>summary{font-size:11px;padding:6px 0}
 """
 
 
@@ -593,6 +642,24 @@ Number(pr.start_balance).toFixed(0)+' · Equity $'+Number(pr.equity).toFixed(0)+
 '</span>'+toggle+'</div>'+note+bar('Profit target',pr.profit_pct,pr.profit_target_pct,'good')+
 bar('Daily loss',pr.daily_loss_pct,pr.max_daily_loss_pct,'loss')+
 bar('Max drawdown',pr.total_dd_pct,pr.max_total_loss_pct,'loss');}
+function enginesPanel(rows){
+if(!rows||!rows.length)return '<p class="empty">Waiting for the first read…</p>';
+return rows.map(function(r){
+var aligned=!!r.aligned;var blabel=aligned?('ALIGNED '+esc(r.bias)):'WAITING';
+var eng=(r.engines||[]).map(function(e){return '<div class="engine"><div class="k">'+
+esc(e.name)+'</div><div class="estate '+(e.ready?'ready':'waiting')+'">'+
+(e.ready?('READY '+esc(e.bias)):'WAITING')+' · '+Number(e.confidence).toFixed(2)+
+'</div><div class="ereason">'+esc(e.reason)+'</div></div>';}).join('');
+var tf=r.timeframes||[];var proc='';
+if(tf.length){var tr=tf.map(function(v){return '<tr><td>'+esc(v.label)+'</td><td>'+esc(v.tf)+
+'</td><td class="'+sigCls(v.signal)+'">'+esc(v.signal)+'</td><td>'+Number(v.confidence).toFixed(2)+
+'</td><td>'+esc(v.reason)+'</td></tr>';}).join('');
+proc='<details class="sec"><summary>Decision process — timeframe reads</summary>'+
+'<div class="tablewrap"><table><thead><tr><th>Read</th><th>Timeframe</th><th>Signal</th>'+
+'<th>Conf.</th><th>Why</th></tr></thead><tbody>'+tr+'</tbody></table></div></details>';}
+return '<div class="symrow"><div class="symhead"><span class="symname">'+esc(r.symbol)+
+'</span><span class="badge '+(aligned?'on':'off')+'">'+blabel+'</span></div>'+
+'<div class="enginegrid">'+eng+'</div>'+proc+'</div>';}).join('');}
 function spark(vals){
 if(!vals||vals.length<2)return '<p class="empty">Not enough data for an equity curve yet.</p>';
 var w=720,h=150,pad=8,n=vals.length,lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),
@@ -642,6 +709,7 @@ else setHTML('think_table','<p class="empty">Gathering the first read…</p>');}
 setHTML('pos_panel',posTable(d.positions));
 setHTML('persym_panel',persymTable(d.positions,d.symbols));
 if(d.prop)setHTML('prop_panel',propInner(d.prop));
+if(d.engines_by_symbol)setHTML('engines_panel',enginesPanel(d.engines_by_symbol));
 setHTML('eq_panel',spark(d.equity_series));
 setHTML('sig_panel',rowsTable(['Time','Symbol','Signal','Reason'],d.signals));
 setHTML('ord_panel',rowsTable(['Time','Symbol','Side','Vol','Ticket','Status','Message'],d.orders));
@@ -678,7 +746,8 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
                     refresh_seconds: int = 0, now_utc: Optional[datetime] = None,
                     control: Optional[dict] = None,
                     thinking: Optional[dict] = None, port: int = 8800,
-                    prop: Optional[dict] = None) -> str:
+                    prop: Optional[dict] = None,
+                    engines: Optional[list] = None) -> str:
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
     balance, equity = c["balance"], c["equity"]
@@ -769,6 +838,7 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
 <div class="panel" id="persym_panel">{_table(["Symbol", "Open", "P/L"],
     _per_symbol_rows(positions, symbols))}</div>
 {_thinking_panel(thinking, symbol)}
+{_engine_breakdown_panel(engines)}
 {_signal_breakdown_panel(c["signal_stats"])}
 {positions_section}
 
@@ -787,11 +857,12 @@ def write_dashboard_live(journal: Journal, live: dict, path: str,
                          refresh_seconds: int = 5,
                          control: Optional[dict] = None,
                          thinking: Optional[dict] = None,
-                         port: int = 8800, prop: Optional[dict] = None) -> str:
+                         port: int = 8800, prop: Optional[dict] = None,
+                         engines: Optional[list] = None) -> str:
     """Refresh the live dashboard HTML shell (bot writes this each loop)."""
     html_text = build_dashboard(journal, live=live, refresh_seconds=refresh_seconds,
                                 control=control, thinking=thinking, port=port,
-                                prop=prop)
+                                prop=prop, engines=engines)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(html_text)
     return path
@@ -801,13 +872,15 @@ def write_dashboard_data(journal: Journal, live: dict, path: str,
                          refresh_seconds: int = 1,
                          control: Optional[dict] = None,
                          thinking: Optional[dict] = None,
-                         prop: Optional[dict] = None) -> str:
+                         prop: Optional[dict] = None,
+                         engines: Optional[list] = None) -> str:
     """Write the JSON snapshot the page polls for in-place live updates.
 
     Written atomically (temp file + os.replace) so the server never serves a
     half-written file."""
     data = build_dashboard_data(journal, live=live, refresh_seconds=refresh_seconds,
-                                control=control, thinking=thinking, prop=prop)
+                                control=control, thinking=thinking, prop=prop,
+                                engines=engines)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh)
