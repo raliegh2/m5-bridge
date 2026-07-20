@@ -25,6 +25,7 @@ Endpoints:
     GET  /data        -> latest JSON snapshot (for the in-place live updates)
     GET  /state       -> {"active": bool}
     POST /start /stop -> toggle trading
+    POST /prop/on /prop/off -> toggle prop-firm challenge mode
 """
 
 import json
@@ -37,8 +38,9 @@ from typing import Optional, Tuple
 class ControlState:
     """Thread-safe active/idle flag shared between the loop and the server."""
 
-    def __init__(self, active: bool = False) -> None:
+    def __init__(self, active: bool = False, prop: bool = False) -> None:
         self._active = bool(active)
+        self._prop = bool(prop)
         self._lock = threading.Lock()
 
     def is_active(self) -> bool:
@@ -48,6 +50,15 @@ class ControlState:
     def set_active(self, value: bool) -> None:
         with self._lock:
             self._active = bool(value)
+
+    def is_prop(self) -> bool:
+        """Whether prop-firm challenge mode is currently ON."""
+        with self._lock:
+            return self._prop
+
+    def set_prop(self, value: bool) -> None:
+        with self._lock:
+            self._prop = bool(value)
 
 
 def route(path: str, method: str, state: ControlState,
@@ -62,8 +73,15 @@ def route(path: str, method: str, state: ControlState,
     if p == "/stop":
         state.set_active(False)
         return 200, "application/json", b'{"active": false}'
+    if p == "/prop/on":
+        state.set_prop(True)
+        return 200, "application/json", b'{"prop": true}'
+    if p == "/prop/off":
+        state.set_prop(False)
+        return 200, "application/json", b'{"prop": false}'
     if p == "/state":
-        body = json.dumps({"active": state.is_active()}).encode()
+        body = json.dumps({"active": state.is_active(),
+                           "prop": state.is_prop()}).encode()
         return 200, "application/json", body
     if p == "/data":
         if data_path:

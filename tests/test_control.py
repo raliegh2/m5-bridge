@@ -30,3 +30,24 @@ def test_route_missing_dashboard_is_404(tmp_path):
 
 def test_route_unknown_path_404():
     assert route("/whatever", "GET", ControlState(), "x.html")[0] == 404
+
+
+def test_prop_state_toggles():
+    s = ControlState(active=True, prop=False)
+    assert not s.is_prop()
+    s.set_prop(True)
+    assert s.is_prop()
+
+
+def test_route_prop_on_off():
+    s = ControlState(active=True)
+    status, _, body = route("/prop/on", "POST", s, "x.html")
+    assert status == 200 and b'"prop": true' in body and s.is_prop()
+    status, _, body = route("/prop/off", "POST", s, "x.html")
+    assert status == 200 and b'"prop": false' in body and not s.is_prop()
+
+
+def test_route_state_includes_prop():
+    s = ControlState(active=True, prop=True)
+    status, _, body = route("/state", "GET", s, "x.html")
+    assert status == 200 and b'"prop": true' in body
