@@ -9,6 +9,15 @@ from dotenv import load_dotenv
 from .enums import Mode
 
 
+# Built-in per-symbol risk defaults (%% of balance). These apply ONLY when the
+# user has not set a SWING_RISK_PERCENT_<SYM> / INTRADAY_RISK_PERCENT_<SYM>
+# override in their .env. Gold (XAUUSD) moves far more than FX per lot and
+# whipsaws hard in ranges, so it ships throttled well below the global risk so
+# it can\'t dominate account drawdown out of the box.
+_BUILTIN_SWING_RISK = {"XAUUSD": 0.2}
+_BUILTIN_INTRADAY_RISK = {"XAUUSD": 0.1}
+
+
 @dataclass(frozen=True)
 class Settings:
     login: Optional[int]
@@ -131,14 +140,28 @@ class Settings:
         return (self.trend_tf_mid, self.swing_tf_high, self.swing_tf_higher)
 
     def swing_risk_for(self, symbol: str) -> float:
-        """Swing risk %% for a symbol (per-symbol override, else the global)."""
-        return dict(self.swing_risk_overrides).get(
-            (symbol or "").upper(), self.swing_risk_percent)
+        """Swing risk %% for a symbol.
+
+        Precedence: .env override -> built-in per-symbol default (e.g. gold is
+        throttled) -> the global SWING_RISK_PERCENT.
+        """
+        sym = (symbol or "").upper()
+        overrides = dict(self.swing_risk_overrides)
+        if sym in overrides:
+            return overrides[sym]
+        return _BUILTIN_SWING_RISK.get(sym, self.swing_risk_percent)
 
     def intraday_risk_for(self, symbol: str) -> float:
-        """Intraday risk %% for a symbol (per-symbol override, else the global)."""
-        return dict(self.intraday_risk_overrides).get(
-            (symbol or "").upper(), self.intraday_risk_percent)
+        """Intraday risk %% for a symbol.
+
+        Precedence: .env override -> built-in per-symbol default (e.g. gold is
+        throttled) -> the global INTRADAY_RISK_PERCENT.
+        """
+        sym = (symbol or "").upper()
+        overrides = dict(self.intraday_risk_overrides)
+        if sym in overrides:
+            return overrides[sym]
+        return _BUILTIN_INTRADAY_RISK.get(sym, self.intraday_risk_percent)
 
     def prop_config(self):
         """Build a PropConfig from these settings."""
