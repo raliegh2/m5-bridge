@@ -175,13 +175,14 @@ def connect(client, settings: Settings) -> None:
              settings.mode.value, settings.strategy, settings.symbol)
 
 
-def account_snapshot(client, symbol: str) -> dict:
+def account_snapshot(client, symbol: str, symbols=None) -> dict:
     account = client.account_info()
     positions = client.positions_get() or []
     tick = client.symbol_info_tick(symbol)
 
     return {
         "symbol": symbol,
+        "symbols": list(symbols) if symbols else [symbol],
         "login": account.login,
         "balance": account.balance,
         "equity": account.equity,
@@ -328,7 +329,7 @@ def _refresh_dashboard(client, journal, settings, control=None,
     if not settings.write_dashboard:
         return
     try:
-        snap = account_snapshot(client, settings.symbol)
+        snap = account_snapshot(client, settings.symbols[0], settings.symbols)
         write_dashboard_live(journal, snap, settings.dashboard_path,
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking,
