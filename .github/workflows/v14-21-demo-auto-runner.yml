@@ -6,9 +6,11 @@ on:
       - v14-21-demo-auto-runner
     paths:
       - "mt5_ai_bridge/v14_21_demo_auto_execution.py"
+      - "mt5_ai_bridge/v14_21_signal_freshness.py"
       - "v14_21_demo_auto_runner.py"
       - "v14_21_demo_auto_preflight.py"
       - "tests/test_v14_21_demo_auto_execution.py"
+      - "tests/test_v14_21_signal_freshness.py"
       - "V14_21_DEMO_AUTO_RUNNER.md"
       - ".env.v14-21-demo-auto.example"
       - "Start-V14-21-Demo-Auto.bat"
@@ -40,9 +42,11 @@ jobs:
         run: >-
           python -m py_compile
           mt5_ai_bridge/v14_21_demo_auto_execution.py
+          mt5_ai_bridge/v14_21_signal_freshness.py
           v14_21_demo_auto_runner.py
           v14_21_demo_auto_preflight.py
           tests/test_v14_21_demo_auto_execution.py
+          tests/test_v14_21_signal_freshness.py
       - name: Run inherited execution and V14.21 safety tests
         run: |
           set -o pipefail
@@ -53,7 +57,8 @@ jobs:
             tests/test_v14_3_research_parity_execution.py \
             tests/test_v14_4_profit_guard.py \
             tests/test_v14_20_range_anti_consensus.py \
-            tests/test_v14_21_demo_auto_execution.py 2>&1 \
+            tests/test_v14_21_demo_auto_execution.py \
+            tests/test_v14_21_signal_freshness.py 2>&1 \
             | tee v14_21_validation/pytest.log
       - name: Validate immutable safety boundaries
         run: |
@@ -73,25 +78,26 @@ jobs:
           assert config.maximum_consecutive_losses == 2
 
           payload = {
-              'model': 'V14.21_DEMO_AUTO_RUNNER',
-              'default_mode': config.requested_mode,
-              'demo_only': True,
-              'funded_account_supported': False,
-              'direct_range_orders': False,
-              'v14_20_filter_active': True,
-              'order_check_required': True,
-              'risk_boundaries': {
-                  'single_trade_percent': config.max_live_risk_percent,
-                  'combined_percent': config.max_open_risk_percent,
-                  'hard_drawdown_percent': config.live_hard_drawdown_percent,
-                  'daily_loss_dollars': config.daily_loss_limit_dollars,
-                  'overall_loss_dollars': config.overall_loss_limit_dollars,
-                  'consecutive_losses': config.maximum_consecutive_losses,
-              },
+            'model': 'V14.21_DEMO_AUTO_RUNNER',
+            'default_mode': config.requested_mode,
+            'demo_only': True,
+            'funded_account_supported': False,
+            'direct_range_orders': False,
+            'v14_20_filter_active': True,
+            'incremental_gbp_signals_current_m1_only': True,
+            'order_check_required': True,
+            'risk_boundaries': {
+              'single_trade_percent': config.max_live_risk_percent,
+              'combined_percent': config.max_open_risk_percent,
+              'hard_drawdown_percent': config.live_hard_drawdown_percent,
+              'daily_loss_dollars': config.daily_loss_limit_dollars,
+              'overall_loss_dollars': config.overall_loss_limit_dollars,
+              'consecutive_losses': config.maximum_consecutive_losses,
+            },
           }
           Path('v14_21_validation/safety_manifest.json').write_text(
-              json.dumps(payload, indent=2),
-              encoding='utf-8',
+            json.dumps(payload, indent=2),
+            encoding='utf-8',
           )
           print(json.dumps(payload, indent=2))
           PY
