@@ -49,3 +49,25 @@ def test_make_settings_defaults_have_no_overrides():
     s = make_settings()
     assert s.swing_risk_for("ANYTHING") == s.swing_risk_percent
     assert s.intraday_risk_for("ANYTHING") == s.intraday_risk_percent
+
+
+def test_gold_has_builtin_low_risk_default(monkeypatch):
+    """Gold ships throttled below the global risk, with no .env override."""
+    monkeypatch.setenv("SWING_RISK_PERCENT", "1.05")
+    monkeypatch.setenv("INTRADAY_RISK_PERCENT", "0.11")
+    s = load_settings(dotenv=False)
+    # Built-in gold default applies (well below the 1.05 / 0.11 globals).
+    assert s.swing_risk_for("XAUUSD") == 0.2
+    assert s.intraday_risk_for("XAUUSD") == 0.1
+    assert s.swing_risk_for("xauusd") == 0.2          # case-insensitive
+    # Non-gold symbols still use the global.
+    assert s.swing_risk_for("GBPUSD") == 1.05
+
+
+def test_env_override_beats_builtin_gold_default(monkeypatch):
+    """An explicit .env override always wins over the built-in gold default."""
+    monkeypatch.setenv("SWING_RISK_PERCENT_XAUUSD", "0.05")
+    monkeypatch.setenv("INTRADAY_RISK_PERCENT_XAUUSD", "0")
+    s = load_settings(dotenv=False)
+    assert s.swing_risk_for("XAUUSD") == 0.05
+    assert s.intraday_risk_for("XAUUSD") == 0.0       # 0 disables that engine
