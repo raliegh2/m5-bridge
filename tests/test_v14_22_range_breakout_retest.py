@@ -60,6 +60,15 @@ def test_breakout_then_retest_is_detected_without_same_bar_entry() -> None:
                 "body_h4_atr": 0.50,
                 "close_location": 0.78,
             },
+            {
+                "mid_close": 1.1010,
+                "mid_open": 1.1007,
+                "mid_high": 1.1012,
+                "mid_low": 1.1005,
+                "h4_atr14": 0.0010,
+                "body_h4_atr": 0.30,
+                "close_location": 0.71,
+            },
         ]
     )
     breakout = _find_breakout(
