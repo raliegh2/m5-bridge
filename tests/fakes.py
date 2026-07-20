@@ -114,7 +114,8 @@ def make_settings(**kw) -> Settings:
     ATR stops and risk sizing default OFF so book tests are deterministic.
     """
     base = dict(
-        login=1, password="x", server="s", symbol="GBPUSD", mode=Mode.READ_ONLY,
+        login=1, password="x", server="s", symbol="GBPUSD",
+        symbols=("GBPUSD",), combined_risk_ceiling=3.5, mode=Mode.READ_ONLY,
         timeframe="M15", strategy="trend", reasoning_threshold=0.6,
         rsi_overbought=75, rsi_oversold=25,
         lot_size=0.09, ny_size_multiplier=2.0, ny_start_hour=12, ny_end_hour=21,
@@ -144,4 +145,8 @@ def make_settings(**kw) -> Settings:
         reconnect_attempts=3, reconnect_delay_seconds=0,
     )
     base.update(kw)
+    # Keep symbols consistent with an overridden single symbol unless the test
+    # set symbols explicitly.
+    if "symbols" not in kw:
+        base["symbols"] = (base["symbol"],)
     return Settings(**base)
