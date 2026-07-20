@@ -130,6 +130,12 @@ class Settings:
     prop_trailing: bool = False
     prop_derisk_start_pct: float = 60.0
 
+    # Regime router (Efficiency Ratio). OFF by default -- an opt-in filter that
+    # only lets the trend engines trade in a DIRECTIONAL regime (ER >= min).
+    regime_filter: bool = False
+    regime_er_min: float = 0.30
+    regime_er_overrides: tuple = ()
+
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
@@ -162,6 +168,11 @@ class Settings:
         if sym in overrides:
             return overrides[sym]
         return _BUILTIN_INTRADAY_RISK.get(sym, self.intraday_risk_percent)
+
+    def regime_er_min_for(self, symbol: str) -> float:
+        """ER directional threshold for a symbol (.env override else global)."""
+        return dict(self.regime_er_overrides).get(
+            (symbol or "").upper(), self.regime_er_min)
 
     def prop_config(self):
         """Build a PropConfig from these settings."""
@@ -230,6 +241,7 @@ def load_settings(dotenv: bool = True) -> Settings:
 
     swing_overrides = _risk_overrides("SWING_RISK_PERCENT_")
     intraday_overrides = _risk_overrides("INTRADAY_RISK_PERCENT_")
+    regime_overrides = _risk_overrides("REGIME_ER_MIN_")
     return Settings(
         login=_get_int("MT5_LOGIN"),
         password=os.getenv("MT5_PASSWORD"),
@@ -315,4 +327,7 @@ def load_settings(dotenv: bool = True) -> Settings:
         prop_profit_target_pct=_get_float("PROP_PROFIT_TARGET_PCT", 8.0),
         prop_trailing=_get_bool("PROP_TRAILING", False),
         prop_derisk_start_pct=_get_float("PROP_DERISK_START_PCT", 60.0),
+        regime_filter=_get_bool("REGIME_FILTER", False),
+        regime_er_min=_get_float("REGIME_ER_MIN", 0.30),
+        regime_er_overrides=regime_overrides,
     )
