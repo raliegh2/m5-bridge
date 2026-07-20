@@ -160,10 +160,43 @@ def _control_bar(control: Optional[dict]) -> str:
         '<span class="hint">opens new trades only while ACTIVE — '
         'existing trades keep trailing either way</span>'
         "<script>function ctl(u){var b=(typeof BASE!=='undefined'&&BASE)||'';"
+        "var on=u.indexOf('start')>=0;var cs=document.getElementById('ctl_status');"
+        "if(cs){cs.textContent=(on?'● ACTIVE':'● PAUSED');"
+        "cs.className='status '+(on?'on':'off');}"
         "fetch(b+u,{method:'POST'}).then(function(){setTimeout(function(){"
-        "if(window.__poll){window.__poll()}else{location.reload()}},250)})}</script>"
+        "if(window.__poll){window.__poll()}else{location.reload()}},200)})"
+        ".catch(function(){if(cs){cs.textContent='● (retry…)';}})}</script>"
         "</div>"
     )
+
+
+
+def _prop_inner(prop: Optional[dict]) -> str:
+    def bar(label, val, mx, kind):
+        pct = min(100.0, max(0.0, 100.0 * val / mx)) if mx else 0.0
+        return (f'<div class="pmetric"><div class="pmlabel"><span>{_esc(label)}</span>'
+                f'<span class="pmval">{val:.2f}% / {mx:g}%</span></div>'
+                f'<div class="pbar {kind}"><div class="pfill" '
+                f'style="width:{pct:.0f}%"></div></div></div>')
+    st = prop.get("status", "")
+    cls = {"TRADING": "ok", "DE-RISKED": "warn", "DAILY LIMIT": "bad",
+           "MAX DRAWDOWN": "bad", "TARGET HIT": "done"}.get(st, "")
+    return (
+        f'<div class="prophead"><span class="pbadge {cls}">{_esc(st)}</span>'
+        f'<span class="psub">Start ${prop.get("start_balance", 0):,.0f} &middot; '
+        f'Equity ${prop.get("equity", 0):,.0f} &middot; '
+        f'risk &times;{prop.get("risk_scale", 1)}</span></div>'
+        + bar("Profit target", prop.get("profit_pct", 0), prop.get("profit_target_pct", 0), "good")
+        + bar("Daily loss", prop.get("daily_loss_pct", 0), prop.get("max_daily_loss_pct", 0), "loss")
+        + bar("Max drawdown", prop.get("total_dd_pct", 0), prop.get("max_total_loss_pct", 0), "loss")
+    )
+
+
+def _prop_panel(prop: Optional[dict]) -> str:
+    if not prop or not prop.get("enabled"):
+        return ""
+    return ('<h2>Prop challenge</h2>'
+            f'<div class="panel prop" id="prop_panel">{_prop_inner(prop)}</div>')
 
 
 def _thinking_panel(thinking: Optional[dict], symbol: str = "") -> str:
@@ -321,7 +354,8 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
                          refresh_seconds: int = 1,
                          now_utc: Optional[datetime] = None,
                          control: Optional[dict] = None,
-                         thinking: Optional[dict] = None) -> dict:
+                         thinking: Optional[dict] = None,
+                         prop: Optional[dict] = None) -> dict:
     """The JSON snapshot the page polls for in-place live updates."""
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
@@ -335,6 +369,7 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
         "refresh_seconds": refresh_seconds,
         "control": control,
         "thinking": thinking,
+        "prop": prop,
         "cards": {
             "open_pl": c["open_pl"], "day_pl": c["day_pl"],
             "rr": c["rr_headline"], "balance": c["balance"], "equity": c["equity"],
@@ -447,6 +482,20 @@ th,td{padding:6px 7px;font-size:12px;max-width:150px}
 @media (prefers-reduced-motion:reduce){
 .pulse{animation:none}.scan::after{animation:none;left:0;width:100%;opacity:.25}
 }
+.prop .prophead{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.pbadge{font-weight:700;font-size:12px;padding:5px 12px;border-radius:999px;letter-spacing:.03em}
+.pbadge.ok{background:#12351f;color:#34d399;border:1px solid #1f5132}
+.pbadge.warn{background:#3a2f12;color:#fbbf24;border:1px solid #5c4a17}
+.pbadge.bad{background:#3a1620;color:#f87171;border:1px solid #5b2330}
+.pbadge.done{background:#122f3a;color:#38bdf8;border:1px solid #17495c}
+.prop .psub{color:#9fb0cc;font-size:12px}
+.pmetric{margin:10px 0}
+.pmlabel{display:flex;justify-content:space-between;font-size:12px;color:#b7c2d8;margin-bottom:5px}
+.pmval{color:#8aa0c0}
+.pbar{height:11px;border-radius:6px;background:#0f1730;border:1px solid #223052;overflow:hidden}
+.pbar .pfill{height:100%;border-radius:6px;transition:width .4s ease}
+.pbar.good .pfill{background:linear-gradient(90deg,#16a34a,#34d399)}
+.pbar.loss .pfill{background:linear-gradient(90deg,#f59e0b,#ef4444)}
 """
 
 
@@ -487,6 +536,17 @@ function persymTable(ps,syms){var a={},ord=[];(syms||[]).forEach(function(s){a[s
 if(!ord.length)return '<p class="empty">No symbols.</p>';
 var rows=ord.map(function(s){return [s,a[s][0],money(a[s][1])];});
 return rowsTable(['Symbol','Open','P/L'],rows);}
+function propInner(pr){
+function bar(label,val,mx,kind){var pct=mx?Math.max(0,Math.min(100,100*val/mx)):0;
+return '<div class="pmetric"><div class="pmlabel"><span>'+esc(label)+'</span><span class="pmval">'+
+Number(val).toFixed(2)+'% / '+mx+'%</span></div><div class="pbar '+kind+
+'"><div class="pfill" style="width:'+pct.toFixed(0)+'%"></div></div></div>';}
+var st=pr.status||'';var cls=({'TRADING':'ok','DE-RISKED':'warn','DAILY LIMIT':'bad','MAX DRAWDOWN':'bad','TARGET HIT':'done'})[st]||'';
+return '<div class="prophead"><span class="pbadge '+cls+'">'+esc(st)+'</span><span class="psub">Start $'+
+Number(pr.start_balance).toFixed(0)+' · Equity $'+Number(pr.equity).toFixed(0)+' · risk ×'+pr.risk_scale+
+'</span></div>'+bar('Profit target',pr.profit_pct,pr.profit_target_pct,'good')+
+bar('Daily loss',pr.daily_loss_pct,pr.max_daily_loss_pct,'loss')+
+bar('Max drawdown',pr.total_dd_pct,pr.max_total_loss_pct,'loss');}
 function spark(vals){
 if(!vals||vals.length<2)return '<p class="empty">Not enough data for an equity curve yet.</p>';
 var w=720,h=150,pad=8,n=vals.length,lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),
@@ -535,6 +595,7 @@ setHTML('think_table','<div class="tablewrap"><table><thead><tr><th>Read</th><th
 else setHTML('think_table','<p class="empty">Gathering the first read…</p>');}
 setHTML('pos_panel',posTable(d.positions));
 setHTML('persym_panel',persymTable(d.positions,d.symbols));
+if(d.prop&&d.prop.enabled)setHTML('prop_panel',propInner(d.prop));
 setHTML('eq_panel',spark(d.equity_series));
 setHTML('sig_panel',rowsTable(['Time','Symbol','Signal','Reason'],d.signals));
 setHTML('ord_panel',rowsTable(['Time','Symbol','Side','Vol','Ticket','Status','Message'],d.orders));
@@ -570,7 +631,8 @@ def _per_symbol_rows(positions, symbols) -> list:
 def build_dashboard(journal: Journal, live: Optional[dict] = None,
                     refresh_seconds: int = 0, now_utc: Optional[datetime] = None,
                     control: Optional[dict] = None,
-                    thinking: Optional[dict] = None, port: int = 8800) -> str:
+                    thinking: Optional[dict] = None, port: int = 8800,
+                    prop: Optional[dict] = None) -> str:
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
     balance, equity = c["balance"], c["equity"]
@@ -656,6 +718,7 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
 {_control_bar(control)}
 
 <div class="cards" id="cards">{cards}</div>
+{_prop_panel(prop)}
 <h2>Per-symbol</h2>
 <div class="panel" id="persym_panel">{_table(["Symbol", "Open", "P/L"],
     _per_symbol_rows(positions, symbols))}</div>
@@ -678,10 +741,11 @@ def write_dashboard_live(journal: Journal, live: dict, path: str,
                          refresh_seconds: int = 5,
                          control: Optional[dict] = None,
                          thinking: Optional[dict] = None,
-                         port: int = 8800) -> str:
+                         port: int = 8800, prop: Optional[dict] = None) -> str:
     """Refresh the live dashboard HTML shell (bot writes this each loop)."""
     html_text = build_dashboard(journal, live=live, refresh_seconds=refresh_seconds,
-                                control=control, thinking=thinking, port=port)
+                                control=control, thinking=thinking, port=port,
+                                prop=prop)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(html_text)
     return path
@@ -690,13 +754,14 @@ def write_dashboard_live(journal: Journal, live: dict, path: str,
 def write_dashboard_data(journal: Journal, live: dict, path: str,
                          refresh_seconds: int = 1,
                          control: Optional[dict] = None,
-                         thinking: Optional[dict] = None) -> str:
+                         thinking: Optional[dict] = None,
+                         prop: Optional[dict] = None) -> str:
     """Write the JSON snapshot the page polls for in-place live updates.
 
     Written atomically (temp file + os.replace) so the server never serves a
     half-written file."""
     data = build_dashboard_data(journal, live=live, refresh_seconds=refresh_seconds,
-                                control=control, thinking=thinking)
+                                control=control, thinking=thinking, prop=prop)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh)
