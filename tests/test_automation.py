@@ -152,3 +152,33 @@ def test_engine_breakdown_covers_every_symbol(monkeypatch):
         names = {e["name"] for e in r["engines"]}
         assert names == {"Intraday", "Swing"}
         assert all(e["reason"] for e in r["engines"])
+
+
+def test_engine_breakdown_marks_enabled_disabled_and_risk(monkeypatch):
+    """Each engine carries enabled + its per-symbol risk; disabled = risk 0."""
+    from mt5_ai_bridge import app
+    from mt5_ai_bridge.enums import Signal
+    from mt5_ai_bridge.strategy import Decision
+    from tests.fakes import make_settings
+
+    settings = make_settings(
+        symbol="GBPUSD", symbols=("GBPUSD", "AUDUSD"), multi_book=True,
+        swing_risk_percent=1.05, intraday_risk_percent=0.11,
+        swing_risk_overrides=(("AUDUSD", 0.0),),          # swing disabled
+        intraday_risk_overrides=(("AUDUSD", 0.30),))
+    monkeypatch.setattr(app, "market_snapshot", lambda *a, **k: {"close": 1.0})
+    monkeypatch.setattr(app, "explain_market", lambda snap: "why")
+    rows = {r["symbol"]: r for r in app._engine_breakdown(
+        object(), settings, lambda _m: Decision(Signal.WAIT, "wait", 0.5))}
+
+    gbp = {e["name"]: e for e in rows["GBPUSD"]["engines"]}
+    assert gbp["Swing"]["enabled"] and gbp["Swing"]["risk"] == 1.05
+    assert gbp["Intraday"]["enabled"] and gbp["Intraday"]["risk"] == 0.11
+    assert rows["GBPUSD"]["trades"] == ["Intraday", "Swing"]
+
+    aud = {e["name"]: e for e in rows["AUDUSD"]["engines"]}
+    assert aud["Swing"]["enabled"] is False and aud["Swing"]["risk"] == 0.0
+    assert aud["Intraday"]["enabled"] and aud["Intraday"]["risk"] == 0.30
+    # A disabled engine never reports ready, and is excluded from 'trades'.
+    assert aud["Swing"]["ready"] is False
+    assert rows["AUDUSD"]["trades"] == ["Intraday"]
