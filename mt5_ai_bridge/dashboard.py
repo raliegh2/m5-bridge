@@ -229,20 +229,33 @@ def _engine_breakdown_panel(rows) -> str:
     that drove the decision. Shows the full decision process for EVERY pair."""
     if not rows:
         return ""
+    def _engine_card(e) -> str:
+        enabled = e.get("enabled", True)
+        if not enabled:
+            state_cls, state_txt = "disabled", "DISABLED"
+        elif e.get("ready"):
+            state_cls, state_txt = "ready", "READY " + _esc(e.get("bias")) + \
+                " &middot; " + f'{float(e.get("confidence", 0)):.2f}'
+        else:
+            state_cls, state_txt = "waiting", "WAITING"
+        risk = f'{float(e.get("risk", 0)):g}%' if "risk" in e else ""
+        head = (_esc(e.get("name")) +   # Intraday / Swing (the trade type)
+                (f' &middot; risk {risk}' if risk else ""))
+        cls = "engine off" if not enabled else "engine"
+        return (f'<div class="{cls}"><div class="k">{head}</div>'
+                f'<div class="estate {state_cls}">{state_txt}</div>'
+                f'<div class="ereason">{_esc(e.get("reason"))}</div></div>')
+
     blocks = []
     for r in rows:
         sym = _esc(r.get("symbol", ""))
         aligned = bool(r.get("aligned"))
         bcls = "on" if aligned else "off"
         blabel = f"ALIGNED {_esc(r.get('bias'))}" if aligned else "WAITING"
-        engines = "".join(
-            '<div class="engine"><div class="k">' + _esc(e.get("name")) +
-            '</div><div class="estate ' + ("ready" if e.get("ready") else "waiting") +
-            '">' + ("READY " + _esc(e.get("bias")) if e.get("ready") else "WAITING") +
-            ' &middot; ' + f'{float(e.get("confidence", 0)):.2f}' +
-            '</div><div class="ereason">' + _esc(e.get("reason")) + '</div></div>'
-            for e in r.get("engines", [])
-        )
+        engines = "".join(_engine_card(e) for e in r.get("engines", []))
+        trades = r.get("trades", [])
+        trades_txt = (" + ".join(_esc(t) for t in trades) if trades
+                      else "none (both engines disabled)")
         tfs = r.get("timeframes", [])
         tf_rows = "".join(
             f'<tr><td>{_esc(v.get("label"))}</td><td>{_esc(v.get("tf"))}</td>'
@@ -258,7 +271,8 @@ def _engine_breakdown_panel(rows) -> str:
                 f'</details>') if tf_rows else ""
         blocks.append(
             f'<div class="symrow"><div class="symhead"><span class="symname">{sym}'
-            f'</span><span class="badge {bcls}">{blabel}</span></div>'
+            f'</span><span class="badge {bcls}">{blabel}</span>'
+            f'<span class="trades">Trades: {trades_txt}</span></div>'
             f'<div class="enginegrid">{engines}</div>{proc}</div>')
     return ('<h2>All engines &mdash; decision process '
             '<span class="since">every pair, intraday + swing</span></h2>'
@@ -585,6 +599,10 @@ th,td{padding:6px 7px;font-size:12px;max-width:150px}
 .symrow .enginegrid{margin:0 0 8px}
 .symrow details.sec{margin-top:6px;border-top:1px solid #1a2440;padding-top:2px}
 .symrow details.sec>summary{font-size:11px;padding:6px 0}
+.engine.off{opacity:.55}
+.estate.disabled{color:#7e8aa3;font-weight:700}
+.trades{font-size:11px;color:#8aa0c0;margin-left:auto;white-space:nowrap}
+.trades{font-weight:600}
 """
 
 
@@ -646,10 +664,17 @@ function enginesPanel(rows){
 if(!rows||!rows.length)return '<p class="empty">Waiting for the first read…</p>';
 return rows.map(function(r){
 var aligned=!!r.aligned;var blabel=aligned?('ALIGNED '+esc(r.bias)):'WAITING';
-var eng=(r.engines||[]).map(function(e){return '<div class="engine"><div class="k">'+
-esc(e.name)+'</div><div class="estate '+(e.ready?'ready':'waiting')+'">'+
-(e.ready?('READY '+esc(e.bias)):'WAITING')+' · '+Number(e.confidence).toFixed(2)+
-'</div><div class="ereason">'+esc(e.reason)+'</div></div>';}).join('');
+var eng=(r.engines||[]).map(function(e){
+var enabled=(e.enabled!==false);
+var scls,stxt;
+if(!enabled){scls='disabled';stxt='DISABLED';}
+else if(e.ready){scls='ready';stxt='READY '+esc(e.bias)+' · '+Number(e.confidence).toFixed(2);}
+else{scls='waiting';stxt='WAITING';}
+var risk=(e.risk!=null)?(' · risk '+e.risk+'%'):'';
+return '<div class="engine'+(enabled?'':' off')+'"><div class="k">'+esc(e.name)+risk+
+'</div><div class="estate '+scls+'">'+stxt+'</div><div class="ereason">'+esc(e.reason)+
+'</div></div>';}).join('');
+var trades=(r.trades&&r.trades.length)?r.trades.map(esc).join(' + '):'none (both engines disabled)';
 var tf=r.timeframes||[];var proc='';
 if(tf.length){var tr=tf.map(function(v){return '<tr><td>'+esc(v.label)+'</td><td>'+esc(v.tf)+
 '</td><td class="'+sigCls(v.signal)+'">'+esc(v.signal)+'</td><td>'+Number(v.confidence).toFixed(2)+
@@ -658,7 +683,8 @@ proc='<details class="sec"><summary>Decision process — timeframe reads</summar
 '<div class="tablewrap"><table><thead><tr><th>Read</th><th>Timeframe</th><th>Signal</th>'+
 '<th>Conf.</th><th>Why</th></tr></thead><tbody>'+tr+'</tbody></table></div></details>';}
 return '<div class="symrow"><div class="symhead"><span class="symname">'+esc(r.symbol)+
-'</span><span class="badge '+(aligned?'on':'off')+'">'+blabel+'</span></div>'+
+'</span><span class="badge '+(aligned?'on':'off')+'">'+blabel+'</span>'+
+'<span class="trades">Trades: '+trades+'</span></div>'+
 '<div class="enginegrid">'+eng+'</div>'+proc+'</div>';}).join('');}
 function spark(vals){
 if(!vals||vals.length<2)return '<p class="empty">Not enough data for an equity curve yet.</p>';
