@@ -25,6 +25,7 @@ trades and filtered-out setups — so raw signal counts are never mistaken for
 trade entries.
 """
 
+import shutil
 import time
 import webbrowser
 from datetime import datetime, timezone
@@ -55,6 +56,10 @@ from .trade_manager import close_position, modify_position_sl, trailing_sl
 from .gbpusd_breakout_v2 import MAGIC as BREAKOUT_MAGIC, run_breakout_cycle
 
 log = get_logger("app")
+
+# Latest fill, folded into the single live status line so a new trade never
+# spawns a second console line.
+_LAST_TRADE = {"text": ""}
 
 
 def make_strategy(settings: Settings) -> Callable:
@@ -407,13 +412,18 @@ def _count_side(client, positions, symbol: str, side: Signal,
 
 def _announce_open(settings, side, volume, book, sl_pips, tp_pips,
                    symbol=None) -> None:
-    if not settings.console_status:
-        return
-    print(f"\n[{est_now()}] OPEN {side} {volume} {symbol or settings.symbol} "
-          f"({book})  SL {sl_pips:g}p / TP {tp_pips:g}p")
+    # Fold the latest fill into the single live status line -- never print a
+    # separate line, so the console stays a clean one-liner even on a new trade.
+    _LAST_TRADE["text"] = (f"{side} {volume:g} {symbol or settings.symbol} "
+                           f"({book}) SL{sl_pips:g}/TP{tp_pips:g}")
 
 
 def _print_status(client, settings, active: bool = True) -> None:
+    """One sleek status line, rewritten in place (carriage-return) every loop.
+
+    Never emits a newline, so trades, ticks and P/L all update on the SAME line.
+    Width-capped to the terminal so it can't wrap onto a second row.
+    """
     if not settings.console_status:
         return
     try:
@@ -423,9 +433,55 @@ def _print_status(client, settings, active: bool = True) -> None:
         return
     lots = sum(getattr(p, "volume", 0.0) for p in positions)
     pl = (account.equity - account.balance) if account else 0.0
+    bal = (getattr(account, "balance", 0.0) or 0.0) if account else 0.0
     state = "ACTIVE" if active else "PAUSED"
-    print(f"\r{est_now()} | {settings.symbol} | {state} | active {len(positions)} | "
-          f"lots {lots:.2f} | P/L {pl:+.2f}      ", end="", flush=True)
+    last = _LAST_TRADE["text"]
+    tail = f"  ·  last {last}" if last else ""
+    line = (f"● {est_now()}  ·  {len(settings.symbols)} sym"
+            f"  ·  {state}  ·  pos {len(positions)}"
+            f"  ·  {lots:.2f} lots  ·  P/L {pl:+.2f}"
+            f"  ·  bal {bal:,.0f}{tail}")
+    width = max(40, shutil.get_terminal_size((120, 20)).columns - 1)
+    if len(line) > width:
+        line = line[:width - 1] + "…"
+    print("\r" + line.ljust(width), end="", flush=True)
+
+
+def _print_banner(settings) -> None:
+    """One-time boxed feature summary, printed just above the live status line."""
+    if not settings.console_status:
+        return
+    caps = (f"ON ≤{settings.max_currency_risk:g}%/ccy"
+            if getattr(settings, "factor_caps", False) else "off")
+    regime = (f"ON ≥{settings.regime_er_min:g}"
+              if settings.regime_filter else "off")
+    prop = "ON" if settings.prop_firm else "off"
+    url = f"http://{settings.dashboard_host}:{settings.dashboard_port}"
+    rows = [
+        ("Mode", f"{settings.mode.value}  ·  {settings.strategy}  ·  "
+                 f"{len(settings.symbols)} symbols"),
+        ("Symbols", ", ".join(settings.symbols)),
+        ("Engines", "intraday M15/M30  +  swing H4/D1   "
+                    "(ATR stops · risk-based lots)"),
+        ("Risk", f"fixed-fractional per trade  ·  combined ceiling "
+                 f"{settings.combined_risk_ceiling:g}%  ·  gold throttled"),
+        ("Guards", f"factor-caps {caps}  ·  regime {regime}  ·  "
+                   f"prop {prop}  ·  demo-only "
+                   f"{str(settings.require_demo).lower()}"),
+        ("Board", url),
+    ]
+    lw = max(len(k) for k, _ in rows)
+    title = "MT5 AI Bridge  —  live portfolio"
+    body = [f"  {k.ljust(lw)}   {v}" for k, v in rows]
+    # No right border: rules top/bottom + left-aligned rows, so alignment can
+    # never break regardless of glyph widths in the user's console font.
+    rule = "─" * min(78, max([len(title)] + [len(b) for b in body]) + 2)
+    print(rule)
+    print("  " + title)
+    print(rule)
+    for b in body:
+        print(b)
+    print(rule)
 
 
 def _status(settings, message: str) -> None:
@@ -628,6 +684,28 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
         _refresh_dashboard(
             client, journal, settings, control=control, thinking=thinking,
             prop=prop, engines=[],
+        )
+        _print_status(client, settings, active=active)
+        return
+
+    # Multi-symbol dual-engine breakout system (the validated V2 family): swing
+    # H4/D1 on the FX majors + intraday M30/H4 on gold. Isolated path like the
+    # single-symbol engine above -- it owns its own signal/entry/management and
+    # never routes through the losing mixed books.
+    if settings.strategy == "breakout_multi":
+        from . import breakout_multi
+        exposure_view = _account_exposure(client, settings,
+                                          client.positions_get() or [])
+        thinking, rows = breakout_multi.run_cycle(
+            client, journal, settings, account,
+            risk_ok=risk.ok and demo_ok and prop_ok,
+            active=active, risk_scale=risk_scale,
+        )
+        control = {"active": active, "prop": prop_on} \
+            if state is not None else None
+        _refresh_dashboard(
+            client, journal, settings, control=control, thinking=thinking,
+            prop=prop, engines=rows, exposure_view=exposure_view,
         )
         _print_status(client, settings, active=active)
         return
@@ -1020,6 +1098,8 @@ def run(settings: Optional[Settings] = None, client=None,
             if settings.console_status:
                 print("\n" + "=" * 70 + f"\n[!] {msg}\n" + "=" * 70 + "\n",
                       flush=True)
+
+    _print_banner(settings)
 
     iterations = 0
     consecutive_failures = 0

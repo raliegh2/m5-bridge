@@ -144,6 +144,11 @@ class Settings:
     factor_caps: bool = True
     max_currency_risk: float = 2.0
 
+    # Per-symbol drawdown halt (breakout system). A symbol pauses its own new
+    # entries once its realized loss TODAY exceeds this %% of balance, while the
+    # combined-risk ceiling above stays the universal cap. 0 disables it.
+    per_symbol_dd_pct: float = 3.0
+
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
@@ -340,4 +345,5 @@ def load_settings(dotenv: bool = True) -> Settings:
         regime_er_overrides=regime_overrides,
         factor_caps=_get_bool("FACTOR_CAPS", True),
         max_currency_risk=_get_float("MAX_CURRENCY_RISK", 2.0),
+        per_symbol_dd_pct=_get_float("PER_SYMBOL_DD_PCT", 3.0),
     )
