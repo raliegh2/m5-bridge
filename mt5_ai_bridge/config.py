@@ -136,6 +136,14 @@ class Settings:
     regime_er_min: float = 0.30
     regime_er_overrides: tuple = ()
 
+    # Currency-factor exposure caps. A book that is diverse by SYMBOL can be
+    # one bet by CURRENCY (long EURUSD + AUDUSD + XAUUSD is all short USD). When
+    # on, the bot caps how much NET risk %% may sit on any single currency, so
+    # correlated longs are treated as the one bet they are. On by default with a
+    # loose cap that only bites genuinely concentrated books.
+    factor_caps: bool = True
+    max_currency_risk: float = 2.0
+
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
@@ -330,4 +338,6 @@ def load_settings(dotenv: bool = True) -> Settings:
         regime_filter=_get_bool("REGIME_FILTER", False),
         regime_er_min=_get_float("REGIME_ER_MIN", 0.30),
         regime_er_overrides=regime_overrides,
+        factor_caps=_get_bool("FACTOR_CAPS", True),
+        max_currency_risk=_get_float("MAX_CURRENCY_RISK", 2.0),
     )
