@@ -50,6 +50,10 @@ class BreakoutParams:
     max_stop_pips: float = 150.0
     max_hold_h4_bars: int = 90
     entry_end_hours_utc: tuple[int, ...] = (12, 16)
+    quality_volume_min: float = 1.0
+    quality_range_atr_min: float = 1.0
+    quality_risk_multiplier: float = 1.25
+    standard_risk_multiplier: float = 0.75
 
 
 @dataclass(frozen=True)
@@ -57,7 +61,33 @@ class BreakoutSetup:
     side: Signal
     signal_end: datetime
     atr_price: float
+    volume_ratio: float
+    range_atr: float
     reason: str
+
+
+def _setup_risk_multiplier(
+    setup: BreakoutSetup,
+    params: BreakoutParams = BreakoutParams(),
+) -> float:
+    """Promote expanded, liquid breakouts and throttle weaker valid setups."""
+    if (
+        setup.volume_ratio >= params.quality_volume_min
+        and setup.range_atr >= params.quality_range_atr_min
+    ):
+        return params.quality_risk_multiplier
+    return params.standard_risk_multiplier
+
+
+def _approval_granted(mode: Mode, setup: BreakoutSetup, risk_percent: float) -> bool:
+    """Require an explicit confirmation for the dedicated APPROVAL path."""
+    if mode is not Mode.APPROVAL:
+        return True
+    answer = input(
+        f"Place demo {setup.side.value} GBPUSD Breakout V2 at "
+        f"{risk_percent:.3f}% risk? Type YES to confirm: "
+    )
+    return answer == "YES"
 
 
 def _rates(client, symbol: str, timeframe: str, bars: int) -> Optional[pd.DataFrame]:
@@ -148,6 +178,7 @@ def evaluate_setup(
     channel_high = float(prior["high"].max())
     channel_low = float(prior["low"].min())
     volume_ratio = float(latest["tick_volume"] / latest["avg_tick_volume"])
+    range_atr = float((latest["high"] - latest["low"]) / latest["atr"])
 
     long_regime = daily["ema20"] > daily["ema50"] and daily["close"] > daily["ema20"]
     short_regime = daily["ema20"] < daily["ema50"] and daily["close"] < daily["ema20"]
@@ -158,6 +189,8 @@ def evaluate_setup(
             Signal.BUY,
             signal_end,
             float(latest["atr"]),
+            volume_ratio,
+            range_atr,
             f"H4 close broke 55-bar high; D1 EMA20>EMA50; ADX={latest['adx']:.1f}; volume={volume_ratio:.2f}x",
         ), h4
 
@@ -166,6 +199,8 @@ def evaluate_setup(
             Signal.SELL,
             signal_end,
             float(latest["atr"]),
+            volume_ratio,
+            range_atr,
             f"H4 close broke 55-bar low; D1 EMA20<EMA50; ADX={latest['adx']:.1f}; volume={volume_ratio:.2f}x",
         ), h4
 
@@ -180,7 +215,7 @@ def _initial_risk_price(position) -> Optional[float]:
     # The engine always places a 2R target. TP therefore preserves initial risk
     # after the stop has been trailed.
     if tp > 0:
-        return abs(tp - entry) / 2.0
+        return round(abs(tp - entry) / 2.0, 10)
     sl = float(getattr(position, "sl", 0.0) or 0.0)
     return abs(entry - sl) if sl > 0 else None
 
@@ -306,12 +341,19 @@ def run_breakout_cycle(
         params.max_stop_pips,
     )
     target_pips = params.target_r * stop_pips
+    risk_multiplier = _setup_risk_multiplier(setup, params)
     risk_cfg = RiskConfig(
         enabled=True,
-        risk_percent=min(float(settings.risk_percent), 1.0),
+        risk_percent=min(float(settings.risk_percent) * risk_multiplier, 1.0),
         pip_value_per_lot=float(settings.pip_value_per_lot),
         max_lot=float(settings.max_lot),
     )
+    if not _approval_granted(settings.mode, setup, risk_cfg.risk_percent):
+        journal.log_order(
+            settings.symbol, setup.side.value, 0.0, None, stop_pips,
+            target_pips, None, "CANCELLED", "Breakout V2 skipped by user.",
+        )
+        return thinking
     volume = risk_lot(float(account.balance), stop_pips, risk_cfg)
     ok, message = place_market_order(
         client,
@@ -332,7 +374,7 @@ def run_breakout_cycle(
         target_pips,
         None,
         "FILLED" if ok else "REJECTED",
-        f"[{COMMENT}] {message}",
+        f"[{COMMENT} risk={risk_multiplier:.2f}x] {message}",
     )
     if ok:
         _LAST_SIGNAL_END[settings.symbol] = marker

@@ -13,10 +13,30 @@ from __future__ import annotations
 
 import argparse
 import math
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+
+@dataclass(frozen=True)
+class ProxyParams:
+    channel_bars: int = 55
+    adx_min: float = 15.0
+    volume_ratio_min: float = 0.80
+    stop_atr: float = 2.0
+    target_r: float = 2.0
+    trail_atr: float = 2.5
+    trail_start_r: float = 1.0
+    max_hold_h4_bars: int = 90
+    entry_end_hours_utc: tuple[int, ...] = (12, 16)
+    risk_multiplier_12utc: float = 1.0
+    risk_multiplier_16utc: float = 1.0
+    quality_volume_min: float | None = None
+    quality_range_atr_min: float | None = None
+    quality_risk_multiplier: float = 1.0
+    standard_risk_multiplier: float = 1.0
 
 
 def load_h4(path: Path) -> pd.DataFrame:
@@ -48,8 +68,15 @@ def load_h4(path: Path) -> pd.DataFrame:
         )
     elif "time" in frame:
         frame["time"] = pd.to_datetime(frame["time"], utc=True)
+    elif "Date" in frame:
+        # The repository's validated V12/V10 market export uses this format.
+        frame["time"] = pd.to_datetime(frame["Date"], utc=True)
+    elif "date" in frame:
+        frame["time"] = pd.to_datetime(frame["date"], utc=True)
     else:
-        raise ValueError("Input requires MT5 <DATE>/<TIME> columns or a time column")
+        raise ValueError(
+            "Input requires MT5 <DATE>/<TIME> columns or a time/date column"
+        )
 
     required = {"time", "open", "high", "low", "close", "tick_volume"}
     missing = required - set(frame.columns)
@@ -107,15 +134,19 @@ def adx(frame: pd.DataFrame, period: int = 14) -> pd.Series:
     return dx.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
 
 
-def prepare(h4: pd.DataFrame) -> pd.DataFrame:
+def prepare(h4: pd.DataFrame, params: ProxyParams = ProxyParams()) -> pd.DataFrame:
     frame = h4.copy()
     frame["bar_end"] = frame["time"] + pd.Timedelta(hours=4)
     frame["atr14"] = atr(frame, 14)
     frame["adx14"] = adx(frame, 14)
     frame["average_volume"] = frame["tick_volume"].rolling(20, min_periods=20).mean()
     frame["volume_ratio"] = frame["tick_volume"] / frame["average_volume"]
-    frame["channel_high"] = frame["high"].shift(1).rolling(55).max()
-    frame["channel_low"] = frame["low"].shift(1).rolling(55).min()
+    frame["channel_high"] = (
+        frame["high"].shift(1).rolling(params.channel_bars).max()
+    )
+    frame["channel_low"] = (
+        frame["low"].shift(1).rolling(params.channel_bars).min()
+    )
 
     daily = frame.set_index("bar_end").resample(
         "1D", label="right", closed="right"
@@ -147,8 +178,14 @@ def run(
     spread_floor_pips: float = 0.8,
     slippage_pips: float = 0.3,
     swap_pips_per_day: float = -0.2,
+    params: ProxyParams = ProxyParams(),
+    entry_start: str | pd.Timestamp | None = None,
+    entry_end: str | pd.Timestamp | None = None,
+    prepared: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-    data = prepare(h4)
+    data = prepared if prepared is not None else prepare(h4, params)
+    entry_start_ts = pd.Timestamp(entry_start, tz="UTC") if isinstance(entry_start, str) else entry_start
+    entry_end_ts = pd.Timestamp(entry_end, tz="UTC") if isinstance(entry_end, str) else entry_end
     balance = 100_000.0
     peak = balance
     maximum_drawdown = 0.0
@@ -182,12 +219,12 @@ def run(
                     exit_price, reason = position["stop"], "STOP_OR_TRAIL"
                 elif row["high"] >= position["target"]:
                     exit_price, reason = position["target"], "TARGET"
-                elif position["bars"] >= 90:
+                elif position["bars"] >= params.max_hold_h4_bars:
                     exit_price, reason = row["close"], "TIME"
-                elif (row["close"] - position["entry"]) >= position["risk"]:
+                elif (row["close"] - position["entry"]) >= params.trail_start_r * position["risk"]:
                     position["stop"] = max(
                         position["stop"],
-                        position["highest"] - 2.5 * row["atr14"],
+                        position["highest"] - params.trail_atr * row["atr14"],
                     )
             else:
                 if row["open"] >= position["stop"]:
@@ -196,12 +233,12 @@ def run(
                     exit_price, reason = position["stop"], "STOP_OR_TRAIL"
                 elif row["low"] <= position["target"]:
                     exit_price, reason = position["target"], "TARGET"
-                elif position["bars"] >= 90:
+                elif position["bars"] >= params.max_hold_h4_bars:
                     exit_price, reason = row["close"], "TIME"
-                elif (position["entry"] - row["close"]) >= position["risk"]:
+                elif (position["entry"] - row["close"]) >= params.trail_start_r * position["risk"]:
                     position["stop"] = min(
                         position["stop"],
-                        position["lowest"] + 2.5 * row["atr14"],
+                        position["lowest"] + params.trail_atr * row["atr14"],
                     )
 
             if exit_price is not None:
@@ -245,25 +282,50 @@ def run(
         ]
         if any(pd.isna(row[column]) for column in required):
             continue
-        if row["bar_end"].hour not in (12, 16):
+        next_bar = data.iloc[index + 1]
+        if entry_start_ts is not None and next_bar["bar_end"] < entry_start_ts:
+            continue
+        if entry_end_ts is not None and next_bar["bar_end"] >= entry_end_ts:
+            continue
+        if row["bar_end"].hour not in params.entry_end_hours_utc:
             continue
 
         long_regime = row["ema20_d1"] > row["ema50_d1"] and row["close_d1"] > row["ema20_d1"]
         short_regime = row["ema20_d1"] < row["ema50_d1"] and row["close_d1"] < row["ema20_d1"]
-        common = row["adx14"] >= 15 and row["volume_ratio"] >= 0.80
+        common = (
+            row["adx14"] >= params.adx_min
+            and row["volume_ratio"] >= params.volume_ratio_min
+        )
         long_signal = common and long_regime and row["close"] > row["channel_high"]
         short_signal = common and short_regime and row["close"] < row["channel_low"]
         if not (long_signal or short_signal):
             continue
 
         side = 1 if long_signal else -1
-        next_bar = data.iloc[index + 1]
         spread = max(float(next_bar["spread_points"]) / 10.0, spread_floor_pips)
         entry = next_bar["open"] + side * (spread / 2.0 + slippage_pips) * pip
-        stop_distance = min(max(2.0 * row["atr14"], 20 * pip), 150 * pip)
+        stop_distance = min(max(params.stop_atr * row["atr14"], 20 * pip), 150 * pip)
         stop = entry - side * stop_distance
-        target = entry + side * 2.0 * stop_distance
-        risk_amount = balance * risk_percent / 100.0
+        target = entry + side * params.target_r * stop_distance
+        hour_multiplier = (
+            params.risk_multiplier_12utc
+            if row["bar_end"].hour == 12
+            else params.risk_multiplier_16utc
+        )
+        quality_multiplier = params.standard_risk_multiplier
+        if params.quality_volume_min is not None:
+            range_atr = (row["high"] - row["low"]) / row["atr14"]
+            if (
+                row["volume_ratio"] >= params.quality_volume_min
+                and (
+                    params.quality_range_atr_min is None
+                    or range_atr >= params.quality_range_atr_min
+                )
+            ):
+                quality_multiplier = params.quality_risk_multiplier
+        risk_amount = (
+            balance * risk_percent * hour_multiplier * quality_multiplier / 100.0
+        )
         lots = math.floor(
             risk_amount / ((stop_distance / pip) * 10.0) * 100
         ) / 100

@@ -49,6 +49,7 @@ from .risk_engine import DailyLossTracker, RiskLimits, check_risk
 from .sizing import AtrConfig, RiskConfig, atr_stops, risk_lot
 from .strategy import evaluate_strategy
 from .trade_manager import close_position, modify_position_sl, trailing_sl
+from .gbpusd_breakout_v2 import run_breakout_cycle
 
 log = get_logger("app")
 
@@ -157,6 +158,17 @@ def _data_path(settings) -> str:
     """The JSON snapshot path derived from the dashboard HTML path."""
     p = settings.dashboard_path
     return (p[:-5] + ".json") if p.lower().endswith(".html") else (p + ".json")
+
+
+def _account_kind(account) -> str:
+    """Translate MT5 account trade_mode to a stable safety label."""
+    trade_mode = getattr(account, "trade_mode", None) if account is not None else None
+    return {0: "DEMO", 1: "CONTEST", 2: "REAL"}.get(trade_mode, "UNKNOWN")
+
+
+def _is_demo_account(account) -> bool:
+    """True only when the broker explicitly identifies a demo account."""
+    return getattr(account, "trade_mode", None) == 0
 
 
 def connect(client, settings: Settings) -> None:
@@ -378,7 +390,33 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     risk = check_risk(account, positions, limits, daily_loss=day_loss)
     journal.log_risk_event(risk.ok, risk.message, account.balance,
                            account.equity, len(positions))
-    log.info("Risk: %s | day_loss=%.2f | active=%s", risk.message, day_loss, active)
+    log.info("Risk: %s | account=%s | day_loss=%.2f | active=%s",
+             risk.message, _account_kind(account), day_loss, active)
+
+    demo_ok = not (
+        settings.mode is Mode.AUTO
+        and settings.require_demo
+        and not _is_demo_account(account)
+    )
+    if not demo_ok:
+        log.warning(
+            "AUTO trading blocked: REQUIRE_DEMO=true and MT5 did not report "
+            "a demo account (account=%s).", _account_kind(account),
+        )
+
+    # Breakout V2 owns its H4/D1 signal, entry, and ATR management path. Return
+    # before the legacy books so contradictory positions cannot be opened.
+    if settings.strategy == "gbpusd_breakout_v2":
+        thinking = run_breakout_cycle(
+            client, journal, settings, account,
+            risk_ok=risk.ok and demo_ok, active=active,
+        )
+        control = {"active": active} if state is not None else None
+        _refresh_dashboard(
+            client, journal, settings, control=control, thinking=thinking,
+        )
+        _print_status(client, settings, active=active)
+        return
 
     # Fast ENTRY read (TIMEFRAME = M15).
     market = market_snapshot(client, settings.symbol, settings.timeframe,
@@ -397,7 +435,7 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
              setup_flag, filtered_flag)
 
     # Open NEW trades only while trading is ACTIVE (remote pause honoured).
-    if settings.mode is not Mode.READ_ONLY and risk.ok and active:
+    if settings.mode is not Mode.READ_ONLY and risk.ok and active and demo_ok:
         if settings.multi_book:
             _run_books(client, journal, settings, strategy_fn, planner_cfgs,
                        positions, account=account)

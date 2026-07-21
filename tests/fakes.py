@@ -82,9 +82,10 @@ class FakeMT5Client:
 
 
 def make_account(balance=10000.0, equity=10000.0, margin=0.0, margin_free=10000.0,
-                 profit=0.0, login=123):
+                 profit=0.0, login=123, trade_mode=0):
     return SimpleNamespace(balance=balance, equity=equity, margin=margin,
-                           margin_free=margin_free, profit=profit, login=login)
+                           margin_free=margin_free, profit=profit, login=login,
+                           trade_mode=trade_mode)
 
 
 def make_tick(bid=1.2343, ask=1.2345):
@@ -142,6 +143,7 @@ def make_settings(**kw) -> Settings:
         dashboard_host="127.0.0.1", console_status=False,
         loop_interval_seconds=0, log_level="INFO", db_path=":memory:",
         reconnect_attempts=3, reconnect_delay_seconds=0,
+        require_demo=True,
     )
     base.update(kw)
     return Settings(**base)

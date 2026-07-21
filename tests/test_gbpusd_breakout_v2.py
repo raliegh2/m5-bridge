@@ -1,12 +1,16 @@
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 
-from mt5_ai_bridge.enums import Signal
+from mt5_ai_bridge.enums import Mode, Signal
 from mt5_ai_bridge.gbpusd_breakout_v2 import (
     BreakoutParams,
+    BreakoutSetup,
+    _approval_granted,
     _initial_risk_price,
+    _setup_risk_multiplier,
     evaluate_setup,
 )
 
@@ -51,6 +55,35 @@ class FakeClient:
 def test_initial_risk_is_preserved_from_two_r_target():
     position = SimpleNamespace(price_open=1.2500, tp=1.2700, sl=1.2400)
     assert _initial_risk_price(position) == 0.0100
+
+
+def test_expanded_liquid_setup_receives_quality_risk():
+    setup = BreakoutSetup(Signal.BUY, pd.Timestamp("2026-01-01", tz="UTC").to_pydatetime(),
+                          0.001, 1.10, 1.20, "quality")
+    assert _setup_risk_multiplier(setup) == 1.25
+
+
+def test_valid_but_weaker_setup_is_throttled():
+    setup = BreakoutSetup(Signal.BUY, pd.Timestamp("2026-01-01", tz="UTC").to_pydatetime(),
+                          0.001, 0.90, 1.20, "standard")
+    assert _setup_risk_multiplier(setup) == 0.75
+
+
+def test_approval_mode_requires_exact_yes():
+    setup = BreakoutSetup(Signal.BUY, pd.Timestamp("2026-01-01", tz="UTC").to_pydatetime(),
+                          0.001, 1.10, 1.20, "quality")
+    with patch("builtins.input", return_value="no"):
+        assert _approval_granted(Mode.APPROVAL, setup, 0.625) is False
+    with patch("builtins.input", return_value="YES"):
+        assert _approval_granted(Mode.APPROVAL, setup, 0.625) is True
+
+
+def test_auto_mode_does_not_prompt():
+    setup = BreakoutSetup(Signal.BUY, pd.Timestamp("2026-01-01", tz="UTC").to_pydatetime(),
+                          0.001, 1.10, 1.20, "quality")
+    with patch("builtins.input") as prompt:
+        assert _approval_granted(Mode.AUTO, setup, 0.625) is True
+    prompt.assert_not_called()
 
 
 def test_wrong_symbol_is_rejected_without_data_request():
