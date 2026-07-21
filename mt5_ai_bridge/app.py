@@ -25,6 +25,7 @@ trades and filtered-out setups — so raw signal counts are never mistaken for
 trade entries.
 """
 
+import shutil
 import time
 import webbrowser
 from datetime import datetime, timezone
@@ -52,12 +53,17 @@ from .risk_engine import DailyLossTracker, RiskLimits, check_risk
 from .sizing import AtrConfig, RiskConfig, atr_stops, risk_lot
 from .strategy import evaluate_strategy
 from .trade_manager import close_position, modify_position_sl, trailing_sl
+from .gbpusd_breakout_v2 import MAGIC as BREAKOUT_MAGIC, run_breakout_cycle
 
 log = get_logger("app")
 
+# Latest fill, folded into the single live status line so a new trade never
+# spawns a second console line.
+_LAST_TRADE = {"text": ""}
+
 
 def make_strategy(settings: Settings) -> Callable:
-    if settings.strategy == "reasoning":
+    if settings.strategy in ("reasoning", "hybrid_breakout_v2"):
         return ReasoningStrategy(ReasoningConfig(
             threshold=settings.reasoning_threshold,
             rsi_overbought=settings.rsi_overbought,
@@ -173,6 +179,11 @@ def _account_kind(account) -> str:
 def _is_real_account(account) -> bool:
     """True only when the broker explicitly reports a REAL (live) account."""
     return getattr(account, "trade_mode", None) == 2
+
+
+def _is_demo_account(account) -> bool:
+    """True only when the broker explicitly identifies a demo account."""
+    return getattr(account, "trade_mode", None) == 0
 
 
 def _subscribe_symbols(client, symbols) -> None:
@@ -401,13 +412,18 @@ def _count_side(client, positions, symbol: str, side: Signal,
 
 def _announce_open(settings, side, volume, book, sl_pips, tp_pips,
                    symbol=None) -> None:
-    if not settings.console_status:
-        return
-    print(f"\n[{est_now()}] OPEN {side} {volume} {symbol or settings.symbol} "
-          f"({book})  SL {sl_pips:g}p / TP {tp_pips:g}p")
+    # Fold the latest fill into the single live status line -- never print a
+    # separate line, so the console stays a clean one-liner even on a new trade.
+    _LAST_TRADE["text"] = (f"{side} {volume:g} {symbol or settings.symbol} "
+                           f"({book}) SL{sl_pips:g}/TP{tp_pips:g}")
 
 
 def _print_status(client, settings, active: bool = True) -> None:
+    """One sleek status line, rewritten in place (carriage-return) every loop.
+
+    Never emits a newline, so trades, ticks and P/L all update on the SAME line.
+    Width-capped to the terminal so it can't wrap onto a second row.
+    """
     if not settings.console_status:
         return
     try:
@@ -417,9 +433,55 @@ def _print_status(client, settings, active: bool = True) -> None:
         return
     lots = sum(getattr(p, "volume", 0.0) for p in positions)
     pl = (account.equity - account.balance) if account else 0.0
+    bal = (getattr(account, "balance", 0.0) or 0.0) if account else 0.0
     state = "ACTIVE" if active else "PAUSED"
-    print(f"\r{est_now()} | {settings.symbol} | {state} | active {len(positions)} | "
-          f"lots {lots:.2f} | P/L {pl:+.2f}      ", end="", flush=True)
+    last = _LAST_TRADE["text"]
+    tail = f"  ·  last {last}" if last else ""
+    line = (f"● {est_now()}  ·  {len(settings.symbols)} sym"
+            f"  ·  {state}  ·  pos {len(positions)}"
+            f"  ·  {lots:.2f} lots  ·  P/L {pl:+.2f}"
+            f"  ·  bal {bal:,.0f}{tail}")
+    width = max(40, shutil.get_terminal_size((120, 20)).columns - 1)
+    if len(line) > width:
+        line = line[:width - 1] + "…"
+    print("\r" + line.ljust(width), end="", flush=True)
+
+
+def _print_banner(settings) -> None:
+    """One-time boxed feature summary, printed just above the live status line."""
+    if not settings.console_status:
+        return
+    caps = (f"ON ≤{settings.max_currency_risk:g}%/ccy"
+            if getattr(settings, "factor_caps", False) else "off")
+    regime = (f"ON ≥{settings.regime_er_min:g}"
+              if settings.regime_filter else "off")
+    prop = "ON" if settings.prop_firm else "off"
+    url = f"http://{settings.dashboard_host}:{settings.dashboard_port}"
+    rows = [
+        ("Mode", f"{settings.mode.value}  ·  {settings.strategy}  ·  "
+                 f"{len(settings.symbols)} symbols"),
+        ("Symbols", ", ".join(settings.symbols)),
+        ("Engines", "intraday M15/M30  +  swing H4/D1   "
+                    "(ATR stops · risk-based lots)"),
+        ("Risk", f"fixed-fractional per trade  ·  combined ceiling "
+                 f"{settings.combined_risk_ceiling:g}%  ·  gold throttled"),
+        ("Guards", f"factor-caps {caps}  ·  regime {regime}  ·  "
+                   f"prop {prop}  ·  demo-only "
+                   f"{str(settings.require_demo).lower()}"),
+        ("Board", url),
+    ]
+    lw = max(len(k) for k, _ in rows)
+    title = "MT5 AI Bridge  —  live portfolio"
+    body = [f"  {k.ljust(lw)}   {v}" for k, v in rows]
+    # No right border: rules top/bottom + left-aligned rows, so alignment can
+    # never break regardless of glyph widths in the user's console font.
+    rule = "─" * min(78, max([len(title)] + [len(b) for b in body]) + 2)
+    print(rule)
+    print("  " + title)
+    print(rule)
+    for b in body:
+        print(b)
+    print(rule)
 
 
 def _status(settings, message: str) -> None:
@@ -580,36 +642,16 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     log.info("Risk: %s | account=%s | day_loss=%.2f | active=%s",
              risk.message, _account_kind(account), day_loss, active)
 
-    # Fast ENTRY read on the PRIMARY symbol (drives the dashboard signal view).
-    # Auto-pick the first symbol that actually has data so the panel never
-    # sticks on a symbol the broker does not offer under that name.
-    primary = _pick_primary(client, settings)
-    market = market_snapshot(client, primary, settings.timeframe,
-                             settings.atr_period)
-    decision = strategy_fn(market)
-
-    # Per-symbol engine breakdown (both engines + decision reasons for EVERY
-    # pair). The primary symbol's read is reused for the top thinking panel and
-    # the setup/filter flags, so it is not computed twice.
-    breakdown = _engine_breakdown(client, settings, strategy_fn)
-    thinking = next((r for r in breakdown if r.get("symbol") == primary), None)
-    if thinking is None:
-        thinking = _bot_thinking(client, settings, strategy_fn, symbol=primary)
-    setup_flag, filtered_flag = _signal_flags(decision, thinking)
-
-    journal.log_signal(primary, decision.signal.value,
-                       decision.reason, market, setup=setup_flag,
-                       filtered=filtered_flag)
-    log.info("Signal[%s]: %s (%s) confidence=%s setup=%s filtered=%s",
-             primary, decision.signal.value, decision.reason, decision.confidence,
-             setup_flag, filtered_flag)
-
-    # Safety guard: never place AUTOMATIC trades on a REAL account while
-    # REQUIRE_DEMO is on. Existing positions still trail; the dashboard still runs.
-    demo_ok = not (settings.require_demo and _is_real_account(account))
+    demo_ok = not (
+        settings.mode is Mode.AUTO
+        and settings.require_demo
+        and not _is_demo_account(account)
+    )
     if not demo_ok:
-        log.warning("Trading blocked: REAL account with REQUIRE_DEMO on. "
-                    "Use a demo account (or set REQUIRE_DEMO=false to override).")
+        log.warning(
+            "AUTO trading blocked: REQUIRE_DEMO=true and MT5 did not report "
+            "a demo account (account=%s).", _account_kind(account),
+        )
 
     # Prop-firm challenge guard: gate trading + scale risk near the limits.
     # Prop mode can be toggled live from the dashboard (state.is_prop());
@@ -627,6 +669,107 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
                     prop["status"], prop["equity"], prop["daily_loss_pct"],
                     prop["max_daily_loss_pct"], prop["total_dd_pct"],
                     prop["max_total_loss_pct"])
+
+    # Breakout V2 owns its H4/D1 signal, entry, and ATR management path. It is
+    # deliberately isolated from the default multi-symbol books because the
+    # promoted backtest applies to this GBPUSD engine, not a mixed portfolio.
+    if settings.strategy == "gbpusd_breakout_v2":
+        thinking = run_breakout_cycle(
+            client, journal, settings, account,
+            risk_ok=risk.ok and demo_ok and prop_ok,
+            active=active, risk_scale=risk_scale,
+        )
+        control = {"active": active, "prop": prop_on} \
+            if state is not None else None
+        _refresh_dashboard(
+            client, journal, settings, control=control, thinking=thinking,
+            prop=prop, engines=[],
+        )
+        _print_status(client, settings, active=active)
+        return
+
+    # Multi-symbol dual-engine breakout system (the validated V2 family): swing
+    # H4/D1 on the FX majors + intraday M30/H4 on gold. Isolated path like the
+    # single-symbol engine above -- it owns its own signal/entry/management and
+    # never routes through the losing mixed books.
+    if settings.strategy == "breakout_multi":
+        from . import breakout_multi
+        exposure_view = _account_exposure(client, settings,
+                                          client.positions_get() or [])
+        thinking, rows = breakout_multi.run_cycle(
+            client, journal, settings, account,
+            risk_ok=risk.ok and demo_ok and prop_ok,
+            active=active, risk_scale=risk_scale,
+        )
+        control = {"active": active, "prop": prop_on} \
+            if state is not None else None
+        _refresh_dashboard(
+            client, journal, settings, control=control, thinking=thinking,
+            prop=prop, engines=rows, exposure_view=exposure_view,
+        )
+        _print_status(client, settings, active=active)
+        return
+
+    breakout_thinking = None
+    if settings.strategy == "hybrid_breakout_v2":
+        current = client.positions_get() or []
+        books = build_books(settings)
+        swing_magics = {b.magic for b in books if b.name.startswith("swing-")}
+        day_magics = {b.magic for b in books if b.name.startswith("day-")}
+
+        def position_risk(position):
+            magic = getattr(position, "magic", None)
+            symbol = getattr(position, "symbol", "")
+            if magic == BREAKOUT_MAGIC:
+                return min(float(settings.risk_percent) * 1.25, 1.0)
+            if magic in swing_magics:
+                return settings.swing_risk_for(symbol)
+            if magic in day_magics:
+                return settings.intraday_risk_for(symbol)
+            return 0.0
+
+        remaining_risk = max(
+            0.0,
+            settings.combined_risk_ceiling
+            - sum(position_risk(p) for p in current),
+        )
+        breakout_thinking = run_breakout_cycle(
+            client, journal, settings, account,
+            risk_ok=risk.ok and demo_ok and prop_ok and remaining_risk > 0,
+            active=active, risk_scale=risk_scale,
+            max_risk_percent=remaining_risk,
+        )
+
+    # Fast ENTRY read on the PRIMARY symbol (drives the dashboard signal view).
+    # Auto-pick the first symbol that actually has data so the panel never
+    # sticks on a symbol the broker does not offer under that name.
+    primary = _pick_primary(client, settings)
+    market = market_snapshot(client, primary, settings.timeframe,
+                             settings.atr_period)
+    decision = strategy_fn(market)
+
+    # Per-symbol engine breakdown (both engines + decision reasons for EVERY
+    # pair). The primary symbol's read is reused for the top thinking panel and
+    # the setup/filter flags, so it is not computed twice.
+    breakdown = _engine_breakdown(client, settings, strategy_fn)
+    if breakout_thinking is not None:
+        gbp = next((r for r in breakdown if r.get("symbol") == "GBPUSD"), None)
+        if gbp is not None:
+            engine = dict(breakout_thinking["engines"][0])
+            engine.update({"enabled": True, "risk": settings.risk_percent})
+            gbp["engines"].append(engine)
+            gbp["trades"].append("GBPUSD Breakout V2")
+    thinking = next((r for r in breakdown if r.get("symbol") == primary), None)
+    if thinking is None:
+        thinking = _bot_thinking(client, settings, strategy_fn, symbol=primary)
+    setup_flag, filtered_flag = _signal_flags(decision, thinking)
+
+    journal.log_signal(primary, decision.signal.value,
+                       decision.reason, market, setup=setup_flag,
+                       filtered=filtered_flag)
+    log.info("Signal[%s]: %s (%s) confidence=%s setup=%s filtered=%s",
+             primary, decision.signal.value, decision.reason, decision.confidence,
+             setup_flag, filtered_flag)
 
     # Open NEW trades only while trading is ACTIVE (remote pause honoured).
     # Every symbol shares ONE account: the combined open-risk ceiling and the
@@ -688,6 +831,12 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                          if b.timeframe.upper() == settings.day_timeframe.upper())
     engine_magics = {swing_book.magic, intraday_book.magic}
 
+    if symbol.upper() == "GBPUSD" and any(
+        getattr(p, "magic", None) == BREAKOUT_MAGIC for p in positions
+    ):
+        log.info("portfolio [GBPUSD] waiting: Breakout V2 position is open.")
+        return
+
     # Fixed-fractional sizing means each open position risks a known % of the
     # balance (its engine's risk_percent for ITS symbol). Aggregate open risk
     # across ALL symbols is the sum; trailing only lowers it, so this is a
@@ -698,6 +847,8 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
             return settings.swing_risk_for(getattr(p, "symbol", symbol))
         if mg == intraday_book.magic:
             return settings.intraday_risk_for(getattr(p, "symbol", symbol))
+        if mg == BREAKOUT_MAGIC:
+            return min(float(settings.risk_percent) * 1.25, 1.0)
         return 0.0
 
     open_risk = sum(_position_risk(p) for p in positions)
@@ -947,6 +1098,8 @@ def run(settings: Optional[Settings] = None, client=None,
             if settings.console_status:
                 print("\n" + "=" * 70 + f"\n[!] {msg}\n" + "=" * 70 + "\n",
                       flush=True)
+
+    _print_banner(settings)
 
     iterations = 0
     consecutive_failures = 0

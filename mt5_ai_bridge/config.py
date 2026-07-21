@@ -118,7 +118,7 @@ class Settings:
     reconnect_attempts: int
     reconnect_delay_seconds: float
 
-    # Safety: when True, refuse AUTOMATIC trading unless the account is a demo.
+    # Safety: when True, AUTO fails closed unless MT5 explicitly reports demo.
     require_demo: bool = True
 
     # Prop-firm challenge guard (FTMO-style drawdown protection).
@@ -143,6 +143,11 @@ class Settings:
     # loose cap that only bites genuinely concentrated books.
     factor_caps: bool = True
     max_currency_risk: float = 2.0
+
+    # Per-symbol drawdown halt (breakout system). A symbol pauses its own new
+    # entries once its realized loss TODAY exceeds this %% of balance, while the
+    # combined-risk ceiling above stays the universal cap. 0 disables it.
+    per_symbol_dd_pct: float = 3.0
 
     @property
     def has_credentials(self) -> bool:
@@ -340,4 +345,5 @@ def load_settings(dotenv: bool = True) -> Settings:
         regime_er_overrides=regime_overrides,
         factor_caps=_get_bool("FACTOR_CAPS", True),
         max_currency_risk=_get_float("MAX_CURRENCY_RISK", 2.0),
+        per_symbol_dd_pct=_get_float("PER_SYMBOL_DD_PCT", 3.0),
     )
