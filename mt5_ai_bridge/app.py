@@ -44,6 +44,7 @@ from .logging_config import get_logger, setup_logging
 from .mt5_client import create_client
 from .prop import PropGuard
 from . import regime
+from . import exposure
 from .planner import (SessionConfig, SizingConfig, StaggerConfig, StyleConfig,
                       build_plan, is_ny_session, position_size, stagger)
 from .reasoning import ReasoningConfig, ReasoningStrategy
@@ -669,6 +670,10 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                    and getattr(p, "magic", None) in engine_magics
                    for p in positions)
 
+    # New positions opened THIS loop for this symbol, so the factor cap
+    # sees intra-loop adds too (base list is refetched per symbol upstream).
+    session_adds = []
+
     def open_engine(name, setup, book, snap_tf, risk_percent):
         nonlocal total_open, open_risk
         if risk_percent <= 0:
@@ -710,6 +715,21 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                          name, symbol, open_risk, risk_percent,
                          settings.combined_risk_ceiling)
                 return
+            # Currency-factor cap: treat correlated trades (all short USD,
+            # etc.) as the one bet they are. Block if this order would push
+            # any single currency's NET open risk past the cap.
+            if settings.factor_caps:
+                existing = [(getattr(p, "symbol", symbol),
+                             p.type == client.POSITION_TYPE_BUY,
+                             _position_risk(p)) for p in positions]
+                existing += session_adds
+                hit = exposure.breach(existing, symbol, side is Signal.BUY,
+                                      risk_percent, settings.max_currency_risk)
+                if hit:
+                    log.info("%s [%s] blocked: %s net factor risk %.2f%% > "
+                             "cap %.2f%% (correlated exposure).", name,
+                             symbol, hit[0], hit[1], settings.max_currency_risk)
+                    return
             if journal.count_trades_today() >= settings.max_trades_per_day:
                 return
             level = have + opened + 1
@@ -730,6 +750,7 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
             if ok:
                 total_open += 1
                 open_risk += risk_percent
+                session_adds.append((symbol, side is Signal.BUY, risk_percent))
                 _announce_open(settings, side.value, volume, book.name,
                                sl_pips, tp_pips, symbol=symbol)
             else:
