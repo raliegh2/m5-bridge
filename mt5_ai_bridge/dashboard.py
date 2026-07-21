@@ -444,38 +444,33 @@ def _position_view(pos: dict, pip_size: float) -> dict:
 # --------------------------------------------------------------------------
 
 def _compute(journal: Journal, live: Optional[dict], now_utc: datetime) -> dict:
-    latest_risk = journal.latest_risk_event()
-    signals = journal.recent_signals(50)
-    orders = journal.recent_orders(50)
-    equity_series = journal.equity_series(120)
+    signals = journal.recent_signals(60)
+    orders = journal.recent_orders(60)
+    risk = journal.recent_risk_events(300)
 
-    balance = equity = None
-    open_pl = day_pl = None
-    rr_headline = None
-    pip_size = (live or {}).get("pip_size")
+    equity_series = [r["equity"] for r in reversed(risk) if r["equity"] is not None]
+    latest_risk = risk[0] if risk else None
+
+    balance = live["balance"] if live else (latest_risk["balance"] if latest_risk else None)
+    equity = live["equity"] if live else (latest_risk["equity"] if latest_risk else None)
+    pip_size = (live or {}).get("pip_size") or 0.0001
     symbol = (live or {}).get("symbol", "")
-    positions = []
 
-    if live is not None:
-        balance = live.get("balance")
-        equity = live.get("equity")
-        open_pl = round((equity - balance), 2) if (
-            equity is not None and balance is not None) else None
-        positions = [_position_view(p, pip_size) for p in live.get("positions", [])]
-        rrs = [p["rr"] for p in positions if p["rr"]]
-        rr_headline = rrs[0] if rrs else None
-        day_start = journal.day_start_equity()
-        if day_start is not None and equity is not None:
-            day_pl = round(equity - day_start, 2)
-    else:
-        if latest_risk:
-            balance = latest_risk.get("balance")
-            equity = latest_risk.get("equity")
+    positions = [_position_view(p, pip_size) for p in (live or {}).get("positions", [])]
+    open_pl = sum(p["profit"] for p in positions if p["profit"] is not None) \
+        if positions else (round(equity - balance, 2)
+                           if (equity is not None and balance is not None) else None)
+
+    day_start = journal.day_start_equity()
+    day_pl = round(equity - day_start, 2) \
+        if (equity is not None and day_start is not None) else None
+
+    rr_values = [p["rr"] for p in positions if p["rr"] is not None]
+    rr_headline = rr_values[0] if rr_values else None
 
     return {
-        "symbol": symbol, "pip_size": pip_size,
-        "balance": balance, "equity": equity,
-        "open_pl": open_pl, "day_pl": day_pl,
+        "now_utc": now_utc, "symbol": symbol, "pip_size": pip_size,
+        "balance": balance, "equity": equity, "open_pl": open_pl, "day_pl": day_pl,
         "rr_headline": rr_headline, "positions": positions,
         "signals": signals, "orders": orders, "equity_series": equity_series,
         "latest_risk": latest_risk,
@@ -593,6 +588,46 @@ details.sec{margin-top:24px;border-top:1px solid #1a2440;padding-top:6px}
 details.sec>summary{font-size:13px;text-transform:uppercase;letter-spacing:.06em;
 color:#93a4bd;font-weight:600;cursor:pointer;list-style:none;display:flex;
 align-items:center;gap:8px;padding:8px 0}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::before{content:"\\25B8";color:#5f6b84;transition:transform .15s;
+display:inline-block}
+details.sec[open]>summary::before{transform:rotate(90deg)}
+details.sec .count{background:#223052;color:#9fb0cc;border-radius:999px;
+font-size:11px;padding:1px 8px;letter-spacing:0}
+details.sec .panel{margin-top:4px}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#34d399;
+margin-right:6px;vertical-align:middle}
+.foot{color:#5f6b84;font-size:11px;margin-top:28px}
+.foot.warn{color:#fbbf24;font-weight:600}
+@media (max-width:900px){h1{font-size:18px}.card .value{font-size:20px}}
+@media (max-width:600px){
+body{padding:14px}
+h1{font-size:17px}
+h2{margin:20px 0 8px}
+.meta{font-size:12px}
+.cards{grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.card{padding:11px}
+.card .label{font-size:10px}
+.card .value{font-size:18px}
+.panel{padding:12px}
+.control{gap:8px;padding:10px}
+.control .status{flex:1 1 100%}
+.control .hint{margin-left:0;flex:1 1 100%}
+th,td{padding:6px 7px;font-size:12px;max-width:150px}
+}
+@media (prefers-reduced-motion:reduce){
+.pulse{animation:none}.scan::after{animation:none;left:0;width:100%;opacity:.25}
+}
+.prop .prophead{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.pbadge{font-weight:700;font-size:12px;padding:5px 12px;border-radius:999px;letter-spacing:.03em}
+.pbadge.ok{background:#12351f;color:#34d399;border:1px solid #1f5132}
+.pbadge.warn{background:#3a2f12;color:#fbbf24;border:1px solid #5c4a17}
+.pbadge.bad{background:#3a1620;color:#f87171;border:1px solid #5b2330}
+.pbadge.done{background:#122f3a;color:#38bdf8;border:1px solid #17495c}
+.prop .psub{color:#9fb0cc;font-size:12px}
+.pmetric{margin:10px 0}
+.pmlabel{display:flex;justify-content:space-between;font-size:12px;color:#b7c2d8;margin-bottom:5px}
+.pmval{color:#8aa0c0}
 .pbar{height:11px;border-radius:6px;background:#0f1730;border:1px solid #223052;overflow:hidden}
 .pbar .pfill{height:100%;border-radius:6px;transition:width .4s ease}
 .pbar.good .pfill{background:linear-gradient(90deg,#16a34a,#34d399)}
@@ -803,6 +838,7 @@ window.__poll=poll;poll();setInterval(poll,RS*1000);
 if(window.innerWidth>600){var dd=document.querySelectorAll('details.sec');
 for(var i=0;i<dd.length;i++){dd[i].open=true;}}
 """
+
 
 
 def _per_symbol_rows(positions, symbols) -> list:
