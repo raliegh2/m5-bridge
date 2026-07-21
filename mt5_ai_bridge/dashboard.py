@@ -224,6 +224,45 @@ def _prop_panel(prop: Optional[dict]) -> str:
             ".catch(function(){if(l)l.textContent='(retry…)';});}</script>")
 
 
+def _exposure_inner(expo: Optional[dict]) -> str:
+    expo = expo or {}
+    rows = expo.get("rows", [])
+    cap = expo.get("cap", 0)
+    if not rows:
+        return ('<p class="empty">No open currency exposure yet; the strip '
+                'fills in as positions open.</p>')
+    chips = []
+    for r in rows:
+        pct = min(100.0, float(r.get("pct", 0)))
+        over = bool(r.get("over"))
+        near = float(r.get("pct", 0)) >= 70 and not over
+        cls = "over" if over else ("near" if near else "ok")
+        net = float(r.get("net", 0))
+        sign = "+" if net >= 0 else ""
+        side = "net long" if net > 0 else "net short"
+        chips.append(
+            f'<div class="expchip {cls}"><div class="expc">{_esc(r.get("currency"))}'
+            f'</div><div class="expv">{sign}{net:.2f}% '
+            f'<span class="exps">{side}</span></div>'
+            f'<div class="expbar"><div class="expfill" style="width:{pct:.0f}%">'
+            f'</div></div><div class="expcap">{float(r.get("pct",0)):.0f}% of '
+            f'{cap:g}% cap</div></div>')
+    return f'<div class="expgrid">{"".join(chips)}</div>'
+
+
+def _exposure_panel(expo: Optional[dict]) -> str:
+    """A strip of per-currency net-risk chips, each bar filled to how close the
+    currency sits to MAX_CURRENCY_RISK. Makes the concentration the factor cap
+    guards against visible: long EURUSD+AUDUSD+XAUUSD shows up as one big USD."""
+    expo = expo or {}
+    cap = expo.get("cap", 0)
+    on = expo.get("on", True)
+    sub = (f"net risk per currency &middot; cap {cap:g}% each"
+           if on else "net risk per currency &middot; caps OFF")
+    return (f'<h2>Currency exposure <span class="since">{sub}</span></h2>'
+            f'<div class="panel" id="exposure_panel">{_exposure_inner(expo)}</div>')
+
+
 def _engine_breakdown_panel(rows) -> str:
     """Per-symbol block: both engines' state + reason, plus the timeframe reads
     that drove the decision. Shows the full decision process for EVERY pair."""
@@ -405,33 +444,38 @@ def _position_view(pos: dict, pip_size: float) -> dict:
 # --------------------------------------------------------------------------
 
 def _compute(journal: Journal, live: Optional[dict], now_utc: datetime) -> dict:
-    signals = journal.recent_signals(60)
-    orders = journal.recent_orders(60)
-    risk = journal.recent_risk_events(300)
+    latest_risk = journal.latest_risk_event()
+    signals = journal.recent_signals(50)
+    orders = journal.recent_orders(50)
+    equity_series = journal.equity_series(120)
 
-    equity_series = [r["equity"] for r in reversed(risk) if r["equity"] is not None]
-    latest_risk = risk[0] if risk else None
-
-    balance = live["balance"] if live else (latest_risk["balance"] if latest_risk else None)
-    equity = live["equity"] if live else (latest_risk["equity"] if latest_risk else None)
-    pip_size = (live or {}).get("pip_size") or 0.0001
+    balance = equity = None
+    open_pl = day_pl = None
+    rr_headline = None
+    pip_size = (live or {}).get("pip_size")
     symbol = (live or {}).get("symbol", "")
+    positions = []
 
-    positions = [_position_view(p, pip_size) for p in (live or {}).get("positions", [])]
-    open_pl = sum(p["profit"] for p in positions if p["profit"] is not None) \
-        if positions else (round(equity - balance, 2)
-                           if (equity is not None and balance is not None) else None)
-
-    day_start = journal.day_start_equity()
-    day_pl = round(equity - day_start, 2) \
-        if (equity is not None and day_start is not None) else None
-
-    rr_values = [p["rr"] for p in positions if p["rr"] is not None]
-    rr_headline = rr_values[0] if rr_values else None
+    if live is not None:
+        balance = live.get("balance")
+        equity = live.get("equity")
+        open_pl = round((equity - balance), 2) if (
+            equity is not None and balance is not None) else None
+        positions = [_position_view(p, pip_size) for p in live.get("positions", [])]
+        rrs = [p["rr"] for p in positions if p["rr"]]
+        rr_headline = rrs[0] if rrs else None
+        day_start = journal.day_start_equity()
+        if day_start is not None and equity is not None:
+            day_pl = round(equity - day_start, 2)
+    else:
+        if latest_risk:
+            balance = latest_risk.get("balance")
+            equity = latest_risk.get("equity")
 
     return {
-        "now_utc": now_utc, "symbol": symbol, "pip_size": pip_size,
-        "balance": balance, "equity": equity, "open_pl": open_pl, "day_pl": day_pl,
+        "symbol": symbol, "pip_size": pip_size,
+        "balance": balance, "equity": equity,
+        "open_pl": open_pl, "day_pl": day_pl,
         "rr_headline": rr_headline, "positions": positions,
         "signals": signals, "orders": orders, "equity_series": equity_series,
         "latest_risk": latest_risk,
@@ -449,7 +493,8 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
                          control: Optional[dict] = None,
                          thinking: Optional[dict] = None,
                          prop: Optional[dict] = None,
-                         engines: Optional[list] = None) -> dict:
+                         engines: Optional[list] = None,
+                         exposure: Optional[dict] = None) -> dict:
     """The JSON snapshot the page polls for in-place live updates."""
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
@@ -465,6 +510,7 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
         "thinking": thinking,
         "prop": prop,
         "engines_by_symbol": engines or [],
+        "exposure": exposure or {},
         "cards": {
             "open_pl": c["open_pl"], "day_pl": c["day_pl"],
             "rr": c["rr_headline"], "balance": c["balance"], "equity": c["equity"],
@@ -547,46 +593,6 @@ details.sec{margin-top:24px;border-top:1px solid #1a2440;padding-top:6px}
 details.sec>summary{font-size:13px;text-transform:uppercase;letter-spacing:.06em;
 color:#93a4bd;font-weight:600;cursor:pointer;list-style:none;display:flex;
 align-items:center;gap:8px;padding:8px 0}
-details.sec>summary::-webkit-details-marker{display:none}
-details.sec>summary::before{content:"\\25B8";color:#5f6b84;transition:transform .15s;
-display:inline-block}
-details.sec[open]>summary::before{transform:rotate(90deg)}
-details.sec .count{background:#223052;color:#9fb0cc;border-radius:999px;
-font-size:11px;padding:1px 8px;letter-spacing:0}
-details.sec .panel{margin-top:4px}
-.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#34d399;
-margin-right:6px;vertical-align:middle}
-.foot{color:#5f6b84;font-size:11px;margin-top:28px}
-.foot.warn{color:#fbbf24;font-weight:600}
-@media (max-width:900px){h1{font-size:18px}.card .value{font-size:20px}}
-@media (max-width:600px){
-body{padding:14px}
-h1{font-size:17px}
-h2{margin:20px 0 8px}
-.meta{font-size:12px}
-.cards{grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
-.card{padding:11px}
-.card .label{font-size:10px}
-.card .value{font-size:18px}
-.panel{padding:12px}
-.control{gap:8px;padding:10px}
-.control .status{flex:1 1 100%}
-.control .hint{margin-left:0;flex:1 1 100%}
-th,td{padding:6px 7px;font-size:12px;max-width:150px}
-}
-@media (prefers-reduced-motion:reduce){
-.pulse{animation:none}.scan::after{animation:none;left:0;width:100%;opacity:.25}
-}
-.prop .prophead{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.pbadge{font-weight:700;font-size:12px;padding:5px 12px;border-radius:999px;letter-spacing:.03em}
-.pbadge.ok{background:#12351f;color:#34d399;border:1px solid #1f5132}
-.pbadge.warn{background:#3a2f12;color:#fbbf24;border:1px solid #5c4a17}
-.pbadge.bad{background:#3a1620;color:#f87171;border:1px solid #5b2330}
-.pbadge.done{background:#122f3a;color:#38bdf8;border:1px solid #17495c}
-.prop .psub{color:#9fb0cc;font-size:12px}
-.pmetric{margin:10px 0}
-.pmlabel{display:flex;justify-content:space-between;font-size:12px;color:#b7c2d8;margin-bottom:5px}
-.pmval{color:#8aa0c0}
 .pbar{height:11px;border-radius:6px;background:#0f1730;border:1px solid #223052;overflow:hidden}
 .pbar .pfill{height:100%;border-radius:6px;transition:width .4s ease}
 .pbar.good .pfill{background:linear-gradient(90deg,#16a34a,#34d399)}
@@ -616,6 +622,20 @@ th,td{padding:6px 7px;font-size:12px;max-width:150px}
 background:#1a2440;color:#9fb0cc;border:1px solid #2c3a5c}
 .regime.ok{background:#12351f;color:#34d399;border-color:#1f5132}
 .regime.bad{background:#3a1620;color:#f87171;border-color:#5b2330}
+.expgrid{display:flex;flex-wrap:wrap;gap:10px}
+.expchip{flex:1 1 128px;min-width:128px;border:1px solid #223052;border-radius:10px;
+padding:10px 12px;background:#0f1730}
+.expchip .expc{font-size:14px;font-weight:700;letter-spacing:.03em}
+.expchip .expv{font-size:13px;margin:2px 0 7px;color:#cdd8ea}
+.expchip .expv .exps{font-size:10px;color:#8aa0c0;text-transform:uppercase;letter-spacing:.04em}
+.expchip .expbar{height:7px;border-radius:5px;background:#0b1226;border:1px solid #223052;overflow:hidden}
+.expchip .expfill{height:100%;border-radius:5px;transition:width .4s ease;
+background:linear-gradient(90deg,#16a34a,#34d399)}
+.expchip .expcap{font-size:10.5px;color:#8aa0c0;margin-top:5px}
+.expchip.near .expfill{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.expchip.over{border-color:#5b2330}
+.expchip.over .expfill{background:linear-gradient(90deg,#ef4444,#f87171)}
+.expchip.over .expc{color:#f87171}
 """
 
 
@@ -703,6 +723,18 @@ return '<div class="symrow"><div class="symhead"><span class="symname">'+esc(r.s
 '</span><span class="badge '+(aligned?'on':'off')+'">'+blabel+'</span>'+regChip+
 '<span class="trades">Trades: '+trades+'</span></div>'+
 '<div class="enginegrid">'+eng+'</div>'+proc+'</div>';}).join('');}
+function exposurePanel(x){
+if(!x||!x.rows||!x.rows.length)return '<p class="empty">No open currency exposure yet; the strip fills in as positions open.</p>';
+var cap=x.cap||0;
+return '<div class="expgrid">'+x.rows.map(function(r){
+var pct=Math.min(100,Number(r.pct)||0);var over=!!r.over;var near=(Number(r.pct)>=70)&&!over;
+var cls=over?'over':(near?'near':'ok');
+var net=Number(r.net)||0;var sign=net>=0?'+':'';var side=net>0?'net long':'net short';
+return '<div class="expchip '+cls+'"><div class="expc">'+esc(r.currency)+
+'</div><div class="expv">'+sign+net.toFixed(2)+'% <span class="exps">'+side+
+'</span></div><div class="expbar"><div class="expfill" style="width:'+pct.toFixed(0)+
+'%"></div></div><div class="expcap">'+Math.round(Number(r.pct)||0)+'% of '+cap+'% cap</div></div>';
+}).join('')+'</div>';}
 function spark(vals){
 if(!vals||vals.length<2)return '<p class="empty">Not enough data for an equity curve yet.</p>';
 var w=720,h=150,pad=8,n=vals.length,lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),
@@ -753,6 +785,7 @@ setHTML('pos_panel',posTable(d.positions));
 setHTML('persym_panel',persymTable(d.positions,d.symbols));
 if(d.prop)setHTML('prop_panel',propInner(d.prop));
 if(d.engines_by_symbol)setHTML('engines_panel',enginesPanel(d.engines_by_symbol));
+if(d.exposure)setHTML('exposure_panel',exposurePanel(d.exposure));
 setHTML('eq_panel',spark(d.equity_series));
 setHTML('sig_panel',rowsTable(['Time','Symbol','Signal','Reason'],d.signals));
 setHTML('ord_panel',rowsTable(['Time','Symbol','Side','Vol','Ticket','Status','Message'],d.orders));
@@ -772,7 +805,6 @@ for(var i=0;i<dd.length;i++){dd[i].open=true;}}
 """
 
 
-
 def _per_symbol_rows(positions, symbols) -> list:
     """[symbol, open count, total P/L] per traded symbol."""
     agg = {}
@@ -790,7 +822,8 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
                     control: Optional[dict] = None,
                     thinking: Optional[dict] = None, port: int = 8800,
                     prop: Optional[dict] = None,
-                    engines: Optional[list] = None) -> str:
+                    engines: Optional[list] = None,
+                    exposure: Optional[dict] = None) -> str:
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
     balance, equity = c["balance"], c["equity"]
@@ -877,6 +910,7 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
 
 <div class="cards" id="cards">{cards}</div>
 {_prop_panel(prop)}
+{_exposure_panel(exposure)}
 <h2>Per-symbol</h2>
 <div class="panel" id="persym_panel">{_table(["Symbol", "Open", "P/L"],
     _per_symbol_rows(positions, symbols))}</div>
@@ -901,11 +935,12 @@ def write_dashboard_live(journal: Journal, live: dict, path: str,
                          control: Optional[dict] = None,
                          thinking: Optional[dict] = None,
                          port: int = 8800, prop: Optional[dict] = None,
-                         engines: Optional[list] = None) -> str:
+                         engines: Optional[list] = None,
+                         exposure: Optional[dict] = None) -> str:
     """Refresh the live dashboard HTML shell (bot writes this each loop)."""
     html_text = build_dashboard(journal, live=live, refresh_seconds=refresh_seconds,
                                 control=control, thinking=thinking, port=port,
-                                prop=prop, engines=engines)
+                                prop=prop, engines=engines, exposure=exposure)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(html_text)
     return path
@@ -916,14 +951,15 @@ def write_dashboard_data(journal: Journal, live: dict, path: str,
                          control: Optional[dict] = None,
                          thinking: Optional[dict] = None,
                          prop: Optional[dict] = None,
-                         engines: Optional[list] = None) -> str:
+                         engines: Optional[list] = None,
+                         exposure: Optional[dict] = None) -> str:
     """Write the JSON snapshot the page polls for in-place live updates.
 
     Written atomically (temp file + os.replace) so the server never serves a
     half-written file."""
     data = build_dashboard_data(journal, live=live, refresh_seconds=refresh_seconds,
                                 control=control, thinking=thinking, prop=prop,
-                                engines=engines)
+                                engines=engines, exposure=exposure)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh)

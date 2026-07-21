@@ -116,3 +116,36 @@ def test_default_loose_cap_does_not_over_block():
     client = _client()
     _run(client, make_settings(multi_book=True, max_open_positions=7))
     assert len(client.sent_requests) == 4       # default 2.0 cap allows ~1% USD
+
+
+def test_account_exposure_weights_by_engine_and_sorts():
+    from mt5_ai_bridge.app import _account_exposure, build_books
+    from tests.fakes import make_position
+
+    class _Stub:
+        POSITION_TYPE_BUY = 0
+
+    settings = make_settings(multi_book=True)
+    books = build_books(settings)
+    sw = next(b.magic for b in books
+              if b.timeframe.upper() == settings.swing_tf_high.upper())
+    dy = next(b.magic for b in books
+              if b.timeframe.upper() == settings.day_timeframe.upper())
+    positions = [make_position(symbol="EURUSD", ptype=0, magic=sw),
+                 make_position(symbol="XAUUSD", ptype=0, magic=dy)]
+    view = _account_exposure(_Stub(), settings, positions)
+    assert view["on"] is True and view["cap"] == settings.max_currency_risk
+    cur = {r["currency"]: r["net"] for r in view["rows"]}
+    assert cur["USD"] < 0                       # both legs are short USD
+    assert cur["EUR"] > 0 and cur["XAU"] > 0
+    assert view["rows"][0]["currency"] == "USD"  # most concentrated leg first
+    assert view["rows"][0]["over"] is False
+
+
+def test_account_exposure_empty_when_flat():
+    from mt5_ai_bridge.app import _account_exposure
+
+    class _Stub:
+        POSITION_TYPE_BUY = 0
+
+    assert _account_exposure(_Stub(), make_settings(), [])["rows"] == []
