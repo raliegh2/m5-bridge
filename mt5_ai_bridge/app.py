@@ -433,7 +433,8 @@ def _status(settings, message: str) -> None:
 
 
 def _refresh_dashboard(client, journal, settings, control=None,
-                       thinking=None, prop=None, engines=None) -> None:
+                       thinking=None, prop=None, engines=None,
+                       exposure_view=None) -> None:
     if not settings.write_dashboard:
         return
     try:
@@ -442,11 +443,11 @@ def _refresh_dashboard(client, journal, settings, control=None,
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking,
                              port=settings.dashboard_port, prop=prop,
-                             engines=engines)
+                             engines=engines, exposure=exposure_view)
         write_dashboard_data(journal, snap, _data_path(settings),
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking, prop=prop,
-                             engines=engines)
+                             engines=engines, exposure=exposure_view)
     except Exception as exc:  # noqa: BLE001
         log.warning("Dashboard refresh failed: %s", exc)
 
@@ -512,6 +513,54 @@ def _pick_primary(client, settings) -> str:
         except Exception:  # noqa: BLE001
             continue
     return settings.symbols[0]
+
+
+def _account_exposure(client, settings, positions) -> dict:
+    """Per-currency NET open risk across ALL positions, for the dashboard.
+
+    Mirrors what the factor cap sees: each position is weighted by its engine's
+    risk %% for its symbol (via magic), split into +base / -quote currency legs.
+    Returns {on, cap, rows:[{currency, net, pct, over}]} sorted by |net| desc so
+    the panel can show which currency the book is most concentrated in and how
+    close it sits to MAX_CURRENCY_RISK.
+    """
+    cap = settings.max_currency_risk
+    base = {"on": settings.factor_caps, "cap": cap, "rows": []}
+    if not positions:
+        return base
+    books = build_books(settings)
+    try:
+        swing_magic = next(b.magic for b in books
+                           if b.timeframe.upper() == settings.swing_tf_high.upper())
+        intraday_magic = next(b.magic for b in books
+                              if b.timeframe.upper() == settings.day_timeframe.upper())
+    except StopIteration:
+        return base
+    tuples = []
+    for p in positions:
+        mg = getattr(p, "magic", None)
+        sym = getattr(p, "symbol", "")
+        if mg == swing_magic:
+            risk = settings.swing_risk_for(sym)
+        elif mg == intraday_magic:
+            risk = settings.intraday_risk_for(sym)
+        else:
+            risk = 0.0
+        is_buy = getattr(p, "type", None) == client.POSITION_TYPE_BUY
+        tuples.append((sym, is_buy, risk))
+    net = exposure.factor_exposure(tuples)
+    rows = []
+    for ccy, val in sorted(net.items(), key=lambda kv: -abs(kv[1])):
+        if abs(val) < 1e-9:
+            continue
+        rows.append({
+            "currency": ccy,
+            "net": round(float(val), 3),
+            "pct": round(abs(val) / cap * 100, 0) if cap > 0 else 0,
+            "over": bool(cap > 0 and abs(val) > cap + 1e-9),
+        })
+    base["rows"] = rows
+    return base
 
 
 def _run_once(client, journal, settings, strategy_fn, limits, tracker,
@@ -604,8 +653,11 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
             _update_trailing_stops(client, settings, symbol=sym)
 
     control = {"active": active, "prop": prop_on} if state is not None else None
+    exposure_view = _account_exposure(client, settings,
+                                      client.positions_get() or [])
     _refresh_dashboard(client, journal, settings, control=control,
-                       thinking=thinking, prop=prop, engines=breakdown)
+                       thinking=thinking, prop=prop, engines=breakdown,
+                       exposure_view=exposure_view)
     _print_status(client, settings, active=active)
 
 
