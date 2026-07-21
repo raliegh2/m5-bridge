@@ -43,6 +43,7 @@ from .journal import Journal
 from .logging_config import get_logger, setup_logging
 from .mt5_client import create_client
 from .prop import PropGuard
+from . import regime
 from .planner import (SessionConfig, SizingConfig, StaggerConfig, StyleConfig,
                       build_plan, is_ny_session, position_size, stagger)
 from .reasoning import ReasoningConfig, ReasoningStrategy
@@ -272,28 +273,43 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
                 "tf": tf, "label": label, "signal": Signal.WAIT.value,
                 "confidence": 0.0,
                 "reason": f"{UNAVAILABLE} — market data could not be read.",
-            }
+            }, None
         view = {
             "tf": tf, "label": label,
             "signal": decision.signal.value,
             "confidence": round(float(decision.confidence), 2),
             "reason": explain_market(snap),
         }
-        return decision, view
+        return decision, view, (snap or {}).get("er")
 
     views, decisions = [], {}
     labels = ((entry_tf, "Entry"),
               (settings.trend_tf_mid, "Intraday confirm"),
               (settings.swing_tf_high, "Swing trend"),
               (settings.swing_tf_higher, "Swing anchor"))
+    entry_er = None
     for tf, label in labels:
-        decision, view = evaluate(tf, label)
+        decision, view, er_val = evaluate(tf, label)
+        if tf == entry_tf:
+            entry_er = er_val
         if view is not None:
             views.append(view)
         if decision is not None:
             decisions[tf] = decision
 
     state = _dual_engine_state(decisions, settings)
+
+    # Regime router (Efficiency Ratio): trend engines only trade in a
+    # directional regime when the filter is enabled. Unknown ER -> allowed.
+    er_thr = settings.regime_er_min_for(symbol)
+    reg_allowed = (not settings.regime_filter) or regime.trend_allowed(entry_er, er_thr)
+    regime_info = {
+        "er": round(float(entry_er), 3) if entry_er is not None else None,
+        "state": regime.classify(entry_er),
+        "threshold": er_thr,
+        "filter_on": settings.regime_filter,
+        "allowed": reg_allowed,
+    }
     active = [name for name, item in state.items() if item["valid"]]
     biases = {state[name]["bias"] for name in active}
     bias = next(iter(biases)) if len(biases) == 1 else None
@@ -318,13 +334,21 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
     for name, item in state.items():
         risk = round(float(_engine_risk(name)), 3)
         enabled = risk > 0
+        if not enabled:
+            reason = "Not traded on this pair — engine risk set to 0."
+        elif not reg_allowed:
+            reason = (f"Range regime (ER {regime_info['er']}) below {er_thr:g} "
+                      f"— trend engine standing aside.")
+        else:
+            reason = item["reason"]
         engines.append({
             "name": name.title(),                 # "Intraday" / "Swing"
-            "ready": item["valid"] and enabled,   # a disabled engine never trades
+            # A disabled engine never trades; nor does any engine while the
+            # regime filter holds the symbol in a range.
+            "ready": item["valid"] and enabled and reg_allowed,
             "bias": item["bias"].value if item["bias"] else "NONE",
             "confidence": round(float(item["confidence"]), 2),
-            "reason": (item["reason"] if enabled else
-                       "Not traded on this pair — engine risk set to 0."),
+            "reason": reason,
             "enabled": enabled,
             "risk": risk,
         })
@@ -340,6 +364,7 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
         "note": note,
         "engines": engines,
         "trades": trades,
+        "regime": regime_info,
     }
 
 
@@ -709,6 +734,21 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                                sl_pips, tp_pips, symbol=symbol)
             else:
                 break
+
+    # Regime router: when REGIME_FILTER is on, the trend engines only open new
+    # trades in a DIRECTIONAL regime (Efficiency Ratio >= threshold). This
+    # stands the bot aside during the ~50%% of the time these markets range,
+    # which is where a trend-follower whipsaws. Off by default; validate before
+    # relying on it. Existing positions keep trailing regardless.
+    entry_snap = decide(settings.timeframe)[0]
+    er = (entry_snap or {}).get("er")
+    regime_ok = (not settings.regime_filter) or \
+        regime.trend_allowed(er, settings.regime_er_min_for(symbol))
+    if not regime_ok:
+        log.info("%s: range regime (ER %.2f < %.2f) — trend engines stand aside.",
+                 symbol, er if er is not None else float("nan"),
+                 settings.regime_er_min_for(symbol))
+        return
 
     # Swing is evaluated first; intraday may still open alongside it when both
     # engines point the same way and shared account limits permit.

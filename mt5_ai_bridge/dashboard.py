@@ -256,6 +256,15 @@ def _engine_breakdown_panel(rows) -> str:
         trades = r.get("trades", [])
         trades_txt = (" + ".join(_esc(t) for t in trades) if trades
                       else "none (both engines disabled)")
+        reg = r.get("regime") or {}
+        reg_chip = ""
+        if reg.get("er") is not None:
+            held = reg.get("filter_on") and not reg.get("allowed")
+            rcls = "bad" if held else ("ok" if reg.get("state") == "directional" else "")
+            rtxt = (f'Regime: {_esc(str(reg.get("state", "")).title())} '
+                    f'&middot; ER {reg["er"]:.2f}'
+                    + (' &middot; standing aside' if held else ''))
+            reg_chip = f'<span class="regime {rcls}">{rtxt}</span>'
         tfs = r.get("timeframes", [])
         tf_rows = "".join(
             f'<tr><td>{_esc(v.get("label"))}</td><td>{_esc(v.get("tf"))}</td>'
@@ -271,7 +280,7 @@ def _engine_breakdown_panel(rows) -> str:
                 f'</details>') if tf_rows else ""
         blocks.append(
             f'<div class="symrow"><div class="symhead"><span class="symname">{sym}'
-            f'</span><span class="badge {bcls}">{blabel}</span>'
+            f'</span><span class="badge {bcls}">{blabel}</span>{reg_chip}'
             f'<span class="trades">Trades: {trades_txt}</span></div>'
             f'<div class="enginegrid">{engines}</div>{proc}</div>')
     return ('<h2>All engines &mdash; decision process '
@@ -603,6 +612,10 @@ th,td{padding:6px 7px;font-size:12px;max-width:150px}
 .estate.disabled{color:#7e8aa3;font-weight:700}
 .trades{font-size:11px;color:#8aa0c0;margin-left:auto;white-space:nowrap}
 .trades{font-weight:600}
+.regime{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;
+background:#1a2440;color:#9fb0cc;border:1px solid #2c3a5c}
+.regime.ok{background:#12351f;color:#34d399;border-color:#1f5132}
+.regime.bad{background:#3a1620;color:#f87171;border-color:#5b2330}
 """
 
 
@@ -675,6 +688,10 @@ return '<div class="engine'+(enabled?'':' off')+'"><div class="k">'+esc(e.name)+
 '</div><div class="estate '+scls+'">'+stxt+'</div><div class="ereason">'+esc(e.reason)+
 '</div></div>';}).join('');
 var trades=(r.trades&&r.trades.length)?r.trades.map(esc).join(' + '):'none (both engines disabled)';
+var reg=r.regime||{};var regChip='';
+if(reg.er!=null){var held=reg.filter_on&&!reg.allowed;
+var rcls=held?'bad':(reg.state=='directional'?'ok':'');
+regChip='<span class="regime '+rcls+'">Regime: '+esc((reg.state||'')[0]?((reg.state||'').charAt(0).toUpperCase()+(reg.state||'').slice(1)):'')+' · ER '+Number(reg.er).toFixed(2)+(held?' · standing aside':'')+'</span>';}
 var tf=r.timeframes||[];var proc='';
 if(tf.length){var tr=tf.map(function(v){return '<tr><td>'+esc(v.label)+'</td><td>'+esc(v.tf)+
 '</td><td class="'+sigCls(v.signal)+'">'+esc(v.signal)+'</td><td>'+Number(v.confidence).toFixed(2)+
@@ -683,7 +700,7 @@ proc='<details class="sec"><summary>Decision process — timeframe reads</summar
 '<div class="tablewrap"><table><thead><tr><th>Read</th><th>Timeframe</th><th>Signal</th>'+
 '<th>Conf.</th><th>Why</th></tr></thead><tbody>'+tr+'</tbody></table></div></details>';}
 return '<div class="symrow"><div class="symhead"><span class="symname">'+esc(r.symbol)+
-'</span><span class="badge '+(aligned?'on':'off')+'">'+blabel+'</span>'+
+'</span><span class="badge '+(aligned?'on':'off')+'">'+blabel+'</span>'+regChip+
 '<span class="trades">Trades: '+trades+'</span></div>'+
 '<div class="enginegrid">'+eng+'</div>'+proc+'</div>';}).join('');}
 function spark(vals){
