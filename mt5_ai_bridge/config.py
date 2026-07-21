@@ -104,6 +104,9 @@ class Settings:
     reconnect_attempts: int
     reconnect_delay_seconds: float
 
+    # Fail closed in AUTO unless MT5 explicitly reports a demo account.
+    require_demo: bool = True
+
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
@@ -219,4 +222,5 @@ def load_settings(dotenv: bool = True) -> Settings:
         db_path=_get_str("DB_PATH", "journal.db"),
         reconnect_attempts=_get_int("RECONNECT_ATTEMPTS", 3),
         reconnect_delay_seconds=_get_float("RECONNECT_DELAY_SECONDS", 5),
+        require_demo=_get_bool("REQUIRE_DEMO", True),
     )

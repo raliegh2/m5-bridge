@@ -25,6 +25,13 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
 def main() -> None:
     text = APP.read_text(encoding="utf-8")
 
+    if (
+        "from .gbpusd_breakout_v2 import run_breakout_cycle" in text
+        and 'if settings.strategy == "gbpusd_breakout_v2":' in text
+    ):
+        print("Already integrated: GBPUSD breakout v2")
+        return
+
     text = replace_once(
         text,
         "from .trade_manager import close_position, modify_position_sl, trailing_sl\n",

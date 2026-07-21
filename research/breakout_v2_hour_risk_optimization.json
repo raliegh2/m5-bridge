@@ -1,0 +1,75 @@
+{
+  "cost_model": {
+    "spread_floor_pips": 1.5,
+    "slippage_pips": 0.6
+  },
+  "baseline_params": {
+    "channel_bars": 55,
+    "adx_min": 15.0,
+    "volume_ratio_min": 0.8,
+    "stop_atr": 2.0,
+    "target_r": 2.0,
+    "trail_atr": 2.5,
+    "trail_start_r": 1.0,
+    "max_hold_h4_bars": 90,
+    "entry_end_hours_utc": [
+      12,
+      16
+    ],
+    "risk_multiplier_12utc": 1.0,
+    "risk_multiplier_16utc": 1.0
+  },
+  "winner_params": {
+    "channel_bars": 55,
+    "adx_min": 15.0,
+    "volume_ratio_min": 0.8,
+    "stop_atr": 2.0,
+    "target_r": 2.0,
+    "trail_atr": 2.5,
+    "trail_start_r": 1.0,
+    "max_hold_h4_bars": 90,
+    "entry_end_hours_utc": [
+      12,
+      16
+    ],
+    "risk_multiplier_12utc": 0.5,
+    "risk_multiplier_16utc": 1.5
+  },
+  "baseline_holdout": {
+    "ending_balance": 106805.43171649256,
+    "net_profit": 6805.43171649256,
+    "trades": 68,
+    "win_rate": 0.5,
+    "profit_factor": 1.402408329381313,
+    "max_drawdown": 0.03208089378657664,
+    "sharpe": 0.3408527529270887
+  },
+  "winner_holdout": {
+    "ending_balance": 102445.50801985533,
+    "net_profit": 2445.5080198553333,
+    "trades": 68,
+    "win_rate": 0.5,
+    "profit_factor": 1.1372607360102904,
+    "max_drawdown": 0.056022850095606515,
+    "sharpe": 0.11762218258509584
+  },
+  "baseline_full": {
+    "ending_balance": 112791.78668201595,
+    "net_profit": 12791.786682015954,
+    "trades": 160,
+    "win_rate": 0.48125,
+    "profit_factor": 1.2914303725234562,
+    "max_drawdown": 0.056582590325894834,
+    "sharpe": 0.40027803604579126
+  },
+  "winner_full": {
+    "ending_balance": 113532.25698996737,
+    "net_profit": 13532.256989967369,
+    "trades": 160,
+    "win_rate": 0.48125,
+    "profit_factor": 1.312219148188924,
+    "max_drawdown": 0.05597399735387009,
+    "sharpe": 0.37911303323068746
+  },
+  "promoted": false
+}

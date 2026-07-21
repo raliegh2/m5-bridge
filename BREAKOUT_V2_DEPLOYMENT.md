@@ -24,10 +24,11 @@ cd C:\Users\ralie\mt5-ai-bridge
 git fetch origin
 git checkout gbpusd-breakout-v2
 git pull
-
-python tools\apply_gbpusd_breakout_v2.py
 python -m pytest -q
 ```
+
+The dedicated Breakout V2 execution path is integrated directly in this
+version. The legacy patch helper remains only for older checkouts.
 
 The patch changes `mt5_ai_bridge/app.py` so `STRATEGY=gbpusd_breakout_v2` receives a dedicated execution path and returns before the legacy books can place trades.
 
@@ -63,6 +64,21 @@ Use this progression:
 2. `MODE=APPROVAL` on demo to inspect every proposed order.
 3. Demo automation only after completed-candle timing and lot sizing match expectations.
 4. Live use only after a forward sample is consistent with the proxy.
+
+## Automated demo runner
+
+After configuring demo MT5 credentials in `.env`, either double-click
+`Run Breakout V2 Demo Auto.bat` or run:
+
+```powershell
+python -m mt5_ai_bridge.breakout_v2_runner
+```
+
+The dedicated runner forces `GBPUSD`, `gbpusd_breakout_v2`, 0.50% base risk,
+one position maximum, legacy books off, and generic trailing off. It also forces
+`REQUIRE_DEMO=true`; AUTO orders fail closed unless MT5 explicitly identifies
+the connected account as a demo. `APPROVAL` mode separately requires the exact
+text `YES` before every Breakout V2 order.
 
 ## Reproduce the historical proxy
 
