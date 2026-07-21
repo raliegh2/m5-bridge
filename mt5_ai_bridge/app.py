@@ -51,6 +51,7 @@ from .risk_engine import DailyLossTracker, RiskLimits, check_risk
 from .sizing import AtrConfig, RiskConfig, atr_stops, risk_lot
 from .strategy import evaluate_strategy
 from .trade_manager import close_position, modify_position_sl, trailing_sl
+from .gbpusd_breakout_v2 import run_breakout_cycle
 
 log = get_logger("app")
 
@@ -172,6 +173,11 @@ def _account_kind(account) -> str:
 def _is_real_account(account) -> bool:
     """True only when the broker explicitly reports a REAL (live) account."""
     return getattr(account, "trade_mode", None) == 2
+
+
+def _is_demo_account(account) -> bool:
+    """True only when the broker explicitly identifies a demo account."""
+    return getattr(account, "trade_mode", None) == 0
 
 
 def _subscribe_symbols(client, symbols) -> None:
@@ -530,6 +536,52 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     log.info("Risk: %s | account=%s | day_loss=%.2f | active=%s",
              risk.message, _account_kind(account), day_loss, active)
 
+    demo_ok = not (
+        settings.mode is Mode.AUTO
+        and settings.require_demo
+        and not _is_demo_account(account)
+    )
+    if not demo_ok:
+        log.warning(
+            "AUTO trading blocked: REQUIRE_DEMO=true and MT5 did not report "
+            "a demo account (account=%s).", _account_kind(account),
+        )
+
+    # Prop-firm challenge guard: gate trading + scale risk near the limits.
+    # Prop mode can be toggled live from the dashboard (state.is_prop());
+    # when OFF we still emit a payload so the panel always shows its status.
+    prop_on = state.is_prop() if state is not None else settings.prop_firm
+    if prop_on and prop_guard is not None:
+        prop = prop_guard.update(account.balance, account.equity)
+    else:
+        prop = _prop_off_payload(settings, account)
+    prop_ok = prop["allow_trading"] if prop["enabled"] else True
+    risk_scale = prop["risk_scale"] if prop["enabled"] else 1.0
+    if prop["enabled"] and not prop_ok:
+        log.warning("Prop guard [%s]: new trades paused | equity %.2f | "
+                    "daily %.2f%%/%.1f%% | total DD %.2f%%/%.1f%%.",
+                    prop["status"], prop["equity"], prop["daily_loss_pct"],
+                    prop["max_daily_loss_pct"], prop["total_dd_pct"],
+                    prop["max_total_loss_pct"])
+
+    # Breakout V2 owns its H4/D1 signal, entry, and ATR management path. It is
+    # deliberately isolated from the default multi-symbol books because the
+    # promoted backtest applies to this GBPUSD engine, not a mixed portfolio.
+    if settings.strategy == "gbpusd_breakout_v2":
+        thinking = run_breakout_cycle(
+            client, journal, settings, account,
+            risk_ok=risk.ok and demo_ok and prop_ok,
+            active=active, risk_scale=risk_scale,
+        )
+        control = {"active": active, "prop": prop_on} \
+            if state is not None else None
+        _refresh_dashboard(
+            client, journal, settings, control=control, thinking=thinking,
+            prop=prop, engines=[],
+        )
+        _print_status(client, settings, active=active)
+        return
+
     # Fast ENTRY read on the PRIMARY symbol (drives the dashboard signal view).
     # Auto-pick the first symbol that actually has data so the panel never
     # sticks on a symbol the broker does not offer under that name.
@@ -553,30 +605,6 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     log.info("Signal[%s]: %s (%s) confidence=%s setup=%s filtered=%s",
              primary, decision.signal.value, decision.reason, decision.confidence,
              setup_flag, filtered_flag)
-
-    # Safety guard: never place AUTOMATIC trades on a REAL account while
-    # REQUIRE_DEMO is on. Existing positions still trail; the dashboard still runs.
-    demo_ok = not (settings.require_demo and _is_real_account(account))
-    if not demo_ok:
-        log.warning("Trading blocked: REAL account with REQUIRE_DEMO on. "
-                    "Use a demo account (or set REQUIRE_DEMO=false to override).")
-
-    # Prop-firm challenge guard: gate trading + scale risk near the limits.
-    # Prop mode can be toggled live from the dashboard (state.is_prop());
-    # when OFF we still emit a payload so the panel always shows its status.
-    prop_on = state.is_prop() if state is not None else settings.prop_firm
-    if prop_on and prop_guard is not None:
-        prop = prop_guard.update(account.balance, account.equity)
-    else:
-        prop = _prop_off_payload(settings, account)
-    prop_ok = prop["allow_trading"] if prop["enabled"] else True
-    risk_scale = prop["risk_scale"] if prop["enabled"] else 1.0
-    if prop["enabled"] and not prop_ok:
-        log.warning("Prop guard [%s]: new trades paused | equity %.2f | "
-                    "daily %.2f%%/%.1f%% | total DD %.2f%%/%.1f%%.",
-                    prop["status"], prop["equity"], prop["daily_loss_pct"],
-                    prop["max_daily_loss_pct"], prop["total_dd_pct"],
-                    prop["max_total_loss_pct"])
 
     # Open NEW trades only while trading is ACTIVE (remote pause honoured).
     # Every symbol shares ONE account: the combined open-risk ceiling and the

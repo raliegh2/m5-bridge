@@ -118,7 +118,7 @@ class Settings:
     reconnect_attempts: int
     reconnect_delay_seconds: float
 
-    # Safety: when True, refuse AUTOMATIC trading unless the account is a demo.
+    # Safety: when True, AUTO fails closed unless MT5 explicitly reports demo.
     require_demo: bool = True
 
     # Prop-firm challenge guard (FTMO-style drawdown protection).
@@ -135,7 +135,6 @@ class Settings:
     regime_filter: bool = False
     regime_er_min: float = 0.30
     regime_er_overrides: tuple = ()
-
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
