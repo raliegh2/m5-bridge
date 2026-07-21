@@ -8,21 +8,17 @@ from .enums import Mode
 
 
 def automated_demo_settings(settings: Settings) -> Settings:
-    """Force the validated engine topology while preserving credentials/UI."""
+    """Add Breakout V2 to the configured multi-symbol demo portfolio."""
+    symbols = tuple(dict.fromkeys(("GBPUSD", *settings.symbols)))
     return replace(
         settings,
-        symbol="GBPUSD",
-        symbols=("GBPUSD",),
-        strategy="gbpusd_breakout_v2",
+        symbols=symbols,
+        strategy="hybrid_breakout_v2",
         mode=Mode.AUTO,
         require_demo=True,
-        multi_book=False,
+        multi_book=True,
         risk_based_sizing=True,
         risk_percent=0.50,
-        max_open_positions=1,
-        max_same_direction=1,
-        min_same_direction=1,
-        trail_enabled=False,
     )
 
 
@@ -34,8 +30,8 @@ def main() -> None:
             "MT5_SERVER in .env before starting the demo runner."
         )
     print(
-        "Starting GBPUSD Breakout V2 in AUTO demo-only mode "
-        "(base risk 0.50%, one position maximum)."
+        "Starting multi-symbol portfolio + GBPUSD Breakout V2 in AUTO "
+        "demo-only mode (shared portfolio risk controls)."
     )
     run(settings=settings)
 

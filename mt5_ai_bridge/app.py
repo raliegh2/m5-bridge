@@ -51,13 +51,13 @@ from .risk_engine import DailyLossTracker, RiskLimits, check_risk
 from .sizing import AtrConfig, RiskConfig, atr_stops, risk_lot
 from .strategy import evaluate_strategy
 from .trade_manager import close_position, modify_position_sl, trailing_sl
-from .gbpusd_breakout_v2 import run_breakout_cycle
+from .gbpusd_breakout_v2 import MAGIC as BREAKOUT_MAGIC, run_breakout_cycle
 
 log = get_logger("app")
 
 
 def make_strategy(settings: Settings) -> Callable:
-    if settings.strategy == "reasoning":
+    if settings.strategy in ("reasoning", "hybrid_breakout_v2"):
         return ReasoningStrategy(ReasoningConfig(
             threshold=settings.reasoning_threshold,
             rsi_overbought=settings.rsi_overbought,
@@ -582,6 +582,36 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
         _print_status(client, settings, active=active)
         return
 
+    breakout_thinking = None
+    if settings.strategy == "hybrid_breakout_v2":
+        current = client.positions_get() or []
+        books = build_books(settings)
+        swing_magics = {b.magic for b in books if b.name.startswith("swing-")}
+        day_magics = {b.magic for b in books if b.name.startswith("day-")}
+
+        def position_risk(position):
+            magic = getattr(position, "magic", None)
+            symbol = getattr(position, "symbol", "")
+            if magic == BREAKOUT_MAGIC:
+                return min(float(settings.risk_percent) * 1.25, 1.0)
+            if magic in swing_magics:
+                return settings.swing_risk_for(symbol)
+            if magic in day_magics:
+                return settings.intraday_risk_for(symbol)
+            return 0.0
+
+        remaining_risk = max(
+            0.0,
+            settings.combined_risk_ceiling
+            - sum(position_risk(p) for p in current),
+        )
+        breakout_thinking = run_breakout_cycle(
+            client, journal, settings, account,
+            risk_ok=risk.ok and demo_ok and prop_ok and remaining_risk > 0,
+            active=active, risk_scale=risk_scale,
+            max_risk_percent=remaining_risk,
+        )
+
     # Fast ENTRY read on the PRIMARY symbol (drives the dashboard signal view).
     # Auto-pick the first symbol that actually has data so the panel never
     # sticks on a symbol the broker does not offer under that name.
@@ -594,6 +624,13 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     # pair). The primary symbol's read is reused for the top thinking panel and
     # the setup/filter flags, so it is not computed twice.
     breakdown = _engine_breakdown(client, settings, strategy_fn)
+    if breakout_thinking is not None:
+        gbp = next((r for r in breakdown if r.get("symbol") == "GBPUSD"), None)
+        if gbp is not None:
+            engine = dict(breakout_thinking["engines"][0])
+            engine.update({"enabled": True, "risk": settings.risk_percent})
+            gbp["engines"].append(engine)
+            gbp["trades"].append("GBPUSD Breakout V2")
     thinking = next((r for r in breakdown if r.get("symbol") == primary), None)
     if thinking is None:
         thinking = _bot_thinking(client, settings, strategy_fn, symbol=primary)
@@ -663,6 +700,12 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                          if b.timeframe.upper() == settings.day_timeframe.upper())
     engine_magics = {swing_book.magic, intraday_book.magic}
 
+    if symbol.upper() == "GBPUSD" and any(
+        getattr(p, "magic", None) == BREAKOUT_MAGIC for p in positions
+    ):
+        log.info("portfolio [GBPUSD] waiting: Breakout V2 position is open.")
+        return
+
     # Fixed-fractional sizing means each open position risks a known % of the
     # balance (its engine's risk_percent for ITS symbol). Aggregate open risk
     # across ALL symbols is the sum; trailing only lowers it, so this is a
@@ -673,6 +716,8 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
             return settings.swing_risk_for(getattr(p, "symbol", symbol))
         if mg == intraday_book.magic:
             return settings.intraday_risk_for(getattr(p, "symbol", symbol))
+        if mg == BREAKOUT_MAGIC:
+            return min(float(settings.risk_percent) * 1.25, 1.0)
         return 0.0
 
     open_risk = sum(_position_risk(p) for p in positions)

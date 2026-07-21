@@ -290,6 +290,7 @@ def run_breakout_cycle(
     risk_ok: bool,
     active: bool,
     risk_scale: float = 1.0,
+    max_risk_percent: Optional[float] = None,
     params: BreakoutParams = BreakoutParams(),
 ) -> dict:
     """Manage existing exposure and optionally open one validated setup."""
@@ -343,13 +344,18 @@ def run_breakout_cycle(
     )
     target_pips = params.target_r * stop_pips
     risk_multiplier = _setup_risk_multiplier(setup, params)
+    effective_risk = min(
+        float(settings.risk_percent) * risk_multiplier
+        * max(float(risk_scale), 0.0),
+        1.0,
+    )
+    if max_risk_percent is not None:
+        effective_risk = min(effective_risk, max(float(max_risk_percent), 0.0))
+    if effective_risk <= 0:
+        return thinking
     risk_cfg = RiskConfig(
         enabled=True,
-        risk_percent=min(
-            float(settings.risk_percent) * risk_multiplier
-            * max(float(risk_scale), 0.0),
-            1.0,
-        ),
+        risk_percent=effective_risk,
         pip_value_per_lot=float(settings.pip_value_per_lot),
         max_lot=float(settings.max_lot),
     )
