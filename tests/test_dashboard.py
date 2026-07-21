@@ -237,3 +237,25 @@ def test_engine_panel_shows_disabled_and_trades_summary(tmp_path):
     assert "Trades: Intraday" in html          # per-pair engine summary
     assert "DISABLED" in html                  # swing engine marked disabled
     assert "risk 0.3%" in html                 # per-engine risk shown
+
+
+def test_exposure_panel_renders_in_shell_and_payload():
+    from mt5_ai_bridge.dashboard import build_dashboard_data
+    expo = {"on": True, "cap": 2.0, "rows": [
+        {"currency": "USD", "net": -2.3, "pct": 115.0, "over": True},
+        {"currency": "EUR", "net": 1.05, "pct": 52.0, "over": False}]}
+    j = Journal(":memory:")
+    html = build_dashboard(j, live=_live(), refresh_seconds=1, exposure=expo)
+    assert 'id="exposure_panel"' in html
+    assert "Currency exposure" in html
+    assert "expchip over" in html                # the breaching USD chip
+    data = build_dashboard_data(j, live=_live(), refresh_seconds=1, exposure=expo)
+    assert data["exposure"]["rows"][0]["currency"] == "USD"
+
+
+def test_exposure_panel_empty_state_ok():
+    j = Journal(":memory:")
+    html = build_dashboard(j, live=_live(), refresh_seconds=1,
+                           exposure={"on": True, "cap": 2.0, "rows": []})
+    assert 'id="exposure_panel"' in html
+    assert "No open currency exposure" in html

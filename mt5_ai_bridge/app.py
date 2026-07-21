@@ -44,6 +44,7 @@ from .logging_config import get_logger, setup_logging
 from .mt5_client import create_client
 from .prop import PropGuard
 from . import regime
+from . import exposure
 from .planner import (SessionConfig, SizingConfig, StaggerConfig, StyleConfig,
                       build_plan, is_ny_session, position_size, stagger)
 from .reasoning import ReasoningConfig, ReasoningStrategy
@@ -438,7 +439,8 @@ def _status(settings, message: str) -> None:
 
 
 def _refresh_dashboard(client, journal, settings, control=None,
-                       thinking=None, prop=None, engines=None) -> None:
+                       thinking=None, prop=None, engines=None,
+                       exposure_view=None) -> None:
     if not settings.write_dashboard:
         return
     try:
@@ -447,11 +449,11 @@ def _refresh_dashboard(client, journal, settings, control=None,
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking,
                              port=settings.dashboard_port, prop=prop,
-                             engines=engines)
+                             engines=engines, exposure=exposure_view)
         write_dashboard_data(journal, snap, _data_path(settings),
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking, prop=prop,
-                             engines=engines)
+                             engines=engines, exposure=exposure_view)
     except Exception as exc:  # noqa: BLE001
         log.warning("Dashboard refresh failed: %s", exc)
 
@@ -517,6 +519,54 @@ def _pick_primary(client, settings) -> str:
         except Exception:  # noqa: BLE001
             continue
     return settings.symbols[0]
+
+
+def _account_exposure(client, settings, positions) -> dict:
+    """Per-currency NET open risk across ALL positions, for the dashboard.
+
+    Mirrors what the factor cap sees: each position is weighted by its engine's
+    risk %% for its symbol (via magic), split into +base / -quote currency legs.
+    Returns {on, cap, rows:[{currency, net, pct, over}]} sorted by |net| desc so
+    the panel can show which currency the book is most concentrated in and how
+    close it sits to MAX_CURRENCY_RISK.
+    """
+    cap = settings.max_currency_risk
+    base = {"on": settings.factor_caps, "cap": cap, "rows": []}
+    if not positions:
+        return base
+    books = build_books(settings)
+    try:
+        swing_magic = next(b.magic for b in books
+                           if b.timeframe.upper() == settings.swing_tf_high.upper())
+        intraday_magic = next(b.magic for b in books
+                              if b.timeframe.upper() == settings.day_timeframe.upper())
+    except StopIteration:
+        return base
+    tuples = []
+    for p in positions:
+        mg = getattr(p, "magic", None)
+        sym = getattr(p, "symbol", "")
+        if mg == swing_magic:
+            risk = settings.swing_risk_for(sym)
+        elif mg == intraday_magic:
+            risk = settings.intraday_risk_for(sym)
+        else:
+            risk = 0.0
+        is_buy = getattr(p, "type", None) == client.POSITION_TYPE_BUY
+        tuples.append((sym, is_buy, risk))
+    net = exposure.factor_exposure(tuples)
+    rows = []
+    for ccy, val in sorted(net.items(), key=lambda kv: -abs(kv[1])):
+        if abs(val) < 1e-9:
+            continue
+        rows.append({
+            "currency": ccy,
+            "net": round(float(val), 3),
+            "pct": round(abs(val) / cap * 100, 0) if cap > 0 else 0,
+            "over": bool(cap > 0 and abs(val) > cap + 1e-9),
+        })
+    base["rows"] = rows
+    return base
 
 
 def _run_once(client, journal, settings, strategy_fn, limits, tracker,
@@ -668,8 +718,11 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
             _update_trailing_stops(client, settings, symbol=sym)
 
     control = {"active": active, "prop": prop_on} if state is not None else None
+    exposure_view = _account_exposure(client, settings,
+                                      client.positions_get() or [])
     _refresh_dashboard(client, journal, settings, control=control,
-                       thinking=thinking, prop=prop, engines=breakdown)
+                       thinking=thinking, prop=prop, engines=breakdown,
+                       exposure_view=exposure_view)
     _print_status(client, settings, active=active)
 
 
@@ -742,6 +795,10 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                    and getattr(p, "magic", None) in engine_magics
                    for p in positions)
 
+    # New positions opened THIS loop for this symbol, so the factor cap
+    # sees intra-loop adds too (base list is refetched per symbol upstream).
+    session_adds = []
+
     def open_engine(name, setup, book, snap_tf, risk_percent):
         nonlocal total_open, open_risk
         if risk_percent <= 0:
@@ -783,6 +840,21 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                          name, symbol, open_risk, risk_percent,
                          settings.combined_risk_ceiling)
                 return
+            # Currency-factor cap: treat correlated trades (all short USD,
+            # etc.) as the one bet they are. Block if this order would push
+            # any single currency's NET open risk past the cap.
+            if settings.factor_caps:
+                existing = [(getattr(p, "symbol", symbol),
+                             p.type == client.POSITION_TYPE_BUY,
+                             _position_risk(p)) for p in positions]
+                existing += session_adds
+                hit = exposure.breach(existing, symbol, side is Signal.BUY,
+                                      risk_percent, settings.max_currency_risk)
+                if hit:
+                    log.info("%s [%s] blocked: %s net factor risk %.2f%% > "
+                             "cap %.2f%% (correlated exposure).", name,
+                             symbol, hit[0], hit[1], settings.max_currency_risk)
+                    return
             if journal.count_trades_today() >= settings.max_trades_per_day:
                 return
             level = have + opened + 1
@@ -803,6 +875,7 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
             if ok:
                 total_open += 1
                 open_risk += risk_percent
+                session_adds.append((symbol, side is Signal.BUY, risk_percent))
                 _announce_open(settings, side.value, volume, book.name,
                                sl_pips, tp_pips, symbol=symbol)
             else:

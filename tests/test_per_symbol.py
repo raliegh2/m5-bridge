@@ -71,3 +71,12 @@ def test_env_override_beats_builtin_gold_default(monkeypatch):
     s = load_settings(dotenv=False)
     assert s.swing_risk_for("XAUUSD") == 0.05
     assert s.intraday_risk_for("XAUUSD") == 0.0       # 0 disables that engine
+
+
+def test_factor_caps_defaults_and_env(monkeypatch):
+    s = load_settings(dotenv=False)
+    assert s.factor_caps is True and s.max_currency_risk == 2.0   # on, loose
+    monkeypatch.setenv("FACTOR_CAPS", "false")
+    monkeypatch.setenv("MAX_CURRENCY_RISK", "1.5")
+    s2 = load_settings(dotenv=False)
+    assert s2.factor_caps is False and s2.max_currency_risk == 1.5
