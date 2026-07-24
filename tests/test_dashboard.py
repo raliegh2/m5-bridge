@@ -159,3 +159,103 @@ def test_day_start_equity(tmp_path):
     val = j.day_start_equity()
     j.close()
     assert val == 10000
+
+
+def test_position_pips_use_per_position_pip_size():
+    """Gold and FX in the same book must each use their OWN pip size.
+
+    The account-level pip_size is FX-sized (0.0001). A gold position that
+    carries its own pip_size (0.01) must not be scaled by the FX pip.
+    """
+    from mt5_ai_bridge.dashboard import _position_view
+    gold = {"symbol": "XAUUSD", "type": "SELL", "price_open": 4006.58,
+            "price_current": 4007.11, "sl": 4008.4, "tp": 3982.97,
+            "pip_size": 0.01}
+    view = _position_view(gold, 0.0001)   # account-level FX pip passed in
+    # 0.53 price move / 0.01 pip = 53 pips (SELL losing -> negative), NOT 5300.
+    assert view["pips"] == -53.0
+
+    fx = {"symbol": "GBPUSD", "type": "BUY", "price_open": 1.2680,
+          "price_current": 1.2712, "sl": 1.26, "tp": 1.284, "pip_size": 0.0001}
+    assert _position_view(fx, 0.0001)["pips"] == 32.0
+
+
+def test_engine_breakdown_panel_shows_all_symbols_and_engines(tmp_path):
+    """The all-engines panel lists every symbol with both engines + reasons."""
+    j = Journal(str(tmp_path / "eb.db"))
+    rows = [
+        {"symbol": "USDJPY", "aligned": True, "bias": "BUY",
+         "engines": [
+             {"name": "Intraday", "ready": True, "bias": "BUY", "confidence": 0.71,
+              "reason": "M15 and M30 agree; no strong H4 opposition."},
+             {"name": "Swing", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Waiting for H4/D1 trend and M30/M15 timing to agree."}],
+         "timeframes": [{"tf": "M15", "label": "Entry", "signal": "BUY",
+                         "confidence": 0.71, "reason": "EMA20>EMA50."}]},
+        {"symbol": "XAUUSD", "aligned": False, "bias": "NONE",
+         "engines": [
+             {"name": "Intraday", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Waiting for M15 and M30 to agree."},
+             {"name": "Swing", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Waiting for H4/D1 trend and M30/M15 timing to agree."}],
+         "timeframes": []},
+    ]
+    html = build_dashboard(j, live=_live(), engines=rows)
+    j.close()
+    assert "All engines" in html
+    assert "USDJPY" in html and "XAUUSD" in html
+    assert "Intraday" in html and "Swing" in html
+    assert "Decision process" in html                # per-symbol read table
+    assert "M15 and M30 agree" in html               # engine reason surfaced
+    assert 'id="engines_panel"' in html              # live-updatable container
+
+
+def test_engine_breakdown_panel_empty_when_no_rows(tmp_path):
+    j = Journal(str(tmp_path / "eb2.db"))
+    html = build_dashboard(j, live=_live(), engines=[])
+    j.close()
+    assert "All engines" not in html                 # panel omitted when empty
+
+
+def test_engine_panel_shows_disabled_and_trades_summary(tmp_path):
+    """Disabled engines render as DISABLED; the symbol shows which engines trade it."""
+    j = Journal(str(tmp_path / "ebt.db"))
+    rows = [
+        {"symbol": "AUDUSD", "aligned": False, "bias": "NONE",
+         "trades": ["Intraday"],
+         "engines": [
+             {"name": "Intraday", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Waiting for M15 and M30 to agree.",
+              "enabled": True, "risk": 0.30},
+             {"name": "Swing", "ready": False, "bias": "NONE", "confidence": 0.0,
+              "reason": "Not traded on this pair — engine risk set to 0.",
+              "enabled": False, "risk": 0.0}],
+         "timeframes": []},
+    ]
+    html = build_dashboard(j, live=_live(), engines=rows)
+    j.close()
+    assert "Trades: Intraday" in html          # per-pair engine summary
+    assert "DISABLED" in html                  # swing engine marked disabled
+    assert "risk 0.3%" in html                 # per-engine risk shown
+
+
+def test_exposure_panel_renders_in_shell_and_payload():
+    from mt5_ai_bridge.dashboard import build_dashboard_data
+    expo = {"on": True, "cap": 2.0, "rows": [
+        {"currency": "USD", "net": -2.3, "pct": 115.0, "over": True},
+        {"currency": "EUR", "net": 1.05, "pct": 52.0, "over": False}]}
+    j = Journal(":memory:")
+    html = build_dashboard(j, live=_live(), refresh_seconds=1, exposure=expo)
+    assert 'id="exposure_panel"' in html
+    assert "Currency exposure" in html
+    assert "expchip over" in html                # the breaching USD chip
+    data = build_dashboard_data(j, live=_live(), refresh_seconds=1, exposure=expo)
+    assert data["exposure"]["rows"][0]["currency"] == "USD"
+
+
+def test_exposure_panel_empty_state_ok():
+    j = Journal(":memory:")
+    html = build_dashboard(j, live=_live(), refresh_seconds=1,
+                           exposure={"on": True, "cap": 2.0, "rows": []})
+    assert 'id="exposure_panel"' in html
+    assert "No open currency exposure" in html

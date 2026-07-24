@@ -64,6 +64,9 @@ class FakeMT5Client:
             return [p for p in self._positions if p.ticket == ticket]
         return list(self._positions)
 
+    def symbol_select(self, symbol, enable=True):
+        return True
+
     def symbol_info(self, symbol):
         return self._symbol_info
 
@@ -114,7 +117,8 @@ def make_settings(**kw) -> Settings:
     ATR stops and risk sizing default OFF so book tests are deterministic.
     """
     base = dict(
-        login=1, password="x", server="s", symbol="GBPUSD", mode=Mode.READ_ONLY,
+        login=1, password="x", server="s", symbol="GBPUSD",
+        symbols=("GBPUSD",), combined_risk_ceiling=3.5, mode=Mode.READ_ONLY,
         timeframe="M15", strategy="trend", reasoning_threshold=0.6,
         rsi_overbought=75, rsi_oversold=25,
         lot_size=0.09, ny_size_multiplier=2.0, ny_start_hour=12, ny_end_hour=21,
@@ -130,6 +134,7 @@ def make_settings(**kw) -> Settings:
         atr_min_sl_pips=8, atr_max_sl_pips=200,
         risk_based_sizing=False, risk_percent=0.5,
         intraday_risk_percent=0.15, swing_risk_percent=0.35,
+        swing_risk_overrides=(), intraday_risk_overrides=(),
         pip_value_per_lot=10.0,
         max_lot=2.0,
         multi_book=False, require_trend_alignment=True, trend_tf_mid="M30",
@@ -144,4 +149,8 @@ def make_settings(**kw) -> Settings:
         reconnect_attempts=3, reconnect_delay_seconds=0,
     )
     base.update(kw)
+    # Keep symbols consistent with an overridden single symbol unless the test
+    # set symbols explicitly.
+    if "symbols" not in kw:
+        base["symbols"] = (base["symbol"],)
     return Settings(**base)

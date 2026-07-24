@@ -16,6 +16,7 @@ venv/
 *.sqlite3
 logs/
 *.log
+<<<<<<< HEAD
 *.jsonl
 v14_3_satellite_live_diagnostics.json
 state/v14_3_satellite_dashboard.json
@@ -29,3 +30,12 @@ research/*_out/
 # Local runtime and generated research output
 state/
 research/*_out/
+=======
+*_session_guard.json
+*_session_guard.json.tmp
+session_guard_state.json
+session_guard_state.json.tmp
+
+# Generated dashboard
+dashboard.html
+>>>>>>> origin/main

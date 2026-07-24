@@ -24,6 +24,8 @@ class RealMT5Client:
         self.ORDER_TYPE_SELL = mt5.ORDER_TYPE_SELL
         self.TRADE_ACTION_DEAL = mt5.TRADE_ACTION_DEAL
         self.TRADE_ACTION_SLTP = mt5.TRADE_ACTION_SLTP
+        self.TRADE_ACTION_PENDING = mt5.TRADE_ACTION_PENDING
+        self.TRADE_ACTION_REMOVE = mt5.TRADE_ACTION_REMOVE
         self.ORDER_TIME_GTC = mt5.ORDER_TIME_GTC
         self.ORDER_FILLING_FOK = getattr(mt5, "ORDER_FILLING_FOK", 0)
         self.ORDER_FILLING_IOC = getattr(mt5, "ORDER_FILLING_IOC", 1)
@@ -33,11 +35,18 @@ class RealMT5Client:
         self.TRADE_RETCODE_DONE_PARTIAL = getattr(mt5, "TRADE_RETCODE_DONE_PARTIAL", None)
         self.POSITION_TYPE_BUY = mt5.POSITION_TYPE_BUY
         self.POSITION_TYPE_SELL = mt5.POSITION_TYPE_SELL
+<<<<<<< HEAD
         self.ACCOUNT_TRADE_MODE_DEMO = getattr(mt5, "ACCOUNT_TRADE_MODE_DEMO", 0)
         self.ACCOUNT_TRADE_MODE_REAL = getattr(mt5, "ACCOUNT_TRADE_MODE_REAL", 2)
         self.COPY_TICKS_ALL = getattr(mt5, "COPY_TICKS_ALL", -1)
         self.BOOK_TYPE_SELL = getattr(mt5, "BOOK_TYPE_SELL", 1)
         self.BOOK_TYPE_BUY = getattr(mt5, "BOOK_TYPE_BUY", 2)
+=======
+        self.DEAL_ENTRY_IN = mt5.DEAL_ENTRY_IN
+        self.DEAL_ENTRY_OUT = mt5.DEAL_ENTRY_OUT
+        self.DEAL_ENTRY_INOUT = mt5.DEAL_ENTRY_INOUT
+        self.DEAL_ENTRY_OUT_BY = mt5.DEAL_ENTRY_OUT_BY
+>>>>>>> origin/main
 
     def initialize(self) -> bool:
         return self._mt5.initialize()
@@ -60,11 +69,32 @@ class RealMT5Client:
     def positions_get(self, **kwargs) -> Any:
         return self._mt5.positions_get(**kwargs)
 
+<<<<<<< HEAD
     def history_deals_get(self, date_from, date_to, **kwargs) -> Any:
         return self._mt5.history_deals_get(date_from, date_to, **kwargs)
 
     def symbols_get(self, *args, **kwargs) -> Any:
         return self._mt5.symbols_get(*args, **kwargs)
+=======
+    def orders_get(self, **kwargs) -> Any:
+        return self._mt5.orders_get(**kwargs)
+
+    def history_deals_get(self, date_from, date_to, **kwargs) -> Any:
+        """Return broker deal history for risk reconstruction and loss streaks."""
+        return self._mt5.history_deals_get(date_from, date_to, **kwargs)
+
+    def symbol_select(self, symbol: str, enable: bool = True) -> bool:
+        """Subscribe a symbol in Market Watch so its bars/ticks are available.
+
+        MT5 only streams data for symbols present in Market Watch; a symbol that
+        is not selected returns empty rates ("no market data"). Returns False if
+        the broker has no such symbol (usually a name mismatch).
+        """
+        try:
+            return bool(self._mt5.symbol_select(symbol, enable))
+        except Exception:  # noqa: BLE001
+            return False
+>>>>>>> origin/main
 
     def symbol_info(self, symbol: str) -> Any:
         return self._mt5.symbol_info(symbol)

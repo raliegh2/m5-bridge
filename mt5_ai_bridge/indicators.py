@@ -55,6 +55,13 @@ def atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
     return true_range.rolling(period).mean()
 
 
+def efficiency_ratio(series: pd.Series, period: int = 20) -> pd.Series:
+    """Kaufman Efficiency Ratio series (~1 clean trend, ~0 chop)."""
+    net = series.diff(period).abs()
+    path = series.diff().abs().rolling(period).sum()
+    return net / path
+
+
 def add_indicators(df: pd.DataFrame, atr_period: int = 14) -> pd.DataFrame:
     df["ema_9"] = ema(df["close"], 9)
     df["ema_20"] = ema(df["close"], 20)
@@ -62,6 +69,7 @@ def add_indicators(df: pd.DataFrame, atr_period: int = 14) -> pd.DataFrame:
     df["ema_200"] = ema(df["close"], 200)
 
     df["rsi_14"] = rsi(df["close"], 14)
+    df["er"] = efficiency_ratio(df["close"], 20)   # regime: directional vs range
 
     df["macd"], df["macd_signal"], df["macd_hist"] = macd(df["close"])
 
@@ -94,4 +102,5 @@ def market_snapshot(client, symbol: str, timeframe: str = "M30",
         "macd_signal": float(latest["macd_signal"]),
         "macd_hist": float(latest["macd_hist"]),
         "atr": (float(atr_val) if atr_val is not None and atr_val == atr_val else None),
+        "er": (float(latest["er"]) if "er" in df.columns and latest["er"] == latest["er"] else None),
     }

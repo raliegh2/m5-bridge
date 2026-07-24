@@ -105,3 +105,80 @@ def test_opposite_direction_allowed(tmp_path):
         client=client, journal=Journal(db), strategy_fn=_WEAK, max_iterations=1)
     assert len(client.sent_requests) == 1
     assert client.sent_requests[0]["type"] == client.ORDER_TYPE_BUY
+
+
+def test_pick_primary_skips_symbols_without_data(monkeypatch):
+    """The dashboard primary falls through to the first symbol WITH bars."""
+    from mt5_ai_bridge import app
+    from tests.fakes import make_settings
+
+    settings = make_settings(symbol="GBPUSD",
+                             symbols=("GBPUSD", "USDJPY", "XAUUSD"))
+
+    # GBPUSD has no data (broker name mismatch); USDJPY is the first with bars.
+    def fake_snapshot(client, symbol, timeframe, atr_period):
+        return None if symbol == "GBPUSD" else {"symbol": symbol}
+
+    monkeypatch.setattr(app, "market_snapshot", fake_snapshot)
+    assert app._pick_primary(object(), settings) == "USDJPY"
+
+
+def test_pick_primary_defaults_to_first_when_none_have_data(monkeypatch):
+    from mt5_ai_bridge import app
+    from tests.fakes import make_settings
+    settings = make_settings(symbol="GBPUSD", symbols=("GBPUSD", "USDJPY"))
+    monkeypatch.setattr(app, "market_snapshot",
+                        lambda *a, **k: None)
+    assert app._pick_primary(object(), settings) == "GBPUSD"
+
+
+def test_engine_breakdown_covers_every_symbol(monkeypatch):
+    """_engine_breakdown returns one read per configured symbol."""
+    from mt5_ai_bridge import app
+    from mt5_ai_bridge.enums import Signal
+    from mt5_ai_bridge.strategy import Decision
+    from tests.fakes import make_settings
+
+    settings = make_settings(symbol="USDJPY",
+                             symbols=("USDJPY", "XAUUSD"), multi_book=True)
+    monkeypatch.setattr(app, "market_snapshot",
+                        lambda *a, **k: {"close": 1.0})
+    monkeypatch.setattr(app, "explain_market", lambda snap: "because reasons")
+    rows = app._engine_breakdown(object(), settings,
+                                 lambda _m: Decision(Signal.WAIT, "wait", 0.5))
+    assert [r["symbol"] for r in rows] == ["USDJPY", "XAUUSD"]
+    # Each row exposes both engines with a reason (the decision process).
+    for r in rows:
+        names = {e["name"] for e in r["engines"]}
+        assert names == {"Intraday", "Swing"}
+        assert all(e["reason"] for e in r["engines"])
+
+
+def test_engine_breakdown_marks_enabled_disabled_and_risk(monkeypatch):
+    """Each engine carries enabled + its per-symbol risk; disabled = risk 0."""
+    from mt5_ai_bridge import app
+    from mt5_ai_bridge.enums import Signal
+    from mt5_ai_bridge.strategy import Decision
+    from tests.fakes import make_settings
+
+    settings = make_settings(
+        symbol="GBPUSD", symbols=("GBPUSD", "AUDUSD"), multi_book=True,
+        swing_risk_percent=1.05, intraday_risk_percent=0.11,
+        swing_risk_overrides=(("AUDUSD", 0.0),),          # swing disabled
+        intraday_risk_overrides=(("AUDUSD", 0.30),))
+    monkeypatch.setattr(app, "market_snapshot", lambda *a, **k: {"close": 1.0})
+    monkeypatch.setattr(app, "explain_market", lambda snap: "why")
+    rows = {r["symbol"]: r for r in app._engine_breakdown(
+        object(), settings, lambda _m: Decision(Signal.WAIT, "wait", 0.5))}
+
+    gbp = {e["name"]: e for e in rows["GBPUSD"]["engines"]}
+    assert gbp["Swing"]["enabled"] and gbp["Swing"]["risk"] == 1.05
+    assert gbp["Intraday"]["enabled"] and gbp["Intraday"]["risk"] == 0.11
+    assert rows["GBPUSD"]["trades"] == ["Intraday", "Swing"]
+
+    aud = {e["name"]: e for e in rows["AUDUSD"]["engines"]}
+    assert aud["Swing"]["enabled"] is False and aud["Swing"]["risk"] == 0.0
+    assert aud["Intraday"]["enabled"] and aud["Intraday"]["risk"] == 0.30
+    # A disabled engine never reports ready, and is excluded from 'trades'.
+    assert aud["Swing"]["ready"] is False
+    assert rows["AUDUSD"]["trades"] == ["Intraday"]

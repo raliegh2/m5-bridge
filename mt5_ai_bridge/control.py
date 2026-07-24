@@ -25,6 +25,7 @@ Endpoints:
     GET  /data        -> latest JSON snapshot (for the in-place live updates)
     GET  /state       -> {"active": bool}
     POST /start /stop -> toggle trading
+    POST /prop/on /prop/off -> toggle prop-firm challenge mode
 """
 
 import json
@@ -37,8 +38,9 @@ from typing import Optional, Tuple
 class ControlState:
     """Thread-safe active/idle flag shared between the loop and the server."""
 
-    def __init__(self, active: bool = False) -> None:
+    def __init__(self, active: bool = False, prop: bool = False) -> None:
         self._active = bool(active)
+        self._prop = bool(prop)
         self._lock = threading.Lock()
 
     def is_active(self) -> bool:
@@ -48,6 +50,46 @@ class ControlState:
     def set_active(self, value: bool) -> None:
         with self._lock:
             self._active = bool(value)
+
+    def is_prop(self) -> bool:
+        """Whether prop-firm challenge mode is currently ON."""
+        with self._lock:
+            return self._prop
+
+    def set_prop(self, value: bool) -> None:
+        with self._lock:
+            self._prop = bool(value)
+
+
+def _inject_live_state(raw: bytes, state: ControlState) -> bytes:
+    """Overlay the authoritative ControlState (active + prop) onto a snapshot.
+
+    The bot rewrites the /data file only once per loop, so between loops the
+    file lags a Start/Pause/Prop click. Patching the live flags in here makes a
+    single click stick immediately without waiting for the next loop.
+    """
+    try:
+        data = json.loads(raw.decode("utf-8") or "{}")
+    except (ValueError, UnicodeDecodeError):
+        return raw
+    if not isinstance(data, dict) or not data:
+        return raw
+    prop_on = state.is_prop()
+    ctl = data.get("control")
+    if isinstance(ctl, dict):
+        ctl["active"] = state.is_active()
+        ctl["prop"] = prop_on
+    prop = data.get("prop")
+    if isinstance(prop, dict):
+        prop["enabled"] = prop_on
+        if not prop_on:
+            prop["status"] = "OFF"
+        elif prop.get("status") in (None, "OFF"):
+            prop["status"] = "TRADING"
+    try:
+        return json.dumps(data).encode("utf-8")
+    except (TypeError, ValueError):
+        return raw
 
 
 def route(path: str, method: str, state: ControlState,
@@ -62,16 +104,28 @@ def route(path: str, method: str, state: ControlState,
     if p == "/stop":
         state.set_active(False)
         return 200, "application/json", b'{"active": false}'
+    if p == "/prop/on":
+        state.set_prop(True)
+        return 200, "application/json", b'{"prop": true}'
+    if p == "/prop/off":
+        state.set_prop(False)
+        return 200, "application/json", b'{"prop": false}'
     if p == "/state":
-        body = json.dumps({"active": state.is_active()}).encode()
+        body = json.dumps({"active": state.is_active(),
+                           "prop": state.is_prop()}).encode()
         return 200, "application/json", body
     if p == "/data":
         if data_path:
             try:
                 with open(data_path, "rb") as fh:
-                    return 200, "application/json; charset=utf-8", fh.read()
+                    raw = fh.read()
             except OSError:
-                pass
+                raw = b"{}"
+            # Overlay the LIVE Start/Pause + Prop flags so a click is reflected on
+            # the very next poll, instead of waiting for the bot's next loop to
+            # rewrite the snapshot file (which is what made toggles need a second
+            # click).
+            return 200, "application/json; charset=utf-8", _inject_live_state(raw, state)
         # No snapshot yet -> valid empty JSON so the page's poller no-ops.
         return 200, "application/json; charset=utf-8", b"{}"
     if p in ("/", "/index.html", "/dashboard.html"):

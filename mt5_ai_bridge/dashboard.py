@@ -160,10 +160,171 @@ def _control_bar(control: Optional[dict]) -> str:
         '<span class="hint">opens new trades only while ACTIVE — '
         'existing trades keep trailing either way</span>'
         "<script>function ctl(u){var b=(typeof BASE!=='undefined'&&BASE)||'';"
+        "var on=u.indexOf('start')>=0;var cs=document.getElementById('ctl_status');"
+        "if(cs){cs.textContent=(on?'● ACTIVE':'● PAUSED');"
+        "cs.className='status '+(on?'on':'off');}"
         "fetch(b+u,{method:'POST'}).then(function(){setTimeout(function(){"
-        "if(window.__poll){window.__poll()}else{location.reload()}},250)})}</script>"
+        "if(window.__poll){window.__poll()}else{location.reload()}},200)})"
+        ".catch(function(){if(cs){cs.textContent='● (retry…)';}})}</script>"
         "</div>"
     )
+
+
+
+def _prop_toggle(on: bool) -> str:
+    """The Enable/Disable prop-mode switch (POSTs /prop/on|off)."""
+    return (
+        '<label class="ptoggle" title="Turn prop-firm challenge mode on or off">'
+        f'<input type="checkbox" id="prop_switch" onclick="propToggle(this.checked)"'
+        f'{" checked" if on else ""}>'
+        '<span class="ptrack"><span class="pknob"></span></span>'
+        f'<span class="ptlabel" id="prop_switch_label">{"ON" if on else "OFF"}</span>'
+        '</label>')
+
+
+def _prop_inner(prop: Optional[dict]) -> str:
+    def bar(label, val, mx, kind, muted):
+        pct = min(100.0, max(0.0, 100.0 * val / mx)) if mx else 0.0
+        mcls = " muted" if muted else ""
+        return (f'<div class="pmetric{mcls}"><div class="pmlabel"><span>{_esc(label)}</span>'
+                f'<span class="pmval">{val:.2f}% / {mx:g}%</span></div>'
+                f'<div class="pbar {kind}"><div class="pfill" '
+                f'style="width:{pct:.0f}%"></div></div></div>')
+    on = bool(prop.get("enabled"))
+    st = prop.get("status", "OFF")
+    cls = {"TRADING": "ok", "DE-RISKED": "warn", "DAILY LIMIT": "bad",
+           "MAX DRAWDOWN": "bad", "TARGET HIT": "done", "OFF": "off"}.get(st, "off")
+    note = ("" if on else
+            '<div class="pofftext">Prop-firm challenge mode is OFF. Flip the '
+            'switch to protect a funded-challenge account: the bot will cap '
+            'daily loss & drawdown and ease off risk as it nears the limits.</div>')
+    return (
+        f'<div class="prophead"><span class="pbadge {cls}" id="prop_badge">{_esc(st)}</span>'
+        f'<span class="psub">Start ${prop.get("start_balance", 0):,.0f} &middot; '
+        f'Equity ${prop.get("equity", 0):,.0f} &middot; '
+        f'risk &times;{prop.get("risk_scale", 1)}</span>'
+        f'{_prop_toggle(on)}</div>'
+        f'{note}'
+        + bar("Profit target", prop.get("profit_pct", 0), prop.get("profit_target_pct", 0), "good", not on)
+        + bar("Daily loss", prop.get("daily_loss_pct", 0), prop.get("max_daily_loss_pct", 0), "loss", not on)
+        + bar("Max drawdown", prop.get("total_dd_pct", 0), prop.get("max_total_loss_pct", 0), "loss", not on)
+    )
+
+
+def _prop_panel(prop: Optional[dict]) -> str:
+    # Always render the section (even when OFF) so the toggle is discoverable.
+    inner = _prop_inner(prop) if prop else _prop_inner({"enabled": False})
+    return ('<h2>Prop challenge <span class="since">pass funded evaluations</span></h2>'
+            f'<div class="panel prop" id="prop_panel">{inner}</div>'
+            '<script>function propToggle(on){'
+            "var b=(typeof BASE!=='undefined'&&BASE)||'';"
+            "var l=document.getElementById('prop_switch_label');if(l)l.textContent=on?'ON':'OFF';"
+            "fetch(b+(on?'/prop/on':'/prop/off'),{method:'POST'}).then(function(){"
+            "setTimeout(function(){if(window.__poll)window.__poll();},200);})"
+            ".catch(function(){if(l)l.textContent='(retry…)';});}</script>")
+
+
+def _exposure_inner(expo: Optional[dict]) -> str:
+    expo = expo or {}
+    rows = expo.get("rows", [])
+    cap = expo.get("cap", 0)
+    if not rows:
+        return ('<p class="empty">No open currency exposure yet; the strip '
+                'fills in as positions open.</p>')
+    chips = []
+    for r in rows:
+        pct = min(100.0, float(r.get("pct", 0)))
+        over = bool(r.get("over"))
+        near = float(r.get("pct", 0)) >= 70 and not over
+        cls = "over" if over else ("near" if near else "ok")
+        net = float(r.get("net", 0))
+        sign = "+" if net >= 0 else ""
+        side = "net long" if net > 0 else "net short"
+        chips.append(
+            f'<div class="expchip {cls}"><div class="expc">{_esc(r.get("currency"))}'
+            f'</div><div class="expv">{sign}{net:.2f}% '
+            f'<span class="exps">{side}</span></div>'
+            f'<div class="expbar"><div class="expfill" style="width:{pct:.0f}%">'
+            f'</div></div><div class="expcap">{float(r.get("pct",0)):.0f}% of '
+            f'{cap:g}% cap</div></div>')
+    return f'<div class="expgrid">{"".join(chips)}</div>'
+
+
+def _exposure_panel(expo: Optional[dict]) -> str:
+    """A strip of per-currency net-risk chips, each bar filled to how close the
+    currency sits to MAX_CURRENCY_RISK. Makes the concentration the factor cap
+    guards against visible: long EURUSD+AUDUSD+XAUUSD shows up as one big USD."""
+    expo = expo or {}
+    cap = expo.get("cap", 0)
+    on = expo.get("on", True)
+    sub = (f"net risk per currency &middot; cap {cap:g}% each"
+           if on else "net risk per currency &middot; caps OFF")
+    return (f'<h2>Currency exposure <span class="since">{sub}</span></h2>'
+            f'<div class="panel" id="exposure_panel">{_exposure_inner(expo)}</div>')
+
+
+def _engine_breakdown_panel(rows) -> str:
+    """Per-symbol block: both engines' state + reason, plus the timeframe reads
+    that drove the decision. Shows the full decision process for EVERY pair."""
+    if not rows:
+        return ""
+    def _engine_card(e) -> str:
+        enabled = e.get("enabled", True)
+        if not enabled:
+            state_cls, state_txt = "disabled", "DISABLED"
+        elif e.get("ready"):
+            state_cls, state_txt = "ready", "READY " + _esc(e.get("bias")) + \
+                " &middot; " + f'{float(e.get("confidence", 0)):.2f}'
+        else:
+            state_cls, state_txt = "waiting", "WAITING"
+        risk = f'{float(e.get("risk", 0)):g}%' if "risk" in e else ""
+        head = (_esc(e.get("name")) +   # Intraday / Swing (the trade type)
+                (f' &middot; risk {risk}' if risk else ""))
+        cls = "engine off" if not enabled else "engine"
+        return (f'<div class="{cls}"><div class="k">{head}</div>'
+                f'<div class="estate {state_cls}">{state_txt}</div>'
+                f'<div class="ereason">{_esc(e.get("reason"))}</div></div>')
+
+    blocks = []
+    for r in rows:
+        sym = _esc(r.get("symbol", ""))
+        aligned = bool(r.get("aligned"))
+        bcls = "on" if aligned else "off"
+        blabel = f"ALIGNED {_esc(r.get('bias'))}" if aligned else "WAITING"
+        engines = "".join(_engine_card(e) for e in r.get("engines", []))
+        trades = r.get("trades", [])
+        trades_txt = (" + ".join(_esc(t) for t in trades) if trades
+                      else "none (both engines disabled)")
+        reg = r.get("regime") or {}
+        reg_chip = ""
+        if reg.get("er") is not None:
+            held = reg.get("filter_on") and not reg.get("allowed")
+            rcls = "bad" if held else ("ok" if reg.get("state") == "directional" else "")
+            rtxt = (f'Regime: {_esc(str(reg.get("state", "")).title())} '
+                    f'&middot; ER {reg["er"]:.2f}'
+                    + (' &middot; standing aside' if held else ''))
+            reg_chip = f'<span class="regime {rcls}">{rtxt}</span>'
+        tfs = r.get("timeframes", [])
+        tf_rows = "".join(
+            f'<tr><td>{_esc(v.get("label"))}</td><td>{_esc(v.get("tf"))}</td>'
+            f'<td class="{_sig_cls(v.get("signal"))}">{_esc(v.get("signal"))}</td>'
+            f'<td>{float(v.get("confidence", 0)):.2f}</td>'
+            f'<td>{_esc(v.get("reason"))}</td></tr>'
+            for v in tfs
+        )
+        proc = (f'<details class="sec"><summary>Decision process &mdash; '
+                f'timeframe reads</summary><div class="tablewrap"><table><thead>'
+                f'<tr><th>Read</th><th>Timeframe</th><th>Signal</th><th>Conf.</th>'
+                f'<th>Why</th></tr></thead><tbody>{tf_rows}</tbody></table></div>'
+                f'</details>') if tf_rows else ""
+        blocks.append(
+            f'<div class="symrow"><div class="symhead"><span class="symname">{sym}'
+            f'</span><span class="badge {bcls}">{blabel}</span>{reg_chip}'
+            f'<span class="trades">Trades: {trades_txt}</span></div>'
+            f'<div class="enginegrid">{engines}</div>{proc}</div>')
+    return ('<h2>All engines &mdash; decision process '
+            '<span class="since">every pair, intraday + swing</span></h2>'
+            f'<div class="panel" id="engines_panel">{"".join(blocks)}</div>')
 
 
 def _thinking_panel(thinking: Optional[dict], symbol: str = "") -> str:
@@ -255,9 +416,13 @@ def _position_view(pos: dict, pip_size: float) -> dict:
     tp = pos.get("tp") or 0.0
     direction = 1.0 if side == "BUY" else -1.0
 
+    # Prefer the position's OWN pip size (gold/JPY/FX differ); fall back to the
+    # account-level pip size only when a per-position value is absent.
+    ps = pos.get("pip_size") or pip_size
+
     pips = None
-    if entry and cur and pip_size:
-        pips = round(direction * (cur - entry) / pip_size, 1)
+    if entry and cur and ps:
+        pips = round(direction * (cur - entry) / ps, 1)
 
     rr = None
     if entry and sl and tp:
@@ -267,7 +432,8 @@ def _position_view(pos: dict, pip_size: float) -> dict:
             rr = round(reward / risk, 2)
 
     return {
-        "ticket": pos.get("ticket"), "side": side, "volume": pos.get("volume"),
+        "symbol": pos.get("symbol"), "ticket": pos.get("ticket"),
+        "side": side, "volume": pos.get("volume"),
         "entry": entry, "current": cur, "pips": pips, "profit": pos.get("profit"),
         "sl": sl or None, "tp": tp or None, "rr": rr,
     }
@@ -320,7 +486,10 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
                          refresh_seconds: int = 1,
                          now_utc: Optional[datetime] = None,
                          control: Optional[dict] = None,
-                         thinking: Optional[dict] = None) -> dict:
+                         thinking: Optional[dict] = None,
+                         prop: Optional[dict] = None,
+                         engines: Optional[list] = None,
+                         exposure: Optional[dict] = None) -> dict:
     """The JSON snapshot the page polls for in-place live updates."""
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
@@ -329,10 +498,14 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
         "time_est": est_now(now_utc),
         "session": session_label(now_utc),
         "symbol": c["symbol"],
+        "symbols": (live or {}).get("symbols", [c["symbol"]]),
         "pip_size": c["pip_size"],
         "refresh_seconds": refresh_seconds,
         "control": control,
         "thinking": thinking,
+        "prop": prop,
+        "engines_by_symbol": engines or [],
+        "exposure": exposure or {},
         "cards": {
             "open_pl": c["open_pl"], "day_pl": c["day_pl"],
             "rr": c["rr_headline"], "balance": c["balance"], "equity": c["equity"],
@@ -445,6 +618,59 @@ th,td{padding:6px 7px;font-size:12px;max-width:150px}
 @media (prefers-reduced-motion:reduce){
 .pulse{animation:none}.scan::after{animation:none;left:0;width:100%;opacity:.25}
 }
+.prop .prophead{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.pbadge{font-weight:700;font-size:12px;padding:5px 12px;border-radius:999px;letter-spacing:.03em}
+.pbadge.ok{background:#12351f;color:#34d399;border:1px solid #1f5132}
+.pbadge.warn{background:#3a2f12;color:#fbbf24;border:1px solid #5c4a17}
+.pbadge.bad{background:#3a1620;color:#f87171;border:1px solid #5b2330}
+.pbadge.done{background:#122f3a;color:#38bdf8;border:1px solid #17495c}
+.prop .psub{color:#9fb0cc;font-size:12px}
+.pmetric{margin:10px 0}
+.pmlabel{display:flex;justify-content:space-between;font-size:12px;color:#b7c2d8;margin-bottom:5px}
+.pmval{color:#8aa0c0}
+.pbar{height:11px;border-radius:6px;background:#0f1730;border:1px solid #223052;overflow:hidden}
+.pbar .pfill{height:100%;border-radius:6px;transition:width .4s ease}
+.pbar.good .pfill{background:linear-gradient(90deg,#16a34a,#34d399)}
+.pbar.loss .pfill{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.pbadge.off{background:#1a2440;color:#8aa0c0;border:1px solid #2c3a5c}
+.pmetric.muted{opacity:.4}
+.pofftext{color:#9fb0cc;font-size:12.5px;margin:2px 0 14px;line-height:1.5}
+.ptoggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-left:auto;user-select:none}
+.ptoggle input{position:absolute;opacity:0;width:0;height:0}
+.ptrack{position:relative;width:42px;height:23px;border-radius:999px;background:#2c3a5c;transition:background .2s}
+.pknob{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#e7ecf3;transition:transform .2s}
+.ptoggle input:checked+.ptrack{background:#16a34a}
+.ptoggle input:checked+.ptrack .pknob{transform:translateX(19px)}
+.ptlabel{font-size:12px;font-weight:700;color:#93a4bd;min-width:26px}
+.ptoggle input:checked~.ptlabel{color:#34d399}
+.symrow{border:1px solid #223052;border-radius:10px;padding:12px;margin:0 0 12px;background:#0f1730}
+.symhead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.symname{font-size:15px;font-weight:700;letter-spacing:.02em}
+.symrow .enginegrid{margin:0 0 8px}
+.symrow details.sec{margin-top:6px;border-top:1px solid #1a2440;padding-top:2px}
+.symrow details.sec>summary{font-size:11px;padding:6px 0}
+.engine.off{opacity:.55}
+.estate.disabled{color:#7e8aa3;font-weight:700}
+.trades{font-size:11px;color:#8aa0c0;margin-left:auto;white-space:nowrap}
+.trades{font-weight:600}
+.regime{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;
+background:#1a2440;color:#9fb0cc;border:1px solid #2c3a5c}
+.regime.ok{background:#12351f;color:#34d399;border-color:#1f5132}
+.regime.bad{background:#3a1620;color:#f87171;border-color:#5b2330}
+.expgrid{display:flex;flex-wrap:wrap;gap:10px}
+.expchip{flex:1 1 128px;min-width:128px;border:1px solid #223052;border-radius:10px;
+padding:10px 12px;background:#0f1730}
+.expchip .expc{font-size:14px;font-weight:700;letter-spacing:.03em}
+.expchip .expv{font-size:13px;margin:2px 0 7px;color:#cdd8ea}
+.expchip .expv .exps{font-size:10px;color:#8aa0c0;text-transform:uppercase;letter-spacing:.04em}
+.expchip .expbar{height:7px;border-radius:5px;background:#0b1226;border:1px solid #223052;overflow:hidden}
+.expchip .expfill{height:100%;border-radius:5px;transition:width .4s ease;
+background:linear-gradient(90deg,#16a34a,#34d399)}
+.expchip .expcap{font-size:10.5px;color:#8aa0c0;margin-top:5px}
+.expchip.near .expfill{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.expchip.over{border-color:#5b2330}
+.expchip.over .expfill{background:linear-gradient(90deg,#ef4444,#f87171)}
+.expchip.over .expc{color:#f87171}
 """
 
 
@@ -473,13 +699,77 @@ rows.forEach(function(r){h+='<tr>';r.forEach(function(c){h+='<td>'+esc(c)+'</td>
 return h+'</tbody></table></div>';}
 function posTable(ps){
 if(!ps||!ps.length)return '<p class="empty">No rows yet.</p>';
-var rows=ps.map(function(p){return [p.ticket,p.side,p.volume,
+var rows=ps.map(function(p){return [p.symbol||'—',p.ticket,p.side,p.volume,
 p.entry!=null?p.entry.toFixed(5):'—',
 p.current!=null?p.current.toFixed(5):'—',
 p.pips!=null?((p.pips>=0?'+':'')+p.pips.toFixed(1)):'—',
 money(p.profit),p.sl?p.sl.toFixed(5):'—',p.tp?p.tp.toFixed(5):'—',
 p.rr?('1:'+p.rr):'—'];});
-return rowsTable(['Ticket','Side','Vol','Entry','Current','Pips','P/L','SL','TP','R:R'],rows);}
+return rowsTable(['Symbol','Ticket','Side','Vol','Entry','Current','Pips','P/L','SL','TP','R:R'],rows);}
+function persymTable(ps,syms){var a={},ord=[];(syms||[]).forEach(function(s){a[s]=[0,0];ord.push(s);});
+(ps||[]).forEach(function(p){var s=p.symbol||'?';if(!(s in a)){a[s]=[0,0];ord.push(s);}a[s][0]++;a[s][1]+=(p.profit||0);});
+if(!ord.length)return '<p class="empty">No symbols.</p>';
+var rows=ord.map(function(s){return [s,a[s][0],money(a[s][1])];});
+return rowsTable(['Symbol','Open','P/L'],rows);}
+function propInner(pr){
+var on=!!pr.enabled;
+function bar(label,val,mx,kind){var pct=mx?Math.max(0,Math.min(100,100*val/mx)):0;
+return '<div class="pmetric'+(on?'':' muted')+'"><div class="pmlabel"><span>'+esc(label)+'</span><span class="pmval">'+
+Number(val).toFixed(2)+'% / '+mx+'%</span></div><div class="pbar '+kind+
+'"><div class="pfill" style="width:'+pct.toFixed(0)+'%"></div></div></div>';}
+var st=pr.status||'OFF';var cls=({'TRADING':'ok','DE-RISKED':'warn','DAILY LIMIT':'bad','MAX DRAWDOWN':'bad','TARGET HIT':'done','OFF':'off'})[st]||'off';
+var toggle='<label class="ptoggle" title="Turn prop-firm challenge mode on or off">'+
+'<input type="checkbox" id="prop_switch" onclick="propToggle(this.checked)"'+(on?' checked':'')+'>'+
+'<span class="ptrack"><span class="pknob"></span></span>'+
+'<span class="ptlabel" id="prop_switch_label">'+(on?'ON':'OFF')+'</span></label>';
+var note=on?'':'<div class="pofftext">Prop-firm challenge mode is OFF. Flip the switch to protect a funded-challenge account: the bot will cap daily loss & drawdown and ease off risk as it nears the limits.</div>';
+return '<div class="prophead"><span class="pbadge '+cls+'" id="prop_badge">'+esc(st)+'</span><span class="psub">Start $'+
+Number(pr.start_balance).toFixed(0)+' · Equity $'+Number(pr.equity).toFixed(0)+' · risk ×'+pr.risk_scale+
+'</span>'+toggle+'</div>'+note+bar('Profit target',pr.profit_pct,pr.profit_target_pct,'good')+
+bar('Daily loss',pr.daily_loss_pct,pr.max_daily_loss_pct,'loss')+
+bar('Max drawdown',pr.total_dd_pct,pr.max_total_loss_pct,'loss');}
+function enginesPanel(rows){
+if(!rows||!rows.length)return '<p class="empty">Waiting for the first read…</p>';
+return rows.map(function(r){
+var aligned=!!r.aligned;var blabel=aligned?('ALIGNED '+esc(r.bias)):'WAITING';
+var eng=(r.engines||[]).map(function(e){
+var enabled=(e.enabled!==false);
+var scls,stxt;
+if(!enabled){scls='disabled';stxt='DISABLED';}
+else if(e.ready){scls='ready';stxt='READY '+esc(e.bias)+' · '+Number(e.confidence).toFixed(2);}
+else{scls='waiting';stxt='WAITING';}
+var risk=(e.risk!=null)?(' · risk '+e.risk+'%'):'';
+return '<div class="engine'+(enabled?'':' off')+'"><div class="k">'+esc(e.name)+risk+
+'</div><div class="estate '+scls+'">'+stxt+'</div><div class="ereason">'+esc(e.reason)+
+'</div></div>';}).join('');
+var trades=(r.trades&&r.trades.length)?r.trades.map(esc).join(' + '):'none (both engines disabled)';
+var reg=r.regime||{};var regChip='';
+if(reg.er!=null){var held=reg.filter_on&&!reg.allowed;
+var rcls=held?'bad':(reg.state=='directional'?'ok':'');
+regChip='<span class="regime '+rcls+'">Regime: '+esc((reg.state||'')[0]?((reg.state||'').charAt(0).toUpperCase()+(reg.state||'').slice(1)):'')+' · ER '+Number(reg.er).toFixed(2)+(held?' · standing aside':'')+'</span>';}
+var tf=r.timeframes||[];var proc='';
+if(tf.length){var tr=tf.map(function(v){return '<tr><td>'+esc(v.label)+'</td><td>'+esc(v.tf)+
+'</td><td class="'+sigCls(v.signal)+'">'+esc(v.signal)+'</td><td>'+Number(v.confidence).toFixed(2)+
+'</td><td>'+esc(v.reason)+'</td></tr>';}).join('');
+proc='<details class="sec"><summary>Decision process — timeframe reads</summary>'+
+'<div class="tablewrap"><table><thead><tr><th>Read</th><th>Timeframe</th><th>Signal</th>'+
+'<th>Conf.</th><th>Why</th></tr></thead><tbody>'+tr+'</tbody></table></div></details>';}
+return '<div class="symrow"><div class="symhead"><span class="symname">'+esc(r.symbol)+
+'</span><span class="badge '+(aligned?'on':'off')+'">'+blabel+'</span>'+regChip+
+'<span class="trades">Trades: '+trades+'</span></div>'+
+'<div class="enginegrid">'+eng+'</div>'+proc+'</div>';}).join('');}
+function exposurePanel(x){
+if(!x||!x.rows||!x.rows.length)return '<p class="empty">No open currency exposure yet; the strip fills in as positions open.</p>';
+var cap=x.cap||0;
+return '<div class="expgrid">'+x.rows.map(function(r){
+var pct=Math.min(100,Number(r.pct)||0);var over=!!r.over;var near=(Number(r.pct)>=70)&&!over;
+var cls=over?'over':(near?'near':'ok');
+var net=Number(r.net)||0;var sign=net>=0?'+':'';var side=net>0?'net long':'net short';
+return '<div class="expchip '+cls+'"><div class="expc">'+esc(r.currency)+
+'</div><div class="expv">'+sign+net.toFixed(2)+'% <span class="exps">'+side+
+'</span></div><div class="expbar"><div class="expfill" style="width:'+pct.toFixed(0)+
+'%"></div></div><div class="expcap">'+Math.round(Number(r.pct)||0)+'% of '+cap+'% cap</div></div>';
+}).join('')+'</div>';}
 function spark(vals){
 if(!vals||vals.length<2)return '<p class="empty">Not enough data for an equity curve yet.</p>';
 var w=720,h=150,pad=8,n=vals.length,lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),
@@ -494,7 +784,7 @@ return '<svg viewBox="0 0 '+w+' '+h+'" class="spark" preserveAspectRatio="none">
 '<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round"/></svg>';}
 function apply(d){
 if(!d||!d.live){foot('Waiting for the first live snapshot…',false);return;}
-setTxt('m_time',d.time_est);setTxt('m_session',d.session);setTxt('m_symbol',d.symbol);
+setTxt('m_time',d.time_est);setTxt('m_session',d.session);setTxt('m_symbol',(d.symbols&&d.symbols.length)?d.symbols.join(', '):d.symbol);
 if(d.control){var cs=q('ctl_status');if(cs){cs.textContent='● '+(d.control.active?'ACTIVE':'PAUSED');
 cs.className='status '+(d.control.active?'on':'off');}}
 var c=d.cards,ch='';
@@ -527,6 +817,10 @@ setHTML('think_table','<div class="tablewrap"><table><thead><tr><th>Read</th><th
 '<th>Signal</th><th>Conf.</th><th>Why</th></tr></thead><tbody>'+tr+'</tbody></table></div>');}
 else setHTML('think_table','<p class="empty">Gathering the first read…</p>');}
 setHTML('pos_panel',posTable(d.positions));
+setHTML('persym_panel',persymTable(d.positions,d.symbols));
+if(d.prop)setHTML('prop_panel',propInner(d.prop));
+if(d.engines_by_symbol)setHTML('engines_panel',enginesPanel(d.engines_by_symbol));
+if(d.exposure)setHTML('exposure_panel',exposurePanel(d.exposure));
 setHTML('eq_panel',spark(d.equity_series));
 setHTML('sig_panel',rowsTable(['Time','Symbol','Signal','Reason'],d.signals));
 setHTML('ord_panel',rowsTable(['Time','Symbol','Side','Vol','Ticket','Status','Message'],d.orders));
@@ -546,14 +840,31 @@ for(var i=0;i<dd.length;i++){dd[i].open=true;}}
 """
 
 
+
+def _per_symbol_rows(positions, symbols) -> list:
+    """[symbol, open count, total P/L] per traded symbol."""
+    agg = {}
+    for p in positions:
+        sym = p.get("symbol") or "?"
+        cnt, pl = agg.get(sym, (0, 0.0))
+        agg[sym] = (cnt + 1, pl + (p.get("profit") or 0.0))
+    order = list(dict.fromkeys(list(symbols) + list(agg.keys())))
+    return [[s, agg.get(s, (0, 0.0))[0], _money(round(agg.get(s, (0, 0.0))[1], 2))]
+            for s in order]
+
+
 def build_dashboard(journal: Journal, live: Optional[dict] = None,
                     refresh_seconds: int = 0, now_utc: Optional[datetime] = None,
                     control: Optional[dict] = None,
-                    thinking: Optional[dict] = None, port: int = 8800) -> str:
+                    thinking: Optional[dict] = None, port: int = 8800,
+                    prop: Optional[dict] = None,
+                    engines: Optional[list] = None,
+                    exposure: Optional[dict] = None) -> str:
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
     balance, equity = c["balance"], c["equity"]
     pip_size, symbol = c["pip_size"], c["symbol"]
+    symbols = (live or {}).get("symbols", [symbol])
     positions, latest_risk = c["positions"], c["latest_risk"]
     live_dot = '<span class="live"></span>' if live else ""
 
@@ -569,7 +880,7 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
     ])
 
     pos_rows = [[
-        p["ticket"], p["side"], p["volume"],
+        p.get("symbol") or "—", p["ticket"], p["side"], p["volume"],
         f'{p["entry"]:.5f}' if p["entry"] else "—",
         f'{p["current"]:.5f}' if p["current"] else "—",
         f'{p["pips"]:+.1f}' if p["pips"] is not None else "—",
@@ -586,7 +897,8 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
         positions_section = f"""
 <h2>Open positions</h2>
 <div class="panel" id="pos_panel">{_table(
-    ["Ticket", "Side", "Vol", "Entry", "Current", "Pips", "P/L", "SL", "TP", "R:R"],
+    ["Symbol", "Ticket", "Side", "Vol", "Entry", "Current", "Pips", "P/L",
+     "SL", "TP", "R:R"],
     pos_rows)}</div>"""
 
     signals_section = _collapsible(
@@ -627,13 +939,19 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
 <div class="meta">
   <b id="m_time">{_esc(est_now(now_utc))}</b> &middot; Session:
   <b id="m_session">{_esc(session_label(now_utc))}</b>
-  &middot; Symbol: <b id="m_symbol">{_esc(symbol)}</b>
+  &middot; Symbols: <b id="m_symbol">{_esc(", ".join(symbols))}</b>
   &middot; Pip size: <b>{pip_size:g}</b>
 </div>
 {_control_bar(control)}
 
 <div class="cards" id="cards">{cards}</div>
+{_prop_panel(prop)}
+{_exposure_panel(exposure)}
+<h2>Per-symbol</h2>
+<div class="panel" id="persym_panel">{_table(["Symbol", "Open", "P/L"],
+    _per_symbol_rows(positions, symbols))}</div>
 {_thinking_panel(thinking, symbol)}
+{_engine_breakdown_panel(engines)}
 {_signal_breakdown_panel(c["signal_stats"])}
 {positions_section}
 
@@ -652,10 +970,13 @@ def write_dashboard_live(journal: Journal, live: dict, path: str,
                          refresh_seconds: int = 5,
                          control: Optional[dict] = None,
                          thinking: Optional[dict] = None,
-                         port: int = 8800) -> str:
+                         port: int = 8800, prop: Optional[dict] = None,
+                         engines: Optional[list] = None,
+                         exposure: Optional[dict] = None) -> str:
     """Refresh the live dashboard HTML shell (bot writes this each loop)."""
     html_text = build_dashboard(journal, live=live, refresh_seconds=refresh_seconds,
-                                control=control, thinking=thinking, port=port)
+                                control=control, thinking=thinking, port=port,
+                                prop=prop, engines=engines, exposure=exposure)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(html_text)
     return path
@@ -664,13 +985,17 @@ def write_dashboard_live(journal: Journal, live: dict, path: str,
 def write_dashboard_data(journal: Journal, live: dict, path: str,
                          refresh_seconds: int = 1,
                          control: Optional[dict] = None,
-                         thinking: Optional[dict] = None) -> str:
+                         thinking: Optional[dict] = None,
+                         prop: Optional[dict] = None,
+                         engines: Optional[list] = None,
+                         exposure: Optional[dict] = None) -> str:
     """Write the JSON snapshot the page polls for in-place live updates.
 
     Written atomically (temp file + os.replace) so the server never serves a
     half-written file."""
     data = build_dashboard_data(journal, live=live, refresh_seconds=refresh_seconds,
-                                control=control, thinking=thinking)
+                                control=control, thinking=thinking, prop=prop,
+                                engines=engines, exposure=exposure)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh)

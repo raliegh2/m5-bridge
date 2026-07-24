@@ -9,6 +9,15 @@ from dotenv import load_dotenv
 from .enums import Mode
 
 
+# Built-in per-symbol risk defaults (%% of balance). These apply ONLY when the
+# user has not set a SWING_RISK_PERCENT_<SYM> / INTRADAY_RISK_PERCENT_<SYM>
+# override in their .env. Gold (XAUUSD) moves far more than FX per lot and
+# whipsaws hard in ranges, so it ships throttled well below the global risk so
+# it can\'t dominate account drawdown out of the box.
+_BUILTIN_SWING_RISK = {"XAUUSD": 0.2}
+_BUILTIN_INTRADAY_RISK = {"XAUUSD": 0.1}
+
+
 @dataclass(frozen=True)
 class Settings:
     login: Optional[int]
@@ -16,6 +25,8 @@ class Settings:
     server: Optional[str]
 
     symbol: str
+    symbols: tuple          # all pairs to trade concurrently (>=1)
+    combined_risk_ceiling: float  # max aggregate OPEN risk %% across all symbols/engines
     mode: Mode
     timeframe: str
 
@@ -68,6 +79,9 @@ class Settings:
     risk_percent: float
     intraday_risk_percent: float
     swing_risk_percent: float
+    # Optional per-symbol overrides, tuples of (SYMBOL, percent).
+    swing_risk_overrides: tuple
+    intraday_risk_overrides: tuple
     pip_value_per_lot: float
     max_lot: float
 
@@ -104,6 +118,32 @@ class Settings:
     reconnect_attempts: int
     reconnect_delay_seconds: float
 
+    # Safety: when True, refuse AUTOMATIC trading unless the account is a demo.
+    require_demo: bool = True
+
+    # Prop-firm challenge guard (FTMO-style drawdown protection).
+    prop_firm: bool = False
+    prop_start_balance: float = 0.0
+    prop_max_daily_loss_pct: float = 5.0
+    prop_max_total_loss_pct: float = 10.0
+    prop_profit_target_pct: float = 8.0
+    prop_trailing: bool = False
+    prop_derisk_start_pct: float = 60.0
+
+    # Regime router (Efficiency Ratio). OFF by default -- an opt-in filter that
+    # only lets the trend engines trade in a DIRECTIONAL regime (ER >= min).
+    regime_filter: bool = False
+    regime_er_min: float = 0.30
+    regime_er_overrides: tuple = ()
+
+    # Currency-factor exposure caps. A book that is diverse by SYMBOL can be
+    # one bet by CURRENCY (long EURUSD + AUDUSD + XAUUSD is all short USD). When
+    # on, the bot caps how much NET risk %% may sit on any single currency, so
+    # correlated longs are treated as the one bet they are. On by default with a
+    # loose cap that only bites genuinely concentrated books.
+    factor_caps: bool = True
+    max_currency_risk: float = 2.0
+
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
@@ -112,6 +152,49 @@ class Settings:
     def confirm_timeframes(self) -> tuple:
         """The higher timeframes that must all agree to confirm a trend."""
         return (self.trend_tf_mid, self.swing_tf_high, self.swing_tf_higher)
+
+    def swing_risk_for(self, symbol: str) -> float:
+        """Swing risk %% for a symbol.
+
+        Precedence: .env override -> built-in per-symbol default (e.g. gold is
+        throttled) -> the global SWING_RISK_PERCENT.
+        """
+        sym = (symbol or "").upper()
+        overrides = dict(self.swing_risk_overrides)
+        if sym in overrides:
+            return overrides[sym]
+        return _BUILTIN_SWING_RISK.get(sym, self.swing_risk_percent)
+
+    def intraday_risk_for(self, symbol: str) -> float:
+        """Intraday risk %% for a symbol.
+
+        Precedence: .env override -> built-in per-symbol default (e.g. gold is
+        throttled) -> the global INTRADAY_RISK_PERCENT.
+        """
+        sym = (symbol or "").upper()
+        overrides = dict(self.intraday_risk_overrides)
+        if sym in overrides:
+            return overrides[sym]
+        return _BUILTIN_INTRADAY_RISK.get(sym, self.intraday_risk_percent)
+
+    def regime_er_min_for(self, symbol: str) -> float:
+        """ER directional threshold for a symbol (.env override else global)."""
+        return dict(self.regime_er_overrides).get(
+            (symbol or "").upper(), self.regime_er_min)
+
+    def prop_config(self):
+        """Build a PropConfig from these settings."""
+        from .prop import PropConfig
+        state = (self.db_path[:-3] if self.db_path.endswith(".db")
+                 else self.db_path) + "_prop.json" if self.db_path not in (
+                 "", ":memory:") else "prop_state.json"
+        return PropConfig(
+            enabled=self.prop_firm, start_balance=self.prop_start_balance,
+            max_daily_loss_pct=self.prop_max_daily_loss_pct,
+            max_total_loss_pct=self.prop_max_total_loss_pct,
+            profit_target_pct=self.prop_profit_target_pct,
+            trailing=self.prop_trailing,
+            derisk_start_pct=self.prop_derisk_start_pct, state_path=state)
 
 
 def _get_int(name: str, default: Optional[int] = None) -> Optional[int]:
@@ -146,11 +229,34 @@ def load_settings(dotenv: bool = True) -> Settings:
         load_dotenv()
 
     server = os.getenv("MT5_SERVER")
+    symbol = _get_str("SYMBOL", "GBPUSD")
+    raw_symbols = os.getenv("SYMBOLS", "")
+    symbols = tuple(dict.fromkeys(
+        t.strip().upper() for t in raw_symbols.replace(",", " ").split() if t.strip()
+    )) or (symbol,)
+
+    def _risk_overrides(prefix: str) -> tuple:
+        out = []
+        for key, val in os.environ.items():
+            if key.startswith(prefix) and val.strip():
+                sym = key[len(prefix):].strip().upper()
+                try:
+                    if sym:
+                        out.append((sym, float(val.strip())))
+                except ValueError:
+                    pass
+        return tuple(sorted(out))
+
+    swing_overrides = _risk_overrides("SWING_RISK_PERCENT_")
+    intraday_overrides = _risk_overrides("INTRADAY_RISK_PERCENT_")
+    regime_overrides = _risk_overrides("REGIME_ER_MIN_")
     return Settings(
         login=_get_int("MT5_LOGIN"),
         password=os.getenv("MT5_PASSWORD"),
         server=server.strip() if server and server.strip() else None,
-        symbol=_get_str("SYMBOL", "GBPUSD"),
+        symbol=symbol,
+        symbols=symbols,
+        combined_risk_ceiling=_get_float("COMBINED_RISK_CEILING", 2.5),
         mode=Mode.from_str(_get_str("MODE", "APPROVAL")),
         timeframe=_get_str("TIMEFRAME", "M15"),
         strategy=_get_str("STRATEGY", "trend").lower(),
@@ -189,8 +295,10 @@ def load_settings(dotenv: bool = True) -> Settings:
         atr_max_sl_pips=_get_float("ATR_MAX_SL_PIPS", 200),
         risk_based_sizing=_get_bool("RISK_BASED_SIZING", True),
         risk_percent=_get_float("RISK_PERCENT", 0.5),
-        intraday_risk_percent=_get_float("INTRADAY_RISK_PERCENT", 0.15),
-        swing_risk_percent=_get_float("SWING_RISK_PERCENT", 0.35),
+        intraday_risk_percent=_get_float("INTRADAY_RISK_PERCENT", 0.11),
+        swing_risk_percent=_get_float("SWING_RISK_PERCENT", 1.05),
+        swing_risk_overrides=swing_overrides,
+        intraday_risk_overrides=intraday_overrides,
         pip_value_per_lot=_get_float("PIP_VALUE_PER_LOT", 10.0),
         max_lot=_get_float("MAX_LOT", 2.0),
         multi_book=_get_bool("MULTI_BOOK", True),
@@ -209,14 +317,27 @@ def load_settings(dotenv: bool = True) -> Settings:
         scalp_strong_max=_get_int("SCALP_STRONG_MAX", 1),
         write_dashboard=_get_bool("WRITE_DASHBOARD", True),
         dashboard_path=_get_str("DASHBOARD_PATH", "dashboard.html"),
-        dashboard_refresh_seconds=_get_int("DASHBOARD_REFRESH_SECONDS", 5),
+        dashboard_refresh_seconds=_get_int("DASHBOARD_REFRESH_SECONDS", 1),
         serve_dashboard=_get_bool("SERVE_DASHBOARD", True),
         dashboard_port=_get_int("DASHBOARD_PORT", 8800),
         dashboard_host=_get_str("DASHBOARD_HOST", "127.0.0.1"),
         console_status=_get_bool("CONSOLE_STATUS", True),
-        loop_interval_seconds=_get_float("LOOP_INTERVAL_SECONDS", 5),
+        loop_interval_seconds=_get_float("LOOP_INTERVAL_SECONDS", 1),
         log_level=_get_str("LOG_LEVEL", "INFO"),
         db_path=_get_str("DB_PATH", "journal.db"),
         reconnect_attempts=_get_int("RECONNECT_ATTEMPTS", 3),
         reconnect_delay_seconds=_get_float("RECONNECT_DELAY_SECONDS", 5),
+        require_demo=_get_bool("REQUIRE_DEMO", True),
+        prop_firm=_get_bool("PROP_FIRM", False),
+        prop_start_balance=_get_float("PROP_START_BALANCE", 0.0),
+        prop_max_daily_loss_pct=_get_float("PROP_MAX_DAILY_LOSS_PCT", 5.0),
+        prop_max_total_loss_pct=_get_float("PROP_MAX_TOTAL_LOSS_PCT", 10.0),
+        prop_profit_target_pct=_get_float("PROP_PROFIT_TARGET_PCT", 8.0),
+        prop_trailing=_get_bool("PROP_TRAILING", False),
+        prop_derisk_start_pct=_get_float("PROP_DERISK_START_PCT", 60.0),
+        regime_filter=_get_bool("REGIME_FILTER", False),
+        regime_er_min=_get_float("REGIME_ER_MIN", 0.30),
+        regime_er_overrides=regime_overrides,
+        factor_caps=_get_bool("FACTOR_CAPS", True),
+        max_currency_risk=_get_float("MAX_CURRENCY_RISK", 2.0),
     )
