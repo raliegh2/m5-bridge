@@ -100,9 +100,12 @@ def test_gbpjpy_policy_is_stricter_than_gbpusd() -> None:
     assert gbpjpy.normal_risk < gbpusd.normal_risk
 
 
-def test_one_open_gbpjpy_trade_limit_rejects_overlap() -> None:
+def test_one_open_gbpjpy_overlap_hits_hourly_cluster_first() -> None:
     summary, trades, skipped = ImprovedReplay(_v12_rows(), _ict_rows(), PortfolioPolicy()).run()
-    assert "SYMBOL_OPEN_POSITION_LIMIT" in set(skipped["skip_reason"])
+    # The second GBPJPY candidate arrives only 30 minutes after the first. The
+    # one-entry-per-hour guard is evaluated before the concurrent-position guard,
+    # so the stricter cluster rejection is the correct and deterministic reason.
+    assert "TRADE_CLUSTER_SYMBOL_HOUR" in set(skipped["skip_reason"])
     accepted_gbpjpy = trades[(trades["engine_group"] == "ICT") & (trades["symbol"] == "GBPJPY")]
     assert accepted_gbpjpy["risk_percent"].max() <= 0.20
     assert summary["by_symbol"]["GBPJPY"]["trades"] >= 1
