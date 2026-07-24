@@ -27,10 +27,16 @@ class RealMT5Client:
         self.ORDER_TYPE_SELL = mt5.ORDER_TYPE_SELL
         self.TRADE_ACTION_DEAL = mt5.TRADE_ACTION_DEAL
         self.TRADE_ACTION_SLTP = mt5.TRADE_ACTION_SLTP
+        self.TRADE_ACTION_PENDING = mt5.TRADE_ACTION_PENDING
+        self.TRADE_ACTION_REMOVE = mt5.TRADE_ACTION_REMOVE
         self.ORDER_TIME_GTC = mt5.ORDER_TIME_GTC
         self.TRADE_RETCODE_DONE = mt5.TRADE_RETCODE_DONE
         self.POSITION_TYPE_BUY = mt5.POSITION_TYPE_BUY
         self.POSITION_TYPE_SELL = mt5.POSITION_TYPE_SELL
+        self.DEAL_ENTRY_IN = mt5.DEAL_ENTRY_IN
+        self.DEAL_ENTRY_OUT = mt5.DEAL_ENTRY_OUT
+        self.DEAL_ENTRY_INOUT = mt5.DEAL_ENTRY_INOUT
+        self.DEAL_ENTRY_OUT_BY = mt5.DEAL_ENTRY_OUT_BY
 
     # -- connection ---------------------------------------------------------
     def initialize(self) -> bool:
@@ -51,6 +57,13 @@ class RealMT5Client:
 
     def positions_get(self, **kwargs) -> Any:
         return self._mt5.positions_get(**kwargs)
+
+    def orders_get(self, **kwargs) -> Any:
+        return self._mt5.orders_get(**kwargs)
+
+    def history_deals_get(self, date_from, date_to, **kwargs) -> Any:
+        """Return broker deal history for risk reconstruction and loss streaks."""
+        return self._mt5.history_deals_get(date_from, date_to, **kwargs)
 
     def symbol_select(self, symbol: str, enable: bool = True) -> bool:
         """Subscribe a symbol in Market Watch so its bars/ticks are available.
