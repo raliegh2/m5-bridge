@@ -1,4 +1,4 @@
-# Secrets
+﻿# Secrets
 .env
 
 # Python
@@ -16,26 +16,16 @@ venv/
 *.sqlite3
 logs/
 *.log
-<<<<<<< HEAD
 *.jsonl
 v14_3_satellite_live_diagnostics.json
 state/v14_3_satellite_dashboard.json
 state/v14_3_satellite_live_state.json
-
-# Generated dashboard
-dashboard.html
-# Local runtime and generated research output
-state/
-research/*_out/
-# Local runtime and generated research output
-state/
-research/*_out/
-=======
 *_session_guard.json
 *_session_guard.json.tmp
 session_guard_state.json
 session_guard_state.json.tmp
 
-# Generated dashboard
+# Generated dashboards and local state
 dashboard.html
->>>>>>> origin/main
+state/
+research/*_out/
