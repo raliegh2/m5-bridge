@@ -16,6 +16,10 @@ venv/
 *.sqlite3
 logs/
 *.log
+*_session_guard.json
+*_session_guard.json.tmp
+session_guard_state.json
+session_guard_state.json.tmp
 
 # Generated dashboard
 dashboard.html
