@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import math
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -37,6 +38,7 @@ def load_h4(path: Path) -> pd.DataFrame:
         "close": "close",
         "tick_volume": "tick_volume",
         "spread": "spread_points",
+        "Date": "time",
     }
     frame = frame.rename(columns=rename)
 
@@ -57,10 +59,15 @@ def load_h4(path: Path) -> pd.DataFrame:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
     if "spread_points" not in frame:
         frame["spread_points"] = 0.0
+    for column in ("open", "high", "low", "close", "tick_volume", "spread_points"):
+        frame[column] = pd.to_numeric(frame[column], errors="coerce")
+    if frame["close"].median() > 1000:
+        for column in ("open", "high", "low", "close"):
+            frame[column] = frame[column] / 100000.0
 
     return frame[
         ["time", "open", "high", "low", "close", "tick_volume", "spread_points"]
-    ].sort_values("time").drop_duplicates("time").reset_index(drop=True)
+    ].dropna().sort_values("time").drop_duplicates("time").reset_index(drop=True)
 
 
 def ema(series: pd.Series, period: int) -> pd.Series:
@@ -114,6 +121,16 @@ def prepare(h4: pd.DataFrame) -> pd.DataFrame:
     frame["adx14"] = adx(frame, 14)
     frame["average_volume"] = frame["tick_volume"].rolling(20, min_periods=20).mean()
     frame["volume_ratio"] = frame["tick_volume"] / frame["average_volume"]
+    candle_range = (frame["high"] - frame["low"]).replace(0, np.nan)
+    frame["body_pressure"] = (frame["close"] - frame["open"]) / candle_range
+    frame["close_pressure"] = (
+        2.0 * (frame["close"] - frame["low"]) / candle_range - 1.0
+    )
+    signed_volume = np.sign(frame["close"].diff()).fillna(0.0) * frame["tick_volume"]
+    frame["flow_imbalance_5"] = (
+        signed_volume.rolling(5, min_periods=5).sum()
+        / frame["tick_volume"].rolling(5, min_periods=5).sum().replace(0, np.nan)
+    )
     frame["channel_high"] = frame["high"].shift(1).rolling(55).max()
     frame["channel_low"] = frame["low"].shift(1).rolling(55).min()
 
@@ -143,13 +160,15 @@ def prepare(h4: pd.DataFrame) -> pd.DataFrame:
 
 def run(
     h4: pd.DataFrame,
+    initial_balance: float = 100_000.0,
     risk_percent: float = 0.50,
     spread_floor_pips: float = 0.8,
     slippage_pips: float = 0.3,
     swap_pips_per_day: float = -0.2,
+    order_flow_filter: Callable[[pd.Series, int], bool] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     data = prepare(h4)
-    balance = 100_000.0
+    balance = float(initial_balance)
     peak = balance
     maximum_drawdown = 0.0
     position = None
@@ -257,6 +276,8 @@ def run(
             continue
 
         side = 1 if long_signal else -1
+        if order_flow_filter is not None and not order_flow_filter(row, side):
+            continue
         next_bar = data.iloc[index + 1]
         spread = max(float(next_bar["spread_points"]) / 10.0, spread_floor_pips)
         entry = next_bar["open"] + side * (spread / 2.0 + slippage_pips) * pip
@@ -280,6 +301,12 @@ def run(
             "bars": 0,
             "highest": entry,
             "lowest": entry,
+            "volume_ratio": float(row["volume_ratio"]),
+            "directional_flow_imbalance_5": (
+                side * float(row["flow_imbalance_5"])
+            ),
+            "directional_body_pressure": side * float(row["body_pressure"]),
+            "directional_close_pressure": side * float(row["close_pressure"]),
         }
 
     trade_frame = pd.DataFrame(trades)
@@ -287,7 +314,7 @@ def run(
     if trade_frame.empty:
         metrics = {
             "ending_balance": balance,
-            "net_profit": balance - 100_000,
+            "net_profit": balance - initial_balance,
             "trades": 0,
             "win_rate": 0.0,
             "profit_factor": 0.0,
@@ -308,7 +335,7 @@ def run(
     )
     metrics = {
         "ending_balance": balance,
-        "net_profit": balance - 100_000,
+        "net_profit": balance - initial_balance,
         "trades": len(trade_frame),
         "win_rate": float((trade_frame.pnl > 0).mean()),
         "profit_factor": float(gross_profit / gross_loss) if gross_loss else float("inf"),

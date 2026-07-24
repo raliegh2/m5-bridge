@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +56,23 @@ def build_preflight_snapshot(
         }
         for symbol, broker_symbol in broker_map.items()
     }
+    # Metals satellite (opt-in): show gold's M30/H4 readiness beside the FX rows
+    # without affecting the FX resolution/market-data checks.
+    gold_engine: dict[str, Any] | None = None
+    if os.getenv("GOLD_ENGINE", "").strip().lower() in {"1", "true", "yes", "on"}:
+        try:
+            from mt5_ai_bridge.gold_intraday_engine import GOLD_SYMBOL
+            from mt5_ai_bridge.v14_3_live_execution import resolve_broker_symbol
+            _gb = resolve_broker_symbol(client, GOLD_SYMBOL)
+            gold_engine = {
+                "symbol": GOLD_SYMBOL, "broker_symbol": _gb, "mode": "GOLD",
+                "engine": "GOLD_INTRADAY_M30",
+                "M30_completed": _bar_ready(client, _gb, "M30"),
+                "H4_completed": _bar_ready(client, _gb, "H4"),
+            }
+        except Exception as exc:  # noqa: BLE001
+            gold_engine = {"symbol": GOLD_SYMBOL, "resolved": False,
+                           "error": str(exc)}
     checks = {
         "runtime_allowed": bool(runtime["allowed"]),
         "kill_switch_clear": not Path(config.kill_switch_path).exists(),
@@ -88,6 +106,7 @@ def build_preflight_snapshot(
         "runtime": runtime,
         "broker_symbols": broker_map,
         "completed_bars": bars,
+        "gold_engine": gold_engine,
         "state_path": config.state_path,
         "audit_log_path": config.audit_log_path,
     }

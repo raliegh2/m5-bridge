@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -329,3 +330,239 @@ def test_demo_auto_runs_order_check_before_order_send(tmp_path) -> None:
     assert result.code == "ORDER_FILLED"
     assert client.calls == ["check", "send"]
     assert result.risk_percent <= 0.55
+
+
+def test_order_flow_conflict_is_logged_but_does_not_block(
+    tmp_path, monkeypatch
+) -> None:
+    client = FakeClient()
+    config = make_config(
+        tmp_path,
+        "AUTO",
+        order_flow_shadow_log_path=str(tmp_path / "flow-shadow.jsonl"),
+    )
+    monkeypatch.setattr(
+        "mt5_ai_bridge.v14_21_demo_auto_execution."
+        "evaluate_order_flow_shadow",
+        lambda *_args, **_kwargs: {
+            "mode": "SHADOW_ONLY",
+            "evaluated_at": NOW.isoformat(),
+            "symbol": "EURUSD",
+            "broker_symbol": "EURUSD",
+            "engine": "EURUSD_SWING_CORE",
+            "setup": "H4_DONCHIAN_BREAKOUT",
+            "side": "BUY",
+            "verdict": "CONFLICT",
+            "reason": "test conflict",
+            "hypothetical_block": True,
+            "directional_imbalance": -0.4,
+            "directional_depth_imbalance": None,
+        },
+    )
+    executor = V1421DemoAutoExecutor(client, config)
+    result = executor.place(signal(), now=NOW)
+    record = json.loads(
+        (tmp_path / "flow-shadow.jsonl").read_text(encoding="utf-8")
+    )
+    assert result.code == "ORDER_FILLED"
+    assert client.calls == ["check", "send"]
+    assert record["order_flow_shadow"]["hypothetical_block"] is True
+    assert record["actual_execution_result"]["code"] == "ORDER_FILLED"
+    assert executor.recent_order_flow_shadow[0]["verdict"] == "CONFLICT"
+
+
+def test_order_flow_blocking_requires_separate_forward_gate(tmp_path) -> None:
+    config = V1421DemoAutoConfig(
+        execution_mode="READ_ONLY",
+        state_path=str(tmp_path / "state.json"),
+        order_flow_enforcement_mode="BLOCK_CONFLICT",
+    )
+    with pytest.raises(ValueError, match="FORWARD_GATE_PASSED"):
+        config.validate()
+
+
+def test_forward_gated_order_flow_conflict_blocks_before_order_send(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "mt5_ai_bridge.v14_21_demo_auto_execution."
+        "evaluate_order_flow_shadow",
+        lambda *_args, **_kwargs: {
+            "mode": "SHADOW_ONLY",
+            "scope": "ALL_ENGINE_CANDIDATES",
+            "execution_policy": "PRESERVE_ENGINE_SIGNAL",
+            "evaluated_at": NOW.isoformat(),
+            "symbol": "EURUSD",
+            "broker_symbol": "EURUSD",
+            "engine": "EURUSD_SWING_CORE",
+            "setup": "H4_DONCHIAN_BREAKOUT",
+            "side": "BUY",
+            "verdict": "CONFLICT",
+            "side_confirmation": "CONFLICT_WITH_BUY",
+            "reason": "test conflict",
+            "hypothetical_block": True,
+            "directional_imbalance": -0.4,
+            "directional_depth_imbalance": None,
+        },
+    )
+    client = FakeClient()
+    executor = V1421DemoAutoExecutor(
+        client,
+        make_config(
+            tmp_path,
+            "AUTO",
+            order_flow_enforcement_mode="BLOCK_CONFLICT",
+            order_flow_forward_gate_passed=True,
+            order_flow_shadow_log_path=str(tmp_path / "flow.jsonl"),
+        ),
+    )
+    monkeypatch.setattr(
+        executor,
+        "_order_flow_assessment",
+        lambda *_args, **_kwargs: {
+            "bucket": "EURUSD_SWING_CORE::H4",
+            "status": "PASSED",
+            "eligible": True,
+        },
+    )
+    result = executor.place(signal(), now=NOW)
+    assert result.code == "V14_22_ORDER_FLOW_CONFLICT_BLOCK"
+    assert client.calls == []
+
+
+def test_eligible_conflict_reduces_risk_and_records_closed_outcome(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "mt5_ai_bridge.v14_21_demo_auto_execution."
+        "evaluate_order_flow_shadow",
+        lambda *_args, **_kwargs: {
+            "mode": "SHADOW_ONLY",
+            "evaluated_at": NOW.isoformat(),
+            "symbol": "EURUSD",
+            "broker_symbol": "EURUSD",
+            "engine": "EURUSD_SWING_CORE",
+            "setup": "H4_DONCHIAN_BREAKOUT",
+            "side": "BUY",
+            "verdict": "CONFLICT",
+            "reason": "test conflict",
+            "hypothetical_block": True,
+            "directional_imbalance": -0.4,
+            "directional_depth_imbalance": None,
+            "tick_count": 100,
+        },
+    )
+    executor = V1421DemoAutoExecutor(
+        FakeClient(),
+        make_config(
+            tmp_path,
+            "AUTO",
+            order_flow_enforcement_mode="REDUCE_CONFLICT",
+            order_flow_forward_gate_passed=True,
+            order_flow_conflict_risk_multiplier=0.50,
+            order_flow_shadow_log_path=str(tmp_path / "flow.jsonl"),
+        ),
+    )
+    monkeypatch.setattr(
+        executor,
+        "_order_flow_assessment",
+        lambda *_args, **_kwargs: {
+            "bucket": "EURUSD_SWING_CORE::H1",
+            "status": "PASSED",
+            "eligible": True,
+        },
+    )
+
+    result = executor.place(signal(), now=NOW)
+    assert result.code == "ORDER_FILLED"
+    assert result.proposal["signal"]["requested_risk_percent"] == 0.275
+    assert result.proposal["order_flow"]["risk_multiplier_applied"] == 0.50
+
+    position = dict(executor.state.data["positions"]["98765"])
+    assert position["timeframe"] == "H1"
+    assert position["order_flow"]["verdict"] == "CONFLICT"
+    risk_dollars = float(position["risk_dollars"])
+    executor.state.record_closed(
+        position,
+        -risk_dollars,
+        NOW + timedelta(hours=4),
+    )
+    rows = executor.state.data["order_flow_forward_outcomes"][
+        "EURUSD_SWING_CORE::H1"
+    ]
+    assert rows[-1]["r_multiple"] == -1.0
+    assert executor.order_flow_forward_snapshot()[0]["status"] == "COLLECTING"
+
+
+@pytest.mark.parametrize(
+    ("symbol_name", "engine", "mode"),
+    [
+        ("GBPUSD", "GBPUSD_V10_PRECISION", "V12"),
+        ("EURUSD", "EURUSD_SWING_CORE", "V12"),
+        ("GBPJPY", "GBPJPY_SWING_CORE", "V12"),
+        ("AUDUSD", "AUDUSD_TREND_PULLBACK", "V12"),
+        ("USDJPY", "USDJPY_SAFE_HAVEN_BREAKOUT", "V12"),
+        ("GBPUSD", "ICT_V14_3_GBPUSD", "ICT"),
+        ("GBPJPY", "ICT_V14_3_GBPJPY", "ICT"),
+        ("EURUSD", "EURUSD_ICT_LIQUIDITY", "ICT"),
+        ("AUDUSD", "AUDUSD_ICT_ASIA_LONDON", "ICT"),
+        ("USDJPY", "USDJPY_ICT_SESSION_SWEEP", "ICT"),
+        ("XAUUSD", "GOLD_INTRADAY_M30", "GOLD"),
+    ],
+)
+def test_order_flow_wraps_every_existing_engine_candidate(
+    tmp_path,
+    monkeypatch,
+    symbol_name,
+    engine,
+    mode,
+) -> None:
+    observed = []
+
+    def flow(_client, candidate, **_kwargs):
+        observed.append(candidate.engine)
+        return {
+            "mode": "SHADOW_ONLY",
+            "scope": "ALL_ENGINE_CANDIDATES",
+            "execution_policy": "PRESERVE_ENGINE_SIGNAL",
+            "evaluated_at": NOW.isoformat(),
+            "symbol": candidate.symbol,
+            "broker_symbol": candidate.broker_symbol,
+            "engine": candidate.engine,
+            "setup": candidate.setup,
+            "side": candidate.side,
+            "verdict": "NEUTRAL",
+            "side_confirmation": "NEUTRAL",
+            "reason": "test",
+            "hypothetical_block": False,
+            "directional_imbalance": 0.0,
+            "directional_depth_imbalance": None,
+        }
+
+    monkeypatch.setattr(
+        "mt5_ai_bridge.v14_21_demo_auto_execution."
+        "evaluate_order_flow_shadow",
+        flow,
+    )
+    case_path = tmp_path / engine
+    case_path.mkdir()
+    executor = V1421DemoAutoExecutor(
+        FakeClient(),
+        make_config(
+            case_path,
+            order_flow_shadow_log_path=str(case_path / "flow.jsonl"),
+        ),
+    )
+    result = executor.place(
+        signal(
+            symbol=symbol_name,
+            broker_symbol=symbol_name,
+            engine=engine,
+            setup=f"{engine}_SETUP",
+            mode=mode,
+        ),
+        now=NOW,
+    )
+    assert observed == [engine]
+    assert executor.recent_order_flow_shadow[0]["engine"] == engine
+    assert result.proposal["order_flow"]["scope"] == "ALL_ENGINE_CANDIDATES"

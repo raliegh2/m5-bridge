@@ -2,7 +2,7 @@
 
 The terminal intentionally keeps one continuously updated status line instead of
 printing one line per market loop. Account state is refreshed once per second.
-The expensive five-symbol strategy calculation runs only when a new completed H1
+The expensive four-symbol strategy calculation runs only when a new completed H1
 bar is detected, which matches the completed-candle H1/H4/D1 strategy design.
 """
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import contextlib
 import io
 import os
+import shutil
 import sys
 import time
 import webbrowser
@@ -35,7 +36,8 @@ HEARTBEAT_SECONDS = 1.0
 LOOKBACK_HOURS = 8
 DASHBOARD_HOST = os.getenv("V14_3_DASHBOARD_HOST", "127.0.0.1")
 DASHBOARD_PORT = int(os.getenv("V14_3_DASHBOARD_PORT", "8800"))
-SYMBOLS = ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY")
+SYMBOLS = ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD")
+_last_status_width = 0
 
 
 def _money(value: Any) -> str:
@@ -57,10 +59,13 @@ def _local_time() -> str:
 
 
 def _clear_status_line() -> None:
-    # ANSI erase-line works correctly in Windows Terminal and avoids line wrapping
-    # artifacts caused by padding with a fixed number of spaces.
-    sys.stdout.write("\r\x1b[2K")
+    """Clear only the current physical console row without emitting a newline."""
+    global _last_status_width
+    columns = max(20, shutil.get_terminal_size(fallback=(120, 24)).columns - 1)
+    width = min(_last_status_width, columns)
+    sys.stdout.write("\r" + (" " * width) + "\r")
     sys.stdout.flush()
+    _last_status_width = 0
 
 
 def _status_line(
@@ -70,13 +75,29 @@ def _status_line(
     account = diagnostics.get("account") or {}
     positions = diagnostics.get("positions") or []
     strategy_state = diagnostics.get("strategy_state", "WAITING")
+    schedule = diagnostics.get("scan_schedule") or {}
+
+    def scan_clock(group: str) -> str:
+        value = (schedule.get(group) or {}).get("last_scan_at")
+        if not value:
+            return "--:--"
+        try:
+            return datetime.fromisoformat(str(value).replace("Z", "+00:00")).strftime(
+                "%H:%M"
+            )
+        except ValueError:
+            return "--:--"
+
     return (
         f"{_local_time()} | {diagnostics.get('execution_mode', 'UNKNOWN')} | "
         f"ACTIVE | trades {int(trades_placed)} | open {len(positions)} | "
         f"P/L {_signed_money(account.get('floating_profit'))} | "
         f"equity {_money(account.get('equity'))} | "
         f"balance {_money(account.get('balance'))} | "
-        f"engine {strategy_state}"
+        f"engine {strategy_state} | scans UTC: "
+        f"GBP-M1 {scan_clock('GBP_ICT')} / "
+        f"FX-H1/H4/D1 {scan_clock('FX_PORTFOLIO')} / "
+        f"Gold-M30/H4 {scan_clock('GOLD')}"
     )
 
 
@@ -84,9 +105,16 @@ def _print_status(
     diagnostics: dict[str, Any],
     trades_placed: int,
 ) -> None:
-    _clear_status_line()
-    sys.stdout.write(_status_line(diagnostics, trades_placed=trades_placed))
+    """Rewrite one bounded physical row even after thousands of heartbeats."""
+    global _last_status_width
+    columns = max(20, shutil.get_terminal_size(fallback=(120, 24)).columns - 1)
+    rendered = _status_line(
+        diagnostics, trades_placed=trades_placed
+    )[:columns]
+    write_width = min(max(_last_status_width, len(rendered)), columns)
+    sys.stdout.write("\r" + rendered.ljust(write_width))
     sys.stdout.flush()
+    _last_status_width = len(rendered)
 
 
 def _open_dashboard(url: str) -> None:

@@ -13,6 +13,7 @@ from mt5_ai_bridge.v14_3_live_execution import (
     resolve_broker_symbol,
 )
 from mt5_ai_bridge.v14_3_live_signals import SELECTED_ICT_PROFILE, SYMBOLS, V12_EXIT_MAP
+from v14_3_satellite_live_runner import ENGINE_REGISTRY
 
 
 class FakeClient:
@@ -209,15 +210,14 @@ def test_configuration_rejects_unvalidated_risk_above_quarter_percent() -> None:
         invalid.validate()
 
 
-def test_live_registry_covers_five_v12_symbols_and_three_native_ict_modes() -> None:
-    assert SYMBOLS == ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY")
+def test_live_registry_excludes_negative_usdjpy_engine() -> None:
+    assert SYMBOLS == ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD")
+    assert all(symbol != "USDJPY" for symbol, _mode, _engine in ENGINE_REGISTRY)
     assert {engine for engine, _setup in V12_EXIT_MAP} == {
         "GBPUSD_V10_PRECISION", "GBPUSD_SWING_RETEST", "EURUSD_SWING_CORE",
         "EURUSD_SWING_RETEST", "GBPJPY_SWING_CORE", "AUDUSD_TREND_PULLBACK",
-        "USDJPY_SAFE_HAVEN_BREAKOUT",
     }
     assert SELECTED_ICT_PROFILE == {
         "EURUSD": "eu_ny_20",
         "AUDUSD": "au_london_relaxed",
-        "USDJPY": "uj_ny_relaxed",
     }

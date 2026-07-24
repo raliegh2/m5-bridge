@@ -191,13 +191,18 @@ def generic_candidates(symbol: str, h1: pd.DataFrame, h4: pd.DataFrame,
     return pd.DataFrame(rows)
 
 
-def gbpusd_precision_candidates(h4: pd.DataFrame) -> pd.DataFrame:
+def gbpusd_precision_candidates(
+    h4: pd.DataFrame,
+    *,
+    include_unresolved: bool = False,
+) -> pd.DataFrame:
     rows = []
     primary_high = h4["high"].rolling(20, min_periods=20).max().shift(1)
     primary_low = h4["low"].rolling(20, min_periods=20).min().shift(1)
     secondary_high = h4["high"].rolling(45, min_periods=45).max().shift(1)
     secondary_low = h4["low"].rolling(45, min_periods=45).min().shift(1)
-    for i in range(60, len(h4) - 1):
+    stop = len(h4) if include_unresolved else len(h4) - 1
+    for i in range(60, stop):
         row = h4.iloc[i]
         if not np.isfinite(row["atr14"]):
             continue

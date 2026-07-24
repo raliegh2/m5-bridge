@@ -73,6 +73,58 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
   <div class="card"><div class="label">Scan latency</div><div class="value" id="latency">—</div><div class="sub">1-second target loop</div></div>
 </section>
 
+<section class="panel"><h2>Automatic runner wiring &amp; scan schedule</h2>
+<p id="wiring" class="sub"></p><div class="tablewrap"><table>
+<thead><tr><th>Scan group</th><th>Trigger</th><th>Candles read</th><th>Last scan</th><th>Enabled</th></tr></thead>
+<tbody id="schedule"></tbody></table></div></section>
+
+<section class="panel"><h2>Broker order flow <span class="badge read">OBSERVE ONLY</span></h2>
+<p class="sub">Broker-local quote-tick direction, spread and depth-of-market when available.
+Spot FX has no centralized exchange order book; these readings do not block orders.</p>
+<div class="tablewrap"><table><thead><tr><th>Symbol</th><th>Pressure</th><th>Buy / Sell</th>
+<th>30s / 2m / 15m</th><th>Absorption proxy</th><th>Spread shock</th>
+<th>Spread</th><th>Ticks</th><th>Market depth</th><th>Updated</th></tr></thead>
+<tbody id="orderflow"></tbody></table></div><div id="orderflow_empty" class="empty">Waiting for broker tick data.</div></section>
+
+<section class="panel"><h2>Centralized CME futures order flow</h2>
+<p class="sub">Databento CME Globex MBP-10 depth. Used as the preferred
+candidate-time flow source when fresh; otherwise the system fails open to
+broker spot-tick telemetry.</p>
+<div class="tablewrap"><table><thead><tr><th>Spot symbol</th><th>Proxy</th>
+<th>State</th><th>Imbalance</th><th>Depth levels</th><th>Events</th>
+<th>Provider</th></tr></thead><tbody id="futuresflow"></tbody></table></div>
+<div id="futuresflow_empty" class="empty">Futures provider is not configured.</div></section>
+
+<section class="panel"><h2>Candidate order-flow decisions <span id="flowmode" class="badge read">SHADOW ONLY</span></h2>
+<p class="sub">Measured immediately before execution. A conflict is recorded as a hypothetical block,
+but cannot suppress the actual order until forward evidence validates the filter.</p>
+<div class="tablewrap"><table><thead><tr><th>Time</th><th>Symbol</th><th>Engine</th>
+<th>Side</th><th>Source</th><th>Verdict</th><th>Side confirmation</th><th>Directional imbalance</th><th>DOM direction</th>
+<th>Would block</th><th>Actual result</th></tr></thead>
+<tbody id="flowdecisions"></tbody></table></div>
+<div id="flowdecisions_empty" class="empty">No trade candidates have reached the executor since start.</div></section>
+
+<section class="panel"><h2>Order-flow forward validation</h2>
+<p class="sub">Separate engine/timeframe buckets need at least 200 closed live
+candidates and must improve net R, profit factor and drawdown in both chronological halves.</p>
+<div class="tablewrap"><table><thead><tr><th>Engine</th><th>Timeframe</th>
+<th>Closed</th><th>Required</th><th>Status</th><th>Eligible</th></tr></thead>
+<tbody id="flowforward"></tbody></table></div>
+<div id="flowforward_empty" class="empty">Collecting the first closed candidate outcomes.</div></section>
+
+<section class="panel"><h2>Persistent scan audit &amp; missed-bar recovery</h2>
+<p class="sub">Every scheduled candle scan is journaled, including zero-candidate scans,
+rule rejections, detected downtime gaps, catch-up evaluations, and errors.</p>
+<h3>Latest result by scan group</h3>
+<div class="tablewrap"><table><thead><tr><th>Scope</th><th>Recorded</th>
+<th>Outcome</th><th>Completed bar</th><th>Candidates</th><th>Details</th></tr></thead>
+<tbody id="scanlatest"></tbody></table></div>
+<div id="scanlatest_empty" class="empty">No completed scan groups recorded yet.</div>
+<h3>Rolling event history</h3>
+<div class="tablewrap"><table><thead><tr><th>Recorded</th><th>Scope</th><th>Outcome</th>
+<th>Completed bar</th><th>Candidates</th><th>Details</th></tr></thead>
+<tbody id="scanaudit"></tbody></table></div><div id="scanaudit_empty" class="empty">No persistent scan records yet.</div></section>
+
 <section class="panel"><h2>Engine status</h2><div id="engines" class="enginegrid"></div></section>
 
 <section class="panel"><h2>Open positions</h2><div class="tablewrap"><table>
@@ -98,7 +150,10 @@ function clsSide(v){v=String(v||'').toUpperCase();return v==='BUY'?'buy':v==='SE
 async function refresh(){
  try{
   const r=await fetch('/data?ts='+Date.now(),{cache:'no-store'}); if(!r.ok)throw new Error(r.status);
-  const d=await r.json(), a=d.account||{}, ps=d.positions||[], ds=d.decisions||[], es=d.engines||[];
+  const d=await r.json(), a=d.account||{}, ps=d.positions||[], ds=d.decisions||[], es=d.engines||[],
+    os=d.order_flow||[], ff=d.futures_order_flow||[], ofs=d.order_flow_shadow||[],
+    off=d.order_flow_forward||[],
+    sc=d.scan_schedule||{}, rw=d.runner_wiring||{}, sa=d.scan_audit||{};
   document.getElementById('dot').className='dot '+(d.runner_status==='RUNNING'?'on':'bad');
   document.getElementById('headline').textContent=(d.runner_status||'UNKNOWN')+' · '+(a.server||'MT5');
   const mode=String(d.execution_mode||'READ_ONLY'); const mb=document.getElementById('mode');
@@ -110,8 +165,68 @@ async function refresh(){
   document.getElementById('open').textContent=ps.length;
   document.getElementById('signals').textContent=d.candidate_count||0;
   document.getElementById('latency').textContent=(d.scan_latency_ms??'—')+' ms';
+  document.getElementById('wiring').textContent=(rw.automatic_runner_connected?'CONNECTED':'NOT CONFIRMED')+
+    ' / '+esc(rw.connected_engine_count??es.length)+' engines / '+esc(rw.executor||'executor unknown')+
+    ' / '+esc(rw.order_path||'');
+  document.getElementById('schedule').innerHTML=Object.entries(sc).map(([name,x])=>row([
+    esc(name),esc(x.trigger||'-'),esc((x.timeframes||[]).join(' + ')||'-'),
+    esc(x.last_scan_at?new Date(x.last_scan_at).toLocaleString():'Not scanned since start'),
+    `<span class="${x.enabled===false?'warn':'good'}">${x.enabled===false?'OFF':'ON'}</span>`])).join('');
+  document.getElementById('orderflow').innerHTML=os.map(x=>row([
+    esc(x.symbol),`<span class="${String(x.state).startsWith('BULL')?'good':String(x.state).startsWith('BEAR')?'bad':'wait'}">${esc(x.state)}</span>`,
+    esc(x.buy_pressure_percent??'-')+'% / '+esc(x.sell_pressure_percent??'-')+'%',
+    ['30s','2m','15m'].map(w=>esc(x.pressure_windows?.[w]?.imbalance??'-')).join(' / '),
+    esc(x.absorption?.state??'-')+(x.absorption?.score!=null?' ('+esc(x.absorption.score)+')':''),
+    esc(x.spread_shock?.state??'-')+(x.spread_shock?.ratio!=null?' '+esc(x.spread_shock.ratio)+'x':''),
+    esc(x.spread_pips??'-')+' pips',esc(x.tick_count??'-'),
+    x.market_depth?.available?esc(x.market_depth.levels)+' levels; '+esc(x.market_depth.imbalance):'Unavailable',
+    esc(x.updated_at?new Date(x.updated_at).toLocaleTimeString():'-')])).join('');
+  document.getElementById('orderflow_empty').style.display=os.length?'none':'block';
+  document.getElementById('futuresflow').innerHTML=ff.map(x=>row([
+    esc(x.spot_symbol),
+    esc((x.proxies||[]).map(p=>p.futures_symbol).join(' + ')||'-'),
+    `<span class="${x.state==='READY'?'good':x.state==='ERROR'?'bad':'wait'}">${esc(x.state||x.status)}</span>`,
+    esc(x.imbalance??'-'),esc(x.levels??'-'),esc(x.event_count??'-'),
+    esc(x.provider)+(x.error?`<div class="bad">${esc(x.error)}</div>`:'')])).join('');
+  document.getElementById('futuresflow_empty').style.display=ff.length?'none':'block';
+  document.getElementById('flowmode').textContent=String(d.order_flow_shadow_mode||'SHADOW_ONLY').replaceAll('_',' ');
+  document.getElementById('flowdecisions').innerHTML=ofs.map(x=>row([
+    esc(x.evaluated_at?new Date(x.evaluated_at).toLocaleTimeString():'-'),esc(x.symbol),
+    esc(x.engine),`<span class="${clsSide(x.side)}">${esc(x.side)}</span>`,
+    esc(x.verdict_source||'BROKER_SPOT_TICKS'),
+    `<span class="${x.verdict==='ALIGNED'?'good':x.verdict==='CONFLICT'?'bad':'wait'}">${esc(x.verdict)}</span>`,
+    esc(x.side_confirmation||'-'),
+    esc(x.directional_imbalance??'-'),esc(x.directional_depth_imbalance??'-'),
+    `<span class="${x.hypothetical_block?'bad':'good'}">${x.hypothetical_block?'YES':'NO'}</span>`,
+    esc(x.actual_result_code||'-')])).join('');
+  document.getElementById('flowdecisions_empty').style.display=ofs.length?'none':'block';
+  document.getElementById('flowforward').innerHTML=off.map(x=>row([
+    esc(x.engine),esc(x.timeframe),esc(x.closed_candidates??0),
+    esc(x.required_candidates??200),
+    `<span class="${x.status==='PASSED'?'good':x.status==='FAILED'?'bad':'wait'}">${esc(x.status)}</span>`,
+    `<span class="${x.eligible?'good':'wait'}">${x.eligible?'YES':'NO'}</span>`])).join('');
+  document.getElementById('flowforward_empty').style.display=off.length?'none':'block';
+  const latestScans=Object.values(sa.latest_by_scope||{}).sort((a,b)=>
+    String(a.scope||'').localeCompare(String(b.scope||'')));
+  document.getElementById('scanlatest').innerHTML=latestScans.map(x=>row([
+    esc(x.scope),
+    esc(x.recorded_at?new Date(x.recorded_at).toLocaleTimeString():'-'),
+    `<span class="${String(x.outcome).includes('ERROR')?'bad':String(x.outcome).includes('COMPLETED')||String(x.outcome).includes('NO_SETUP')?'good':'wait'}">${esc(x.outcome)}</span>`,
+    esc(x.completed_bar_time?new Date(Number(x.completed_bar_time)*1000).toLocaleString():'-'),
+    esc(x.candidate_count??'-'),
+    `<div class="meta">${esc(JSON.stringify(x.details||{}))}</div>`])).join('');
+  document.getElementById('scanlatest_empty').style.display=latestScans.length?'none':'block';
+  const scanEvents=sa.recent_events||[];
+  document.getElementById('scanaudit').innerHTML=scanEvents.map(x=>row([
+    esc(x.recorded_at?new Date(x.recorded_at).toLocaleTimeString():'-'),esc(x.scope),
+    `<span class="${String(x.outcome).includes('ERROR')||String(x.outcome).includes('EXCEEDED')?'bad':String(x.outcome).includes('COMPLETED')||String(x.outcome).includes('PROCESSED')?'good':'wait'}">${esc(x.outcome)}</span>`,
+    esc(x.completed_bar_time?new Date(Number(x.completed_bar_time)*1000).toLocaleString():'-'),
+    esc(x.candidate_count??'-'),`<div class="meta">${esc(JSON.stringify(x.details||{}))}</div>`])).join('');
+  document.getElementById('scanaudit_empty').style.display=scanEvents.length?'none':'block';
   document.getElementById('engines').innerHTML=es.map(e=>`<div class="engine"><div class="name">${esc(e.engine)}</div>
-    <div class="sub">${esc(e.symbol)} · ${esc(e.mode)}</div><div class="state ${e.status==='SIGNAL'?'good':'wait'}">${esc(e.status)}</div>
+    <div class="sub">${esc(e.symbol)} / ${esc(e.mode)} / reads ${esc((e.timeframes||[]).join('/'))} / trigger ${esc(e.trigger||'-')}</div>
+    <div class="sub ${e.automatic_runner_connected?'good':'bad'}">${e.automatic_runner_connected?'AUTO CONNECTED':'AUTO NOT CONFIRMED'} / last scan ${esc(e.last_scan_at?new Date(e.last_scan_at).toLocaleTimeString():'not yet')}</div>
+    <div class="state ${['SIGNAL','LAST_FILLED'].includes(e.status)?'good':e.status==='LAST_REJECTED'?'bad':'wait'}">${esc(e.status)}</div>
     <div class="why">${esc(e.rationale)}</div></div>`).join('')||'<div class="empty">No engine registry.</div>';
   document.getElementById('positions').innerHTML=ps.map(p=>row([
     esc(p.ticket),esc(p.symbol),esc(p.engine||'UNMAPPED'),`<span class="${clsSide(p.side)}">${esc(p.side)}</span>`,

@@ -34,6 +34,8 @@ MAGIC_BY_ENGINE = {
     "ICT_V14_3_GBPUSD": 20264331,
     "ICT_V14_3_GBPJPY": 20264332,
     "ICT_V14_3_UNDER10": 20264333,
+    # Metals satellite (opt-in): gold intraday breakout, validated separately.
+    "GOLD_INTRADAY_M30": 20264341,
 }
 
 
@@ -52,12 +54,16 @@ class LiveSignal:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.symbol.upper() not in {"GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY"}:
+        # XAUUSD (gold) is the opt-in metals satellite; the FX five are unchanged.
+        if self.symbol.upper() not in {"GBPUSD", "EURUSD", "GBPJPY", "AUDUSD",
+                                        "USDJPY", "XAUUSD"}:
             raise ValueError(f"Unsupported symbol: {self.symbol}")
         if self.side.upper() not in {"BUY", "SELL"}:
             raise ValueError("side must be BUY or SELL")
-        if self.mode.upper() not in {"V12", "ICT"}:
-            raise ValueError("mode must be V12 or ICT")
+        # GOLD is a distinct engine family alongside V12/ICT so its risk is
+        # accounted separately; it still passes the shared open-risk ceiling.
+        if self.mode.upper() not in {"V12", "ICT", "GOLD"}:
+            raise ValueError("mode must be V12, ICT or GOLD")
         if self.signal_time.tzinfo is None:
             raise ValueError("signal_time must be timezone-aware")
         if self.requested_risk_percent <= 0 or self.stop_pips <= 0 or self.target_pips <= 0:
@@ -88,6 +94,7 @@ class LiveRunnerConfig:
         "GBPJPY": 3.0,
         "AUDUSD": 1.8,
         "USDJPY": 2.0,
+        "XAUUSD": 50.0,
     })
 
     @classmethod
@@ -110,7 +117,7 @@ class LiveRunnerConfig:
                 symbol: float(os.getenv(f"V14_3_MAX_SPREAD_{symbol}", default))
                 for symbol, default in {
                     "GBPUSD": "2.0", "EURUSD": "1.5", "GBPJPY": "3.0",
-                    "AUDUSD": "1.8", "USDJPY": "2.0",
+                    "AUDUSD": "1.8", "USDJPY": "2.0", "XAUUSD": "50.0",
                 }.items()
             },
         )

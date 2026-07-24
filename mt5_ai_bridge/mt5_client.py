@@ -35,6 +35,9 @@ class RealMT5Client:
         self.POSITION_TYPE_SELL = mt5.POSITION_TYPE_SELL
         self.ACCOUNT_TRADE_MODE_DEMO = getattr(mt5, "ACCOUNT_TRADE_MODE_DEMO", 0)
         self.ACCOUNT_TRADE_MODE_REAL = getattr(mt5, "ACCOUNT_TRADE_MODE_REAL", 2)
+        self.COPY_TICKS_ALL = getattr(mt5, "COPY_TICKS_ALL", -1)
+        self.BOOK_TYPE_SELL = getattr(mt5, "BOOK_TYPE_SELL", 1)
+        self.BOOK_TYPE_BUY = getattr(mt5, "BOOK_TYPE_BUY", 2)
 
     def initialize(self) -> bool:
         return self._mt5.initialize()
@@ -80,6 +83,18 @@ class RealMT5Client:
 
     def copy_rates_from_pos(self, symbol: str, timeframe_name: str, start: int, count: int) -> Any:
         return self._mt5.copy_rates_from_pos(symbol, self.timeframe(timeframe_name), start, count)
+
+    def copy_ticks_from(self, symbol: str, date_from, count: int, flags: int) -> Any:
+        return self._mt5.copy_ticks_from(symbol, date_from, count, flags)
+
+    def market_book_add(self, symbol: str) -> bool:
+        return bool(self._mt5.market_book_add(symbol))
+
+    def market_book_get(self, symbol: str) -> Any:
+        return self._mt5.market_book_get(symbol)
+
+    def market_book_release(self, symbol: str) -> bool:
+        return bool(self._mt5.market_book_release(symbol))
 
     def order_calc_profit(self, order_type: int, symbol: str, volume: float,
                           price_open: float, price_close: float) -> Any:

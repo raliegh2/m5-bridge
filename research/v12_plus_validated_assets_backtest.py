@@ -310,10 +310,15 @@ def _v12_core_candidates(symbol: str, h4: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _gbpusd_retest_candidates(h4: pd.DataFrame) -> pd.DataFrame:
+def _gbpusd_retest_candidates(
+    h4: pd.DataFrame,
+    *,
+    include_unresolved: bool = False,
+) -> pd.DataFrame:
     rows: list[dict] = []
     latest: tuple[int, int, float] | None = None
-    for i in range(56, len(h4) - 1):
+    stop = len(h4) if include_unresolved else len(h4) - 1
+    for i in range(56, stop):
         row = h4.iloc[i]
         if int(row["breakout_side"]) != 0:
             latest = (i, int(row["breakout_side"]), float(row["breakout_level"]))
@@ -368,7 +373,13 @@ def _gbpusd_retest_candidates(h4: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _h1_retest_candidates(symbol: str, h1: pd.DataFrame, h4: pd.DataFrame) -> pd.DataFrame:
+def _h1_retest_candidates(
+    symbol: str,
+    h1: pd.DataFrame,
+    h4: pd.DataFrame,
+    *,
+    include_unresolved: bool = False,
+) -> pd.DataFrame:
     risk = 0.10 if symbol == "EURUSD" else 0.20
     breakout_rows = h4[h4["breakout_side"] != 0].copy()
     if symbol in {"EURUSD", "GBPJPY"}:
@@ -379,7 +390,8 @@ def _h1_retest_candidates(symbol: str, h1: pd.DataFrame, h4: pd.DataFrame) -> pd
     event_index = 0
     latest = None
     consumed = False
-    for i in range(60, len(h1) - 1):
+    stop = len(h1) if include_unresolved else len(h1) - 1
+    for i in range(60, stop):
         row = h1.iloc[i]
         while event_index < len(events) and pd.Timestamp(events[event_index].end) <= pd.Timestamp(row["time"]):
             event = events[event_index]
@@ -445,13 +457,18 @@ def _h1_retest_candidates(symbol: str, h1: pd.DataFrame, h4: pd.DataFrame) -> pd
     return pd.DataFrame(rows)
 
 
-def _gbpusd_pullback_addon(h4: pd.DataFrame) -> pd.DataFrame:
+def _gbpusd_pullback_addon(
+    h4: pd.DataFrame,
+    *,
+    include_unresolved: bool = False,
+) -> pd.DataFrame:
     frame = h4.copy()
     frame["ema20_slope_h4"] = frame["ema20"].diff(3) / 3
     frame["prior3_low"] = frame["low"].rolling(3, min_periods=3).min().shift(1)
     frame["prior3_high"] = frame["high"].rolling(3, min_periods=3).max().shift(1)
     rows: list[dict] = []
-    for i in range(60, len(frame) - 1):
+    stop = len(frame) if include_unresolved else len(frame) - 1
+    for i in range(60, stop):
         row = frame.iloc[i]
         hour = int(pd.Timestamp(row["end"]).hour)
         weekday = int(pd.Timestamp(row["end"]).weekday())
@@ -518,9 +535,19 @@ def _gbpusd_pullback_addon(h4: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _gbpusd_precision(h4: pd.DataFrame) -> pd.DataFrame:
-    precision = base.gbpusd_precision_candidates(h4).copy()
-    pullback = _gbpusd_pullback_addon(h4)
+def _gbpusd_precision(
+    h4: pd.DataFrame,
+    *,
+    include_unresolved: bool = False,
+) -> pd.DataFrame:
+    precision = base.gbpusd_precision_candidates(
+        h4,
+        include_unresolved=include_unresolved,
+    ).copy()
+    pullback = _gbpusd_pullback_addon(
+        h4,
+        include_unresolved=include_unresolved,
+    )
     frames = [frame for frame in (precision, pullback) if not frame.empty]
     if not frames:
         return pd.DataFrame()
@@ -530,9 +557,15 @@ def _gbpusd_precision(h4: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
-def _audusd_candidates(h4: pd.DataFrame, params: AUDUSDParams) -> pd.DataFrame:
+def _audusd_candidates(
+    h4: pd.DataFrame,
+    params: AUDUSDParams,
+    *,
+    include_unresolved: bool = False,
+) -> pd.DataFrame:
     rows: list[dict] = []
-    for i in range(60, len(h4) - 1):
+    stop = len(h4) if include_unresolved else len(h4) - 1
+    for i in range(60, stop):
         row = h4.iloc[i]
         if int(pd.Timestamp(row["end"]).hour) not in params.allowed_hours:
             continue
@@ -618,11 +651,23 @@ def _select_audusd(h4: pd.DataFrame) -> tuple[AUDUSDParams, pd.DataFrame, dict]:
     }
 
 
-def _usdjpy_candidates(h4: pd.DataFrame) -> pd.DataFrame:
+def _usdjpy_candidates(
+    h4: pd.DataFrame,
+    *,
+    include_unresolved: bool = False,
+) -> pd.DataFrame:
+    """Build USDJPY breakout candidates.
+
+    Historical studies leave the newest candle out because no subsequent bars
+    exist to score its trade result.  The live adapter opts into the unresolved
+    candidate so a setup is available when its H4 candle closes, rather than
+    one H4 candle later.
+    """
     prior_high = h4["high"].rolling(40, min_periods=40).max().shift(1)
     prior_low = h4["low"].rolling(40, min_periods=40).min().shift(1)
     rows: list[dict] = []
-    for i in range(60, len(h4) - 1):
+    stop = len(h4) if include_unresolved else len(h4) - 1
+    for i in range(60, stop):
         row = h4.iloc[i]
         required = [row["atr14"], row["dclose"], row["dema20"], row["dema50"], prior_high.iloc[i], prior_low.iloc[i]]
         if any(not np.isfinite(value) for value in required):

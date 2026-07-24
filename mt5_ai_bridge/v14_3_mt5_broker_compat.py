@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 try:
@@ -192,6 +193,52 @@ class MT5BrokerCompatibilityClient:
             count,
         )
         return self._shift_rates(rates, self._clock_offset(symbol))
+
+    @staticmethod
+    def _shift_ticks(ticks: Any, offset: int) -> Any:
+        if ticks is None or offset == 0:
+            return ticks
+        if np is not None and isinstance(ticks, np.ndarray):
+            names = ticks.dtype.names or ()
+            shifted = ticks.copy()
+            if "time" in names:
+                shifted["time"] = shifted["time"] - int(offset)
+            if "time_msc" in names:
+                shifted["time_msc"] = shifted["time_msc"] - int(offset) * 1000
+            return shifted
+        if isinstance(ticks, list):
+            rows: list[Any] = []
+            for row in ticks:
+                if not isinstance(row, dict):
+                    rows.append(row)
+                    continue
+                copy = dict(row)
+                if copy.get("time"):
+                    copy["time"] = int(copy["time"]) - int(offset)
+                if copy.get("time_msc"):
+                    copy["time_msc"] = int(copy["time_msc"]) - int(offset) * 1000
+                rows.append(copy)
+            return rows
+        return ticks
+
+    def copy_ticks_from(
+        self,
+        symbol: str,
+        date_from: Any,
+        count: int,
+        flags: int,
+    ) -> Any:
+        offset = self._clock_offset(symbol)
+        broker_from = (
+            date_from + timedelta(seconds=offset) if offset else date_from
+        )
+        ticks = self._client.copy_ticks_from(
+            symbol,
+            broker_from,
+            count,
+            flags,
+        )
+        return self._shift_ticks(ticks, offset)
 
     def compatibility_diagnostics(self) -> dict[str, dict[str, int | str]]:
         return {

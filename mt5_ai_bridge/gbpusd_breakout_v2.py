@@ -57,6 +57,10 @@ class BreakoutSetup:
     side: Signal
     signal_end: datetime
     atr_price: float
+    volume_ratio: float
+    directional_flow_imbalance_5: float
+    directional_body_pressure: float
+    directional_close_pressure: float
     reason: str
 
 
@@ -128,6 +132,21 @@ def evaluate_setup(
     h4["atr"] = _atr(h4, 14)
     h4["adx"] = _adx(h4, 14)
     h4["avg_tick_volume"] = h4["tick_volume"].rolling(20, min_periods=20).mean()
+    candle_range = (h4["high"] - h4["low"]).replace(0, pd.NA)
+    h4["body_pressure"] = (h4["close"] - h4["open"]) / candle_range
+    h4["close_pressure"] = (
+        2.0 * (h4["close"] - h4["low"]) / candle_range - 1.0
+    )
+    signed_volume = (
+        h4["close"].diff().apply(
+            lambda value: 1.0 if value > 0 else (-1.0 if value < 0 else 0.0)
+        )
+        * h4["tick_volume"]
+    )
+    h4["flow_imbalance_5"] = (
+        signed_volume.rolling(5, min_periods=5).sum()
+        / h4["tick_volume"].rolling(5, min_periods=5).sum().replace(0, pd.NA)
+    )
     d1["ema20"] = _ema(d1["close"], 20)
     d1["ema50"] = _ema(d1["close"], 50)
 
@@ -158,6 +177,10 @@ def evaluate_setup(
             Signal.BUY,
             signal_end,
             float(latest["atr"]),
+            volume_ratio,
+            float(latest["flow_imbalance_5"]),
+            float(latest["body_pressure"]),
+            float(latest["close_pressure"]),
             f"H4 close broke 55-bar high; D1 EMA20>EMA50; ADX={latest['adx']:.1f}; volume={volume_ratio:.2f}x",
         ), h4
 
@@ -166,6 +189,10 @@ def evaluate_setup(
             Signal.SELL,
             signal_end,
             float(latest["atr"]),
+            volume_ratio,
+            -float(latest["flow_imbalance_5"]),
+            -float(latest["body_pressure"]),
+            -float(latest["close_pressure"]),
             f"H4 close broke 55-bar low; D1 EMA20<EMA50; ADX={latest['adx']:.1f}; volume={volume_ratio:.2f}x",
         ), h4
 
@@ -180,7 +207,7 @@ def _initial_risk_price(position) -> Optional[float]:
     # The engine always places a 2R target. TP therefore preserves initial risk
     # after the stop has been trailed.
     if tp > 0:
-        return abs(tp - entry) / 2.0
+        return round(abs(tp - entry) / 2.0, 12)
     sl = float(getattr(position, "sl", 0.0) or 0.0)
     return abs(entry - sl) if sl > 0 else None
 

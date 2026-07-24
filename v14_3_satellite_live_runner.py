@@ -24,7 +24,7 @@ from mt5_ai_bridge.v14_3_live_execution import (
     LiveRunnerConfig,
     SatelliteLiveExecutor,
 )
-from mt5_ai_bridge.v14_3_live_signals import build_all_live_signals
+from mt5_ai_bridge.v14_3_live_signals import SYMBOLS, build_all_live_signals
 
 ROOT = Path(__file__).resolve().parent
 DIAGNOSTICS = ROOT / "v14_3_satellite_live_diagnostics.json"
@@ -38,14 +38,59 @@ ENGINE_REGISTRY = (
     ("EURUSD", "V12", "EURUSD_SWING_RETEST"),
     ("GBPJPY", "V12", "GBPJPY_SWING_CORE"),
     ("AUDUSD", "V12", "AUDUSD_TREND_PULLBACK"),
-    ("USDJPY", "V12", "USDJPY_SAFE_HAVEN_BREAKOUT"),
     ("EURUSD", "ICT", "EURUSD_ICT_LIQUIDITY"),
     ("AUDUSD", "ICT", "AUDUSD_ICT_ASIA_LONDON"),
-    ("USDJPY", "ICT", "USDJPY_ICT_SESSION_SWEEP"),
     ("GBPUSD", "ICT", "ICT_V14_3_GBPUSD"),
     ("GBPJPY", "ICT", "ICT_V14_3_GBPJPY"),
 )
 ENGINE_BY_MAGIC = {magic: engine for engine, magic in MAGIC_BY_ENGINE.items()}
+
+ENGINE_SCAN_PROFILES: dict[str, dict[str, Any]] = {
+    "GBPUSD_V10_PRECISION": {
+        "timeframes": ["H4", "D1"], "trigger": "H1", "scan_group": "FX_PORTFOLIO"},
+    "GBPUSD_SWING_RETEST": {
+        "timeframes": ["H4", "D1"], "trigger": "H1", "scan_group": "FX_PORTFOLIO"},
+    "EURUSD_SWING_CORE": {
+        "timeframes": ["H4", "D1"], "trigger": "H1", "scan_group": "FX_PORTFOLIO"},
+    "EURUSD_SWING_RETEST": {
+        "timeframes": ["H1", "H4", "D1"], "trigger": "H1", "scan_group": "FX_PORTFOLIO"},
+    "GBPJPY_SWING_CORE": {
+        "timeframes": ["H4", "D1"], "trigger": "H1", "scan_group": "FX_PORTFOLIO"},
+    "AUDUSD_TREND_PULLBACK": {
+        "timeframes": ["H4", "D1"], "trigger": "H1", "scan_group": "FX_PORTFOLIO"},
+    "EURUSD_ICT_LIQUIDITY": {
+        "timeframes": ["H1", "H4", "D1"], "trigger": "H1", "scan_group": "FX_PORTFOLIO"},
+    "AUDUSD_ICT_ASIA_LONDON": {
+        "timeframes": ["H1", "H4", "D1"], "trigger": "H1", "scan_group": "FX_PORTFOLIO"},
+    "ICT_V14_3_GBPUSD": {
+        "timeframes": ["M1"], "trigger": "M1", "scan_group": "GBP_ICT"},
+    "ICT_V14_3_GBPJPY": {
+        "timeframes": ["M1"], "trigger": "M1", "scan_group": "GBP_ICT"},
+    "GOLD_INTRADAY_M30": {
+        "timeframes": ["M30", "H4"], "trigger": "M30", "scan_group": "GOLD"},
+}
+
+
+def apply_engine_runtime_metadata(
+    engines: list[dict[str, Any]],
+    scan_schedule: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Expose timeframe use, scheduler wiring, and most recent group scan."""
+    schedule = scan_schedule or {}
+    enriched: list[dict[str, Any]] = []
+    for raw in engines:
+        item = dict(raw)
+        profile = ENGINE_SCAN_PROFILES.get(str(item.get("engine")), {})
+        group = str(profile.get("scan_group", "UNKNOWN"))
+        item.update({
+            "timeframes": list(profile.get("timeframes", [])),
+            "trigger": profile.get("trigger"),
+            "scan_group": group,
+            "last_scan_at": (schedule.get(group) or {}).get("last_scan_at"),
+            "automatic_runner_connected": str(item.get("engine")) in MAGIC_BY_ENGINE,
+        })
+        enriched.append(item)
+    return enriched
 
 
 def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
@@ -116,12 +161,18 @@ def _engine_status(
     signals: list[Any],
     results: list[dict[str, Any]],
     generation: dict[str, Any],
+    recent_decisions: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     signaled = {signal.engine for signal in signals}
     result_by_engine = {
         item["signal"]["engine"]: item["result"]["code"] for item in results
     }
     legacy = str(generation.get("legacy_gbp_ict_provider", "UNKNOWN"))
+    latest_by_engine: dict[str, dict[str, Any]] = {}
+    for decision in recent_decisions or []:
+        engine = str(decision.get("engine", ""))
+        if engine and engine not in latest_by_engine:
+            latest_by_engine[engine] = decision
     statuses: list[dict[str, Any]] = []
     for symbol, mode, engine in ENGINE_REGISTRY:
         if engine in signaled:
@@ -132,7 +183,7 @@ def _engine_status(
             status = "PROVIDER_WAIT"
             rationale = f"Legacy GBP ICT provider status: {legacy}."
         elif (mode == "V12" and generation.get("v12_error")) or (
-            mode == "ICT" and symbol in {"EURUSD", "AUDUSD", "USDJPY"}
+            mode == "ICT" and symbol in {"EURUSD", "AUDUSD"}
             and generation.get("satellite_ict_error")
         ):
             status = "GENERATION_ERROR"
@@ -141,6 +192,14 @@ def _engine_status(
                 if mode == "V12"
                 else generation.get("satellite_ict_error")
             )
+        elif engine in latest_by_engine:
+            latest = latest_by_engine[engine]
+            code = str(latest.get("code", "UNKNOWN"))
+            status = "LAST_FILLED" if code == "ORDER_FILLED" else "LAST_REJECTED"
+            rationale = (
+                f"Latest candidate at {latest.get('time', 'unknown time')} "
+                f"finished with {code}. {latest.get('rationale', '')}"
+            ).strip()
         else:
             status = "WAITING"
             rationale = "Engine active; no completed-candle setup matched this scan."
@@ -151,7 +210,7 @@ def _engine_status(
             "status": status,
             "rationale": rationale,
         })
-    return statuses
+    return apply_engine_runtime_metadata(statuses)
 
 
 def scan_once(
@@ -198,7 +257,7 @@ def scan_once(
     account = client.account_info()
     positions = _position_snapshot(client, executor)
     per_symbol: dict[str, Any] = {}
-    for symbol in ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY"):
+    for symbol in SYMBOLS:
         symbol_signals = [item for item in signals if item.symbol == symbol]
         symbol_results = [
             item for item in results if item["signal"]["symbol"] == symbol
@@ -247,7 +306,13 @@ def scan_once(
             item["result"]["code"] == "READ_ONLY_PROPOSAL" for item in results
         ),
         "positions": positions,
-        "engines": _engine_status(signals, results, generation),
+        "engines": _engine_status(signals, results, generation, decisions),
+        "runner_wiring": {
+            "executor": type(executor).__name__,
+            "automatic_runner_connected": True,
+            "connected_engine_count": len(ENGINE_REGISTRY),
+            "order_path": "all generated candidates -> executor.place",
+        },
         "decisions": list(decisions),
         "symbols": per_symbol,
         "state_path": executor.config.state_path,

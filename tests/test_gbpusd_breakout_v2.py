@@ -88,3 +88,6 @@ def test_trending_breakout_can_generate_buy_setup():
     )
     assert setup is not None
     assert setup.side is Signal.BUY
+    assert setup.volume_ratio >= 0.80
+    assert setup.directional_body_pressure > 0
+    assert setup.directional_close_pressure >= 0

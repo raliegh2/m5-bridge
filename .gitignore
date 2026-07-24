@@ -23,3 +23,9 @@ state/v14_3_satellite_live_state.json
 
 # Generated dashboard
 dashboard.html
+# Local runtime and generated research output
+state/
+research/*_out/
+# Local runtime and generated research output
+state/
+research/*_out/

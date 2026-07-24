@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Optional
@@ -43,9 +43,23 @@ from .v14_4_profit_guard_execution import (
     ProfitGuardedState,
 )
 from .v14_20_range_anti_consensus_live import apply_live_range_anti_consensus
+from .v14_22_order_flow_shadow import (
+    append_order_flow_shadow,
+    evaluate_order_flow_shadow,
+)
+from .v14_22_order_flow_forward import (
+    assess_forward_order_flow,
+    order_flow_bucket,
+)
+from .v14_25_futures_order_flow import DatabentoFuturesOrderFlow
 
 TRUTHY = {"1", "TRUE", "YES", "ON"}
 REQUESTED_MODES = {"READ_ONLY", "APPROVAL", "DEMO_AUTO"}
+ORDER_FLOW_ENFORCEMENT_MODES = {
+    "SHADOW_ONLY",
+    "REDUCE_CONFLICT",
+    "BLOCK_CONFLICT",
+}
 AUTO_ACKNOWLEDGEMENT = "DEMO_ONLY"
 
 
@@ -72,6 +86,15 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
     demo_acknowledgement: str = ""
     kill_switch_path: str = "state/V14_21_STOP"
     audit_log_path: str = "state/v14_21_demo_auto_executions.jsonl"
+    order_flow_shadow_enabled: bool = True
+    order_flow_shadow_log_path: str = "state/v14_22_order_flow_shadow.jsonl"
+    order_flow_directional_threshold: float = 0.15
+    order_flow_minimum_ticks: int = 30
+    order_flow_enforcement_mode: str = "SHADOW_ONLY"
+    order_flow_forward_gate_passed: bool = False
+    order_flow_minimum_closed_candidates: int = 200
+    order_flow_minimum_conflicts_per_partition: int = 10
+    order_flow_conflict_risk_multiplier: float = 0.50
     daily_loss_limit_dollars: float = 250.0
     overall_loss_limit_dollars: float = 500.0
     maximum_consecutive_losses: int = 2
@@ -84,6 +107,7 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
             "GBPJPY": 3.0,
             "AUDUSD": 1.8,
             "USDJPY": 2.0,
+            "XAUUSD": 50.0,
         }
     )
 
@@ -133,6 +157,43 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
                 "V14_21_AUDIT_LOG_PATH",
                 "state/v14_21_demo_auto_executions.jsonl",
             ),
+            order_flow_shadow_enabled=_truthy(
+                "V14_22_ORDER_FLOW_SHADOW", "true"
+            ),
+            order_flow_shadow_log_path=os.getenv(
+                "V14_22_ORDER_FLOW_SHADOW_LOG_PATH",
+                "state/v14_22_order_flow_shadow.jsonl",
+            ),
+            order_flow_directional_threshold=float(
+                os.getenv("V14_22_ORDER_FLOW_DIRECTIONAL_THRESHOLD", "0.15")
+            ),
+            order_flow_minimum_ticks=int(
+                os.getenv("V14_22_ORDER_FLOW_MINIMUM_TICKS", "30")
+            ),
+            order_flow_enforcement_mode=os.getenv(
+                "V14_22_ORDER_FLOW_ENFORCEMENT_MODE", "SHADOW_ONLY"
+            ).strip().upper(),
+            order_flow_forward_gate_passed=_truthy(
+                "V14_22_ORDER_FLOW_FORWARD_GATE_PASSED"
+            ),
+            order_flow_minimum_closed_candidates=int(
+                os.getenv(
+                    "V14_22_ORDER_FLOW_MINIMUM_CLOSED_CANDIDATES",
+                    "200",
+                )
+            ),
+            order_flow_minimum_conflicts_per_partition=int(
+                os.getenv(
+                    "V14_22_ORDER_FLOW_MINIMUM_CONFLICTS_PER_PARTITION",
+                    "10",
+                )
+            ),
+            order_flow_conflict_risk_multiplier=float(
+                os.getenv(
+                    "V14_22_ORDER_FLOW_CONFLICT_RISK_MULTIPLIER",
+                    "0.50",
+                )
+            ),
             daily_loss_limit_dollars=float(
                 os.getenv("V14_21_DAILY_LOSS_LIMIT_DOLLARS", "250")
             ),
@@ -158,6 +219,7 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
                     "GBPJPY": "3.0",
                     "AUDUSD": "1.8",
                     "USDJPY": "2.0",
+                    "XAUUSD": "50.0",
                 }.items()
             },
         )
@@ -178,6 +240,39 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
             raise ValueError("Maximum tick age must be positive")
         if self.initial_balance_override < 0:
             raise ValueError("Initial balance override cannot be negative")
+        if not 0 < self.order_flow_directional_threshold <= 1:
+            raise ValueError(
+                "Order-flow directional threshold must be in (0, 1]"
+            )
+        if self.order_flow_minimum_ticks < 2:
+            raise ValueError("Order-flow minimum ticks must be at least 2")
+        if self.order_flow_enforcement_mode not in ORDER_FLOW_ENFORCEMENT_MODES:
+            raise ValueError(
+                "Order-flow enforcement mode must be SHADOW_ONLY, "
+                "REDUCE_CONFLICT or BLOCK_CONFLICT"
+            )
+        if (
+            self.order_flow_enforcement_mode
+            in {"REDUCE_CONFLICT", "BLOCK_CONFLICT"}
+            and not self.order_flow_forward_gate_passed
+        ):
+            raise ValueError(
+                "Order-flow enforcement requires "
+                "V14_22_ORDER_FLOW_FORWARD_GATE_PASSED=true"
+            )
+        if self.order_flow_minimum_closed_candidates < 200:
+            raise ValueError(
+                "Order-flow enforcement requires at least 200 closed "
+                "candidates per engine/timeframe"
+            )
+        if self.order_flow_minimum_conflicts_per_partition < 1:
+            raise ValueError(
+                "Order-flow minimum conflicts per partition must be positive"
+            )
+        if not 0 < self.order_flow_conflict_risk_multiplier < 1:
+            raise ValueError(
+                "Order-flow conflict risk multiplier must be in (0, 1)"
+            )
         if self.max_live_risk_percent != PARITY_MAX_TRADE_RISK_PERCENT:
             raise ValueError("V14.21 must retain the 0.80% trade-risk ceiling")
         if self.max_open_risk_percent != PARITY_MAX_COMBINED_OPEN_RISK_PERCENT:
@@ -220,6 +315,7 @@ class V1421DemoAutoState(ProfitGuardedState):
         payload.setdefault("v14_21_initial_balance", 0.0)
         payload.setdefault("v14_21_initialised_at", None)
         payload.setdefault("v14_21_closed_trades", 0)
+        payload.setdefault("order_flow_forward_outcomes", {})
         return payload
 
     def ensure_initial_balance(
@@ -246,6 +342,34 @@ class V1421DemoAutoState(ProfitGuardedState):
         pnl: float,
         closed_at: datetime,
     ) -> None:
+        flow = position.get("order_flow")
+        risk_dollars = float(position.get("risk_dollars", 0.0) or 0.0)
+        if isinstance(flow, dict) and risk_dollars > 0:
+            engine = str(position.get("engine", "UNKNOWN"))
+            timeframe = str(position.get("timeframe", "UNKNOWN"))
+            bucket = order_flow_bucket(engine, timeframe)
+            outcomes = self.data.setdefault(
+                "order_flow_forward_outcomes", {}
+            ).setdefault(bucket, [])
+            outcomes.append({
+                "closed_at": closed_at.astimezone(timezone.utc).isoformat(),
+                "signal_key": position.get("signal_key"),
+                "symbol": position.get("symbol"),
+                "engine": engine,
+                "timeframe": timeframe,
+                "verdict": flow.get("verdict"),
+                "directional_imbalance": flow.get("directional_imbalance"),
+                "directional_depth_imbalance": (
+                    flow.get("directional_depth_imbalance")
+                ),
+                "pnl": float(pnl),
+                "risk_dollars": risk_dollars,
+                "r_multiple": round(float(pnl) / risk_dollars, 6),
+            })
+            if len(outcomes) > 1000:
+                self.data["order_flow_forward_outcomes"][bucket] = (
+                    outcomes[-1000:]
+                )
         super().record_closed(position, pnl, closed_at)
         day = self.data.setdefault(
             "day",
@@ -264,6 +388,31 @@ class V1421DemoAutoState(ProfitGuardedState):
             self.data.get("v14_21_closed_trades", 0) or 0
         ) + 1
         self.save()
+
+    def order_flow_assessment(
+        self,
+        engine: str,
+        timeframe: str,
+        *,
+        minimum_closed_candidates: int,
+        minimum_conflicts_per_partition: int,
+        conflict_multiplier: float,
+    ) -> dict[str, Any]:
+        bucket = order_flow_bucket(engine, timeframe)
+        records = self.data.get("order_flow_forward_outcomes", {}).get(
+            bucket, []
+        )
+        return {
+            "bucket": bucket,
+            **assess_forward_order_flow(
+                records,
+                minimum_closed_candidates=minimum_closed_candidates,
+                minimum_conflicts_per_partition=(
+                    minimum_conflicts_per_partition
+                ),
+                conflict_multiplier=conflict_multiplier,
+            ),
+        }
 
 
 @dataclass(frozen=True)
@@ -377,6 +526,10 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
         super().__init__(client, config, approval_callback, guard_config)
         self.config = config
         self.state = V1421DemoAutoState(config.state_path)
+        self.recent_order_flow_shadow: list[dict[str, Any]] = []
+        self._pending_order_flow_shadow: dict[str, dict[str, Any]] = {}
+        self.futures_order_flow = DatabentoFuturesOrderFlow.from_env()
+        self.futures_order_flow.start()
 
     def _append_audit(
         self,
@@ -386,6 +539,7 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
         result: ExecutionResult,
         account: Any | None,
         terminal: Any | None,
+        order_flow_shadow: dict[str, Any] | None = None,
     ) -> None:
         path = Path(self.config.audit_log_path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -396,6 +550,7 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
             "signal_key": signal.key,
             "signal": asdict(signal),
             "result": asdict(result),
+            "order_flow_shadow": order_flow_shadow,
             "account": {
                 "login": getattr(account, "login", None),
                 "server": str(getattr(account, "server", "") or ""),
@@ -423,12 +578,54 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
         account: Any | None,
         terminal: Any | None,
     ) -> ExecutionResult:
+        shadow = self._pending_order_flow_shadow.pop(signal.key, None)
+        if shadow is not None:
+            shadow_record = {
+                **shadow,
+                "actual_result_code": result.code,
+                "actual_result_ok": result.ok,
+            }
+            self.recent_order_flow_shadow.insert(0, shadow_record)
+            del self.recent_order_flow_shadow[50:]
+            try:
+                append_order_flow_shadow(
+                    self.config.order_flow_shadow_log_path,
+                    signal=signal,
+                    result=result,
+                    shadow=shadow,
+                )
+            except Exception:  # noqa: BLE001 - telemetry must never stop trading
+                pass
+            if result.proposal is not None:
+                result.proposal["order_flow"] = shadow
+            if result.code == "ORDER_FILLED" and int(result.ticket or 0) > 0:
+                stored = self.state.data.get("positions", {}).get(
+                    str(int(result.ticket))
+                )
+                if isinstance(stored, dict):
+                    stored["signal_key"] = signal.key
+                    stored["timeframe"] = self._signal_timeframe(signal)
+                    stored["order_flow"] = {
+                        key: shadow.get(key)
+                        for key in (
+                            "evaluated_at",
+                            "verdict",
+                            "directional_imbalance",
+                            "directional_depth_imbalance",
+                            "tick_count",
+                            "enforcement_mode",
+                            "enforcement_eligible",
+                            "risk_multiplier_applied",
+                        )
+                    }
+                    self.state.save()
         self._append_audit(
             now=now,
             signal=signal,
             result=result,
             account=account,
             terminal=terminal,
+            order_flow_shadow=shadow,
         )
         return result
 
@@ -540,6 +737,65 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
         )
         return filtered.reason if filtered.is_shadow else None
 
+    @staticmethod
+    def _signal_timeframe(signal: LiveSignal) -> str:
+        configured = str(signal.metadata.get("timeframe", "")).upper()
+        if configured:
+            return configured
+        engine = str(signal.engine).upper()
+        setup = str(signal.setup).upper()
+        if engine == "GOLD_INTRADAY_M30":
+            return "M30"
+        if engine.startswith("ICT_V14_3_GBP"):
+            return "M1"
+        if str(signal.mode).upper() == "ICT":
+            return "H1"
+        if "H1_" in setup:
+            return "H1"
+        return "H4"
+
+    def _order_flow_assessment(
+        self,
+        signal: LiveSignal,
+        *,
+        conflict_multiplier: float,
+    ) -> dict[str, Any]:
+        return self.state.order_flow_assessment(
+            signal.engine,
+            self._signal_timeframe(signal),
+            minimum_closed_candidates=(
+                self.config.order_flow_minimum_closed_candidates
+            ),
+            minimum_conflicts_per_partition=(
+                self.config.order_flow_minimum_conflicts_per_partition
+            ),
+            conflict_multiplier=conflict_multiplier,
+        )
+
+    def order_flow_forward_snapshot(self) -> list[dict[str, Any]]:
+        outcomes = self.state.data.get("order_flow_forward_outcomes", {})
+        rows: list[dict[str, Any]] = []
+        for bucket, records in sorted(outcomes.items()):
+            engine, _, timeframe = str(bucket).partition("::")
+            rows.append({
+                "bucket": bucket,
+                **assess_forward_order_flow(
+                    records,
+                    minimum_closed_candidates=(
+                        self.config.order_flow_minimum_closed_candidates
+                    ),
+                    minimum_conflicts_per_partition=(
+                        self.config.order_flow_minimum_conflicts_per_partition
+                    ),
+                    conflict_multiplier=(
+                        self.config.order_flow_conflict_risk_multiplier
+                    ),
+                ),
+                "engine": engine,
+                "timeframe": timeframe,
+            })
+        return rows
+
     def runtime_snapshot(self) -> dict[str, Any]:
         account = self.client.account_info()
         terminal = (
@@ -565,6 +821,17 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
             "daily_loss_limit_dollars": self.config.daily_loss_limit_dollars,
             "overall_loss_limit_dollars": self.config.overall_loss_limit_dollars,
             "maximum_consecutive_losses": self.config.maximum_consecutive_losses,
+            "order_flow_enforcement_mode": (
+                self.config.order_flow_enforcement_mode
+            ),
+            "order_flow_forward_gate_passed": (
+                self.config.order_flow_forward_gate_passed
+            ),
+            "order_flow_minimum_closed_candidates": (
+                self.config.order_flow_minimum_closed_candidates
+            ),
+            "order_flow_forward_buckets": self.order_flow_forward_snapshot(),
+            "futures_order_flow": self.futures_order_flow.snapshot(),
             "account_login": getattr(account, "login", None),
             "account_server": str(getattr(account, "server", "") or ""),
             "demo_confirmed": (
@@ -581,6 +848,33 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
         now: Optional[datetime] = None,
     ) -> ExecutionResult:
         now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        if self.config.order_flow_shadow_enabled:
+            try:
+                self._pending_order_flow_shadow[signal.key] = (
+                    evaluate_order_flow_shadow(
+                        self.client,
+                        signal,
+                        centralized_provider=self.futures_order_flow,
+                        now=now,
+                        directional_threshold=(
+                            self.config.order_flow_directional_threshold
+                        ),
+                        minimum_ticks=self.config.order_flow_minimum_ticks,
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001 - fail open, record failure
+                self._pending_order_flow_shadow[signal.key] = {
+                    "mode": "SHADOW_ONLY",
+                    "evaluated_at": now.isoformat(),
+                    "symbol": signal.symbol,
+                    "broker_symbol": signal.broker_symbol,
+                    "engine": signal.engine,
+                    "setup": signal.setup,
+                    "side": str(signal.side).upper(),
+                    "verdict": "ERROR",
+                    "reason": f"{type(exc).__name__}: {exc}",
+                    "hypothetical_block": False,
+                }
         account = self.client.account_info()
         terminal = (
             self.client.terminal_info()
@@ -616,6 +910,68 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
                 terminal,
             )
         assert account is not None
+
+        effective_signal = signal
+        shadow = self._pending_order_flow_shadow.get(signal.key)
+        if isinstance(shadow, dict):
+            shadow["timeframe"] = self._signal_timeframe(signal)
+            shadow["enforcement_mode"] = (
+                self.config.order_flow_enforcement_mode
+            )
+            shadow["enforcement_eligible"] = False
+            shadow["risk_multiplier_applied"] = 1.0
+        if (
+            self.config.order_flow_enforcement_mode
+            in {"REDUCE_CONFLICT", "BLOCK_CONFLICT"}
+            and isinstance(shadow, dict)
+            and bool(shadow.get("hypothetical_block"))
+        ):
+            multiplier = (
+                0.0
+                if self.config.order_flow_enforcement_mode
+                == "BLOCK_CONFLICT"
+                else self.config.order_flow_conflict_risk_multiplier
+            )
+            assessment = self._order_flow_assessment(
+                signal,
+                conflict_multiplier=multiplier,
+            )
+            shadow["forward_assessment"] = assessment
+            shadow["enforcement_eligible"] = bool(
+                assessment.get("eligible")
+            )
+            if bool(assessment.get("eligible")) and multiplier == 0.0:
+                return self._finish(
+                    signal,
+                    ExecutionResult(
+                        False,
+                        "V14_22_ORDER_FLOW_CONFLICT_BLOCK",
+                        "Broker order-flow conflict passed independent "
+                        "calibration and confirmation gates for this "
+                        "engine/timeframe.",
+                        risk_percent=0.0,
+                    ),
+                    now,
+                    account,
+                    terminal,
+                )
+            if bool(assessment.get("eligible")):
+                reduced_risk = (
+                    float(signal.requested_risk_percent) * multiplier
+                )
+                shadow["risk_multiplier_applied"] = multiplier
+                effective_signal = replace(
+                    signal,
+                    requested_risk_percent=reduced_risk,
+                    metadata={
+                        **dict(signal.metadata),
+                        "order_flow_original_risk_percent": (
+                            float(signal.requested_risk_percent)
+                        ),
+                        "order_flow_risk_multiplier": multiplier,
+                        "order_flow_forward_bucket": assessment["bucket"],
+                    },
+                )
 
         self.state.reset_day(now, float(getattr(account, "equity", 0.0) or 0.0))
         self.state.ensure_initial_balance(
@@ -676,9 +1032,9 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
                 terminal,
             )
 
-        result = super().place(signal, now=now)
+        result = super().place(effective_signal, now=now)
         return self._finish(
-            signal,
+            effective_signal,
             result,
             now,
             account,
@@ -688,6 +1044,7 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
 
 __all__ = [
     "AUTO_ACKNOWLEDGEMENT",
+    "ORDER_FLOW_ENFORCEMENT_MODES",
     "REQUESTED_MODES",
     "RuntimeGuardResult",
     "V1421DemoAutoConfig",

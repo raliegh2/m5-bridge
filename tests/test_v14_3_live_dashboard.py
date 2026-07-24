@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from mt5_ai_bridge.v14_3_live_dashboard import LiveDashboard
+from mt5_ai_bridge.v14_3_live_dashboard import DASHBOARD_HTML, LiveDashboard
 from v14_3_satellite_live_runner import (
     ENGINE_REGISTRY,
+    ENGINE_SCAN_PROFILES,
     _decision_rationale,
     _engine_status,
+    apply_engine_runtime_metadata,
 )
 
 
@@ -21,11 +23,14 @@ def test_dashboard_snapshot_is_written_atomically(tmp_path) -> None:
     assert not path.with_suffix(".json.tmp").exists()
 
 
-def test_engine_registry_covers_all_five_symbols_and_both_modes() -> None:
+def test_engine_registry_covers_four_funded_symbols_and_both_modes() -> None:
     assert {symbol for symbol, _mode, _engine in ENGINE_REGISTRY} == {
-        "GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY"
+        "GBPUSD", "EURUSD", "GBPJPY", "AUDUSD"
     }
     assert {mode for _symbol, mode, _engine in ENGINE_REGISTRY} == {"V12", "ICT"}
+    assert {engine for _symbol, _mode, engine in ENGINE_REGISTRY} <= set(
+        ENGINE_SCAN_PROFILES
+    )
 
 
 def test_decision_rationale_is_rule_trace() -> None:
@@ -61,3 +66,49 @@ def test_engine_status_marks_matching_candidate() -> None:
     assert eurusd["status"] == "SIGNAL"
     assert "ORDER_FILLED" in eurusd["rationale"]
     assert gbpusd_ict["status"] == "PROVIDER_WAIT"
+
+
+def test_engine_status_preserves_latest_rejection_between_scans() -> None:
+    decisions = [{
+        "time": "2026-07-23T01:00:00+00:00",
+        "engine": "EURUSD_SWING_CORE",
+        "code": "V14_4_SPREAD_COST_GUARD",
+        "rationale": "Spread cost exceeded the configured cap.",
+    }]
+    statuses = _engine_status(
+        [],
+        [],
+        {"legacy_gbp_ict_provider": "READY"},
+        decisions,
+    )
+    eurusd = next(
+        item for item in statuses
+        if item["engine"] == "EURUSD_SWING_CORE"
+    )
+    assert eurusd["status"] == "LAST_REJECTED"
+    assert "V14_4_SPREAD_COST_GUARD" in eurusd["rationale"]
+
+
+def test_engine_runtime_metadata_proves_scheduler_and_auto_wiring() -> None:
+    engines = apply_engine_runtime_metadata(
+        [{"engine": "EURUSD_ICT_LIQUIDITY", "symbol": "EURUSD"}],
+        {
+            "FX_PORTFOLIO": {
+                "last_scan_at": "2026-07-23T22:00:00+00:00",
+            }
+        },
+    )
+    assert engines[0]["timeframes"] == ["H1", "H4", "D1"]
+    assert engines[0]["trigger"] == "H1"
+    assert engines[0]["automatic_runner_connected"] is True
+    assert engines[0]["last_scan_at"] == "2026-07-23T22:00:00+00:00"
+
+
+def test_dashboard_exposes_order_flow_and_scan_schedule() -> None:
+    assert 'id="orderflow"' in DASHBOARD_HTML
+    assert 'id="futuresflow"' in DASHBOARD_HTML
+    assert 'id="flowforward"' in DASHBOARD_HTML
+    assert 'id="schedule"' in DASHBOARD_HTML
+    assert 'id="scanlatest"' in DASHBOARD_HTML
+    assert 'id="scanaudit"' in DASHBOARD_HTML
+    assert "AUTO CONNECTED" in DASHBOARD_HTML

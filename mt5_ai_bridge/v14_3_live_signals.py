@@ -1,9 +1,13 @@
 """Completed-candle live signal adapters for the enhanced V14.3 portfolio.
 
-V12 signals for all five symbols and the new EURUSD/AUDUSD/USDJPY ICT modes are
+V12 signals for the four funded FX symbols and the EURUSD/AUDUSD ICT modes are
 built directly from closed MT5 H1/H4/D1 bars. Existing GBPUSD/GBPJPY V14.3 ICT
 signals can be loaded through the optional legacy provider module because their
 exact generator was not committed with the historical ledger branch.
+
+USDJPY is intentionally excluded from the live registry because its current
+composite evidence is negative. Its research implementation remains available
+for offline redesign and independent validation.
 """
 from __future__ import annotations
 
@@ -31,8 +35,9 @@ import v12_plus_validated_assets_backtest as study  # noqa: E402
 import v13_expanded_assets_backtest as base  # noqa: E402
 
 
-SYMBOLS = ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY")
-AUDUSD_PARAMS = study.AUDUSDParams(15.0, 0.30, 0.25)
+SYMBOLS = ("GBPUSD", "EURUSD", "GBPJPY", "AUDUSD")
+EURUSD_CORE_CHANNEL_BARS = 34
+AUDUSD_PARAMS = study.AUDUSDParams(15.0, 0.40, 0.25)
 V12_EXIT_MAP = {
     ("GBPUSD_V10_PRECISION", "PRIMARY_16UTC_BREAKOUT"): (1.50, 3.0),
     ("GBPUSD_V10_PRECISION", "SECONDARY_12UTC_BREAKOUT"): (1.50, 3.0),
@@ -42,12 +47,10 @@ V12_EXIT_MAP = {
     ("EURUSD_SWING_RETEST", "H1_BREAKOUT_RETEST"): (1.25, 3.0),
     ("GBPJPY_SWING_CORE", "H4_DONCHIAN_BREAKOUT"): (1.25, 3.0),
     ("AUDUSD_TREND_PULLBACK", "D1_H4_EMA_PULLBACK_04_08UTC"): (1.25, 2.0),
-    ("USDJPY_SAFE_HAVEN_BREAKOUT", "D1_H4_40BAR_BREAKOUT"): (1.50, 3.0),
 }
 SELECTED_ICT_PROFILE = {
     "EURUSD": "eu_ny_20",
     "AUDUSD": "au_london_relaxed",
-    "USDJPY": "uj_ny_relaxed",
 }
 
 
@@ -145,18 +148,75 @@ def prepare_v12_frames(client: Any, broker_symbol: str,
     return h1, h4, d1
 
 
+def _with_eurusd_core_channel(h4: pd.DataFrame) -> pd.DataFrame:
+    """Apply the independently validated 34-bar channel to EURUSD core only."""
+    frame = h4.copy()
+    if frame.empty:
+        return frame
+    prior_high = frame["high"].rolling(
+        EURUSD_CORE_CHANNEL_BARS,
+        min_periods=EURUSD_CORE_CHANNEL_BARS,
+    ).max().shift(1)
+    prior_low = frame["low"].rolling(
+        EURUSD_CORE_CHANNEL_BARS,
+        min_periods=EURUSD_CORE_CHANNEL_BARS,
+    ).min().shift(1)
+    long = (
+        (frame["dclose"] > frame["dema20"])
+        & (frame["dema20"] > frame["dema50"])
+        & (frame["close"] > frame["ema20"])
+        & (frame["adx14"] >= 20)
+        & (frame["close"] > prior_high)
+    )
+    short = (
+        (frame["dclose"] < frame["dema20"])
+        & (frame["dema20"] < frame["dema50"])
+        & (frame["close"] < frame["ema20"])
+        & (frame["adx14"] >= 20)
+        & (frame["close"] < prior_low)
+    )
+    frame["breakout_side"] = np.where(long, 1, np.where(short, -1, 0))
+    frame["breakout_level"] = np.where(
+        frame["breakout_side"] > 0,
+        prior_high,
+        np.where(frame["breakout_side"] < 0, prior_low, np.nan),
+    )
+    frame["directional_di_gap"] = np.where(
+        frame["breakout_side"] > 0,
+        frame["directional_di_gap_long"],
+        frame["directional_di_gap_short"],
+    )
+    return frame
+
+
 def build_v12_candidates(prepared: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]) -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
     _, gbp_h4, _ = prepared["GBPUSD"]
-    frames.extend([study._gbpusd_precision(gbp_h4), study._gbpusd_retest_candidates(gbp_h4)])
+    frames.extend([
+        study._gbpusd_precision(gbp_h4, include_unresolved=True),
+        study._gbpusd_retest_candidates(gbp_h4, include_unresolved=True),
+    ])
     eur_h1, eur_h4, _ = prepared["EURUSD"]
-    frames.extend([study._v12_core_candidates("EURUSD", eur_h4), study._h1_retest_candidates("EURUSD", eur_h1, eur_h4)])
+    eur_core_h4 = _with_eurusd_core_channel(eur_h4)
+    frames.extend([
+        study._v12_core_candidates("EURUSD", eur_core_h4),
+        study._h1_retest_candidates(
+            "EURUSD",
+            eur_h1,
+            eur_h4,
+            include_unresolved=True,
+        ),
+    ])
     _, gbpjpy_h4, _ = prepared["GBPJPY"]
     frames.append(study._v12_core_candidates("GBPJPY", gbpjpy_h4))
     _, aud_h4, _ = prepared["AUDUSD"]
-    frames.append(study._audusd_candidates(aud_h4, AUDUSD_PARAMS))
-    _, jpy_h4, _ = prepared["USDJPY"]
-    frames.append(study._usdjpy_candidates(jpy_h4))
+    frames.append(
+        study._audusd_candidates(
+            aud_h4,
+            AUDUSD_PARAMS,
+            include_unresolved=True,
+        )
+    )
     usable = [frame for frame in frames if not frame.empty]
     if not usable:
         return pd.DataFrame()
@@ -191,6 +251,18 @@ def build_v12_live_signals(client: Any, broker_map: dict[str, str], lookback_hou
         atr_value = _v12_atr(prepared, row)
         stop_atr, target_r = V12_EXIT_MAP[key]
         stop_pips = atr_value * stop_atr / pip
+        metadata = {
+            "source": "closed_mt5_v12",
+            "timeframe": (
+                "H1" if str(row.setup) == "H1_BREAKOUT_RETEST" else "H4"
+            ),
+        }
+        if str(row.engine) == "EURUSD_SWING_CORE":
+            metadata["channel_bars"] = EURUSD_CORE_CHANNEL_BARS
+            metadata["frequency_validation"] = "V14_26_CHRONOLOGICAL_PASS"
+        elif str(row.engine) == "AUDUSD_TREND_PULLBACK":
+            metadata["ema_touch_atr"] = AUDUSD_PARAMS.touch_atr
+            metadata["frequency_validation"] = "V14_26_CHRONOLOGICAL_PASS"
         signals.append(LiveSignal(
             symbol=str(row.symbol), broker_symbol=broker_map[str(row.symbol)],
             engine=str(row.engine), setup=str(row.setup), mode="V12",
@@ -198,7 +270,7 @@ def build_v12_live_signals(client: Any, broker_map: dict[str, str], lookback_hou
             signal_time=pd.Timestamp(row.entry_time).to_pydatetime(),
             requested_risk_percent=float(row.risk_percent),
             stop_pips=float(stop_pips), target_pips=float(stop_pips * target_r),
-            metadata={"source": "closed_mt5_v12", "timeframe": "H1" if str(row.setup) == "H1_BREAKOUT_RETEST" else "H4"},
+            metadata=metadata,
         ))
     return signals
 
@@ -211,7 +283,7 @@ def _profile(symbol: str):
 def build_satellite_ict_live_signals(client: Any, broker_map: dict[str, str], lookback_hours: int = 8) -> list[LiveSignal]:
     raw_candidates: list[pd.DataFrame] = []
     prepared_h1: dict[str, pd.DataFrame] = {}
-    for symbol in ("EURUSD", "AUDUSD", "USDJPY"):
+    for symbol in SELECTED_ICT_PROFILE:
         broker = broker_map[symbol]
         h1 = _frame(client.copy_rates_from_pos(broker, "H1", 1, 3000))
         h4 = _frame(client.copy_rates_from_pos(broker, "H4", 1, 2500))
