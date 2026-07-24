@@ -15,7 +15,7 @@ serves a **read-only live dashboard** website while it runs.
 - A MetaTrader 5 **demo** account
 
 The `MetaTrader5` package only runs on Windows. The trading logic is decoupled
-from the broker library and fully unit-tested without it (93 tests).
+from the broker library and unit-tested without it.
 
 ## One-time setup
 
@@ -35,24 +35,37 @@ python preflight.py         # safe connection check (never trades)
 3. Watch it trade on the dashboard. **To stop the bot, press `Ctrl+C` in its
    console** (or close that window).
 
-The website is **display-only** — it shows balance/equity, open & day P/L,
-risk:reward, EST clock, session, open positions with live pips, and the equity
-curve. There are no buttons; the bot is controlled by its console.
+The live `bridge.py` entrypoint wraps every intraday/Gold and swing order with a
+persistent account-level session guard. By default it stops new entries after a
+1% daily equity loss, a 40% giveback from an activated session-profit peak,
+three consecutive completed losses, excessive trade frequency, or a requested
+volume above 0.40 lots. Existing closes and trailing-stop updates continue while
+a lock is active. See [`SESSION_RISK_GUARD.md`](SESSION_RISK_GUARD.md).
 
-If MT5 isn't ready yet, the page shows "MT5 not connected: …" and the bot keeps
-retrying — it connects on its own once MetaTrader 5 is logged in.
+The website shows balance/equity, open and day P/L, risk:reward, EST clock,
+session, open positions with live pips, engine decisions, currency exposure,
+and the equity curve.
+
+If MT5 is not ready yet, the page shows `MT5 not connected: ...` and the bot
+keeps retrying — it connects on its own once MetaTrader 5 is logged in.
 
 ## How a trade is decided and sized
 
 1. **Direction** — the reasoning strategy reads the trend/regime and emits BUY,
    SELL, or WAIT, vetoing overbought/oversold extremes.
-2. **Size** — base `LOT_SIZE` (0.09), doubled during the New York session.
-3. **Style** — strong confluence trades **swing** (wide SL/TP); weaker trades
-   **intraday** (tight SL/TP).
-4. **Pyramiding** — in a strong trend it stacks up to `MAX_SAME_DIRECTION` (3)
-   same-direction positions, each with a **staggered** SL/TP ladder.
-5. **Throttling** — `MAX_TRADES_PER_DAY` and `MAX_OPEN_POSITIONS`; exits are the
-   SL/TP on each order.
+2. **Dual engines** — intraday uses M15/M30 timing while swing uses H4/D1 trend
+   with matching lower-timeframe timing. Both share account limits.
+3. **Stops** — ATR-based when available, with engine-specific fallbacks.
+4. **Size** — fixed-fractional risk sizing derives lots from balance, stop
+   distance, and broker tick value. Gold has lower built-in risk defaults.
+5. **Portfolio controls** — aggregate open-risk and per-currency factor caps
+   prevent several correlated symbols from becoming one oversized bet.
+6. **Session controls** — daily loss, peak-profit giveback, loss streak, trade
+   count, entry interval, and final lot-size gates sit below every engine.
+
+The sizing code contains no martingale or loss-based volume multiplier. Lot
+sizes can differ because engine risk, symbol tick value, and ATR stop distance
+differ.
 
 ## Modes
 
@@ -63,16 +76,25 @@ Set `MODE` in `.env`.
 
 | Variable | Meaning | Default |
 |---|---|---|
-| `MODE` | `READ_ONLY` / `APPROVAL` / `AUTO` | `AUTO` |
-| `STRATEGY` | `trend` or `reasoning` | `reasoning` |
-| `RSI_OVERBOUGHT` / `RSI_OVERSOLD` | Veto thresholds (100/0 disables) | `75` / `25` |
-| `LOT_SIZE` / `NY_SIZE_MULTIPLIER` | Base lots / NY multiplier | `0.09` / `2.0` |
-| `STRONG_TREND_CONFIDENCE` / `MAX_SAME_DIRECTION` | Pyramiding gate / max stack | `0.8` / `3` |
-| `TP_STAGGER_STEP` / `SL_STAGGER_STEP` / `SL_FLOOR_PIPS` | Staggered exits | `0.5` / `0.25` / `10` |
-| `DAILY_MAX_LOSS` / `TOTAL_MAX_LOSS` | Risk limits | `250` / `500` |
+| `MODE` | `READ_ONLY` / `APPROVAL` / `AUTO` | `AUTO` in example |
+| `STRATEGY` | `trend` or `reasoning` | `reasoning` in example |
+| `SYMBOLS` | Symbols traded concurrently | blank → `SYMBOL` |
+| `INTRADAY_RISK_PERCENT` / `SWING_RISK_PERCENT` | Engine risk per trade | `0.11` / `1.05` |
+| `COMBINED_RISK_CEILING` | Maximum aggregate open risk | `2.5%` |
+| `FACTOR_CAPS` / `MAX_CURRENCY_RISK` | Correlated currency-exposure cap | `true` / `2.0%` |
+| `DAILY_MAX_LOSS` / `TOTAL_MAX_LOSS` | Legacy dollar risk limits | `250` / `500` |
+| `SESSION_MAX_DAILY_LOSS_PERCENT` | Persistent daily equity stop | `1.0%` |
+| `SESSION_PROFIT_LOCK_ACTIVATION_PERCENT` | Peak-profit guard activation | `1.0%` |
+| `SESSION_MAX_PROFIT_GIVEBACK_PERCENT` | Allowed peak-profit giveback | `40%` |
+| `SESSION_MAX_CONSECUTIVE_LOSSES` | Completed-loss daily cutoff | `3` |
+| `SESSION_MAX_TRADES_PER_DAY` | Account-wide entry cap | `8` |
+| `SESSION_MAX_TRADES_PER_SYMBOL_PER_DAY` | Per-symbol entry cap | `4` |
+| `SESSION_MINIMUM_MINUTES_BETWEEN_ENTRIES` | Cross-engine entry spacing | `15` |
+| `SESSION_MAXIMUM_LOT` | Final order-volume ceiling | `0.40` |
 | `SERVE_DASHBOARD` / `DASHBOARD_PORT` | Live website on/off, port | `true` / `8800` |
 
-Full list in `.env.example`. `.env` is git-ignored — never commit credentials.
+Full list in `.env.example` and `SESSION_RISK_GUARD.md`. `.env` is git-ignored —
+never commit credentials.
 
 ## Backtesting & static dashboard
 
@@ -89,25 +111,28 @@ python -m pytest -q
 
 ## Project structure
 
-```
+```text
 Run Bot.bat                  # start the bot (console + live website)
-bridge.py / preflight.py     # bot entrypoint / safe connection check
+bridge.py / preflight.py     # guarded live entrypoint / safe connection check
 mt5_ai_bridge/
-  app.py            # resilient loop, modes, plan + execute, serves dashboard
+  app.py            # resilient loop, dual engines, plan + execute, dashboard
+  session_guard.py  # persistent account-level circuit breakers for every entry
   config.py         # typed Settings from .env
   enums.py          # Mode / Signal / OrderSide
   mt5_client.py     # the ONLY module that imports MetaTrader5
   indicators.py     # EMA / RSI / MACD + market snapshot
   strategy.py / reasoning.py   # direction: trend rule / confluence + veto
-  planner.py        # session sizing, intraday/swing, staggered exits
-  risk_engine.py    # risk limits + daily-loss tracker
-  execution.py / trade_manager.py   # place / close orders
+  books.py / planner.py         # intraday+swing books, sizing and staggered exits
+  sizing.py         # ATR stops + fixed-fractional lots
+  risk_engine.py    # legacy account loss/open-position limits
+  exposure.py       # correlated per-currency factor-risk caps
+  execution.py / trade_manager.py   # place, close and trail orders
   journal.py / dashboard.py    # SQLite journal + live HTML view
-  control.py        # localhost web server that serves the dashboard
+  control.py        # localhost dashboard/control server
   backtest.py / data.py        # backtester + history loaders
   __main__.py       # backtest CLI
   logging_config.py
-tests/              # pytest suite with a FakeMT5Client
+tests/              # pytest suite with fake MT5 clients
 ```
 
-See `ARCHITECTURE.md` for details and `ROADMAP.md` for status.
+See `ARCHITECTURE.md`, `SESSION_RISK_GUARD.md`, and `ROADMAP.md` for details.
