@@ -14,6 +14,10 @@ def candidates(symbol: str) -> pd.DataFrame:
         (18, 3, "SELL"),
         (14, 0, "SELL"),
         (16, 2, "BUY"),
+        # AUDUSD's frozen profile is London-hours SELL-only. Keep one candidate
+        # inside that window so the direction assertion tests the rule rather
+        # than accidentally asserting against an empty fixture.
+        (9, 1, "SELL"),
     ]:
         date = pd.Timestamp("2020-01-06", tz="UTC") + pd.Timedelta(days=weekday)
         rows.append(

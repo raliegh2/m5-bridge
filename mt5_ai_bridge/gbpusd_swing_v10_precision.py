@@ -87,8 +87,11 @@ def evaluate_swing_timing(
         raise ValueError("atr14 must be positive")
 
     normalized = normalize_setup(setup)
-    directional_body_atr = side * (close_price - open_price) / atr14
-    directional_ema_gap_atr = side * (ema20_h4 - ema50_h4) / atr14
+    # These values are diagnostics and policy inputs, not raw prices. Normalize
+    # harmless binary floating-point residue so mathematically exact ratios such
+    # as 0.0100 / 0.0050 remain stable across Python/platform versions.
+    directional_body_atr = round(side * (close_price - open_price) / atr14, 12)
+    directional_ema_gap_atr = round(side * (ema20_h4 - ema50_h4) / atr14, 12)
 
     if normalized == PRIMARY_SETUP:
         a_grade = (

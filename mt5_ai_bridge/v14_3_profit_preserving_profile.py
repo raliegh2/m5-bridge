@@ -7,9 +7,30 @@ controls. Values are frozen for demo forward testing and chronological replay.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
-SETUP_RISK_PERCENT: dict[tuple[str, str], float] = {
+class SetupRiskRegistry(dict[tuple[str, str], float]):
+    """GBP setup-risk table with safe fallback semantics for satellite symbols.
+
+    GBPUSD and GBPJPY have frozen setup-specific tiers. EURUSD, AUDUSD and
+    USDJPY receive their risk from the satellite signal adapters. Research
+    utilities may temporarily register satellite keys for direct indexing, but
+    callers using ``get(key, signal_risk)`` must retain the signal-supplied tier
+    instead of inheriting mutable cross-run research state.
+    """
+
+    _FROZEN_SETUP_SYMBOLS = frozenset({"GBPUSD", "GBPJPY"})
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        if isinstance(key, tuple) and len(key) == 2:
+            symbol = str(key[0]).upper()
+            if symbol not in self._FROZEN_SETUP_SYMBOLS:
+                return default
+        return super().get(key, default)
+
+
+SETUP_RISK_PERCENT: SetupRiskRegistry = SetupRiskRegistry({
     ("GBPUSD", "breakout_60_fade"): 0.731,
     ("GBPUSD", "breakout_15_fade"): 0.455,
     ("GBPUSD", "breakout_30_fade"): 0.320,
@@ -18,7 +39,7 @@ SETUP_RISK_PERCENT: dict[tuple[str, str], float] = {
     ("GBPJPY", "sweep_reclaim_15"): 0.735,
     ("GBPJPY", "sweep_reclaim_60"): 0.330,
     ("GBPJPY", "sweep_reclaim_30"): 0.058,
-}
+})
 
 
 @dataclass(frozen=True)
