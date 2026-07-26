@@ -70,6 +70,8 @@ def make_strategy(settings: Settings) -> Callable:
             host=settings.ollama_host,
             min_confidence=settings.ollama_min_confidence,
             min_interval_seconds=settings.ollama_min_interval_seconds,
+            per_symbol_confidence=dict(settings.ollama_confidence_overrides),
+            per_symbol_interval=dict(settings.ollama_interval_overrides),
         ), fallback=fallback)
     if settings.strategy == "claude":
         fallback = ReasoningStrategy(ReasoningConfig(
@@ -81,6 +83,8 @@ def make_strategy(settings: Settings) -> Callable:
             model=settings.claude_model,
             min_confidence=settings.claude_min_confidence,
             min_interval_seconds=settings.claude_min_interval_seconds,
+            per_symbol_confidence=dict(settings.claude_confidence_overrides),
+            per_symbol_interval=dict(settings.claude_interval_overrides),
         ), fallback=fallback)
     if settings.strategy == "reasoning":
         return ReasoningStrategy(ReasoningConfig(

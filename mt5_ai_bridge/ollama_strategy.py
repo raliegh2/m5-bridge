@@ -18,8 +18,8 @@ locally: ``ollama list`` shows what's available.
 """
 
 import json
-from dataclasses import dataclass
-from typing import Callable, Optional
+from dataclasses import dataclass, field
+from typing import Callable, Dict, Optional
 
 from .llm_strategy_base import ThrottledLLMStrategy, load_prompt
 
@@ -33,6 +33,10 @@ class OllamaStrategyConfig:
     min_confidence: float = 0.65
     min_interval_seconds: float = 60.0
     timeout_seconds: float = 30.0
+    # Per-symbol overrides ({SYMBOL: value}) for independent per-symbol
+    # reasoning; a symbol not listed uses the global values above.
+    per_symbol_confidence: Dict[str, float] = field(default_factory=dict)
+    per_symbol_interval: Dict[str, float] = field(default_factory=dict)
 
 
 class OllamaStrategy(ThrottledLLMStrategy):

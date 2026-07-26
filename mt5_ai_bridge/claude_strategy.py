@@ -14,8 +14,8 @@ edit that file to change the agent's signal-selection behaviour without
 touching code.
 """
 
-from dataclasses import dataclass
-from typing import Callable, Optional
+from dataclasses import dataclass, field
+from typing import Callable, Dict, Optional
 
 from .llm_strategy_base import ThrottledLLMStrategy, load_prompt
 
@@ -28,6 +28,10 @@ class ClaudeStrategyConfig:
     min_confidence: float = 0.65
     min_interval_seconds: float = 60.0
     max_tokens: int = 256
+    # Per-symbol overrides ({SYMBOL: value}) for independent per-symbol
+    # reasoning; a symbol not listed uses the global values above.
+    per_symbol_confidence: Dict[str, float] = field(default_factory=dict)
+    per_symbol_interval: Dict[str, float] = field(default_factory=dict)
 
 
 class ClaudeStrategy(ThrottledLLMStrategy):

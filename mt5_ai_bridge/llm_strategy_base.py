@@ -51,7 +51,13 @@ def _strip_code_fence(text: str) -> str:
 class ThrottledLLMStrategy:
     """Base class: per-symbol/per-candle cache + fallback + confidence gate.
 
-    ``config`` must expose ``min_confidence`` and ``min_interval_seconds``.
+    ``config`` must expose ``min_confidence`` and ``min_interval_seconds`` (the
+    global defaults) and MAY expose ``per_symbol_confidence`` /
+    ``per_symbol_interval`` mappings (``{SYMBOL: value}``) that override those
+    defaults for a specific symbol. This is what gives the single Analyst agent
+    INDEPENDENT reasoning per symbol -- one prompt, one model, but each symbol
+    can carry its own conviction bar and call cadence, resolved fresh on every
+    call from the symbol in the snapshot.
     """
 
     def __init__(self, config, client=None,
@@ -61,6 +67,15 @@ class ThrottledLLMStrategy:
         self.fallback = fallback or ReasoningStrategy(ReasoningConfig())
         # symbol -> {"candle_time": ..., "call_time": float, "decision": Decision}
         self._cache: dict = {}
+
+    def _min_confidence_for(self, symbol: Optional[str]) -> float:
+        overrides = getattr(self.config, "per_symbol_confidence", None) or {}
+        return overrides.get(str(symbol).upper(), self.config.min_confidence)
+
+    def _min_interval_for(self, symbol: Optional[str]) -> float:
+        overrides = getattr(self.config, "per_symbol_interval", None) or {}
+        return overrides.get(str(symbol).upper(),
+                             self.config.min_interval_seconds)
 
     def __call__(self, market: Optional[dict]) -> Decision:
         if not market:
@@ -80,13 +95,14 @@ class ThrottledLLMStrategy:
                     return entry["decision"]
             else:
                 # No candle marker (degraded/partial snapshot): fall back to
-                # a wall-clock throttle as a safety net.
-                if (now - entry["call_time"]) < self.config.min_interval_seconds:
+                # a wall-clock throttle as a safety net. The interval is
+                # resolved per symbol so each pair throttles independently.
+                if (now - entry["call_time"]) < self._min_interval_for(symbol):
                     return entry["decision"]
 
         try:
             text = self._call_model(market)
-            decision = self._parse_decision(text)
+            decision = self._parse_decision(text, symbol)
         except Exception as e:  # network/auth/parsing -- never crash the loop
             log.warning("%s call failed for %s, using fallback: %s",
                        type(self).__name__, symbol, e)
@@ -97,13 +113,13 @@ class ThrottledLLMStrategy:
         }
         return decision
 
-    def _parse_decision(self, text: str) -> Decision:
+    def _parse_decision(self, text: str, symbol: Optional[str] = None) -> Decision:
         payload = json.loads(_strip_code_fence(text))
         signal = Signal(str(payload["signal"]).upper())
         confidence = float(payload.get("confidence", 0.0))
         reason = str(payload.get("reason", "")) or "Model signal."
 
-        if signal.is_trade and confidence < self.config.min_confidence:
+        if signal.is_trade and confidence < self._min_confidence_for(symbol):
             return Decision(
                 Signal.WAIT,
                 f"Signal below confidence threshold ({confidence:.2f}): {reason}",

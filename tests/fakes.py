@@ -125,6 +125,8 @@ def make_settings(**kw) -> Settings:
         claude_min_interval_seconds=60.0,
         ollama_model="llama3.1", ollama_host="http://localhost:11434",
         ollama_min_confidence=0.65, ollama_min_interval_seconds=60.0,
+        claude_confidence_overrides=(), claude_interval_overrides=(),
+        ollama_confidence_overrides=(), ollama_interval_overrides=(),
         lot_size=0.09, ny_size_multiplier=2.0, ny_start_hour=12, ny_end_hour=21,
         swing_confidence=0.7, intraday_sl_pips=20, intraday_tp_pips=40,
         swing_sl_pips=80, swing_tp_pips=160,

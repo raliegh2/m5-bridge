@@ -97,3 +97,37 @@ def test_per_symbol_cache_matches_claude_strategy_behaviour():
     assert gbp.signal is Signal.BUY
     assert eur.signal is Signal.SELL
     assert len(transport.calls) == 2
+
+
+def test_per_symbol_confidence_override_gates_independently():
+    """Same prompt, same model, one strategy instance -- but GBPUSD demands more
+    conviction than the global bar, so an identical 0.8 signal is a trade on
+    EURUSD and a WAIT on GBPUSD. This is the per-symbol independent reasoning."""
+    transport = _fake_transport([
+        {"signal": "BUY", "confidence": 0.8, "reason": "gbpusd"},
+        {"signal": "BUY", "confidence": 0.8, "reason": "eurusd"},
+    ])
+    strat = OllamaStrategy(OllamaStrategyConfig(
+        min_confidence=0.65,
+        per_symbol_confidence={"GBPUSD": 0.9},
+    ), client=transport)
+
+    gbp = strat(_market(symbol="GBPUSD", time="t1"))
+    eur = strat(_market(symbol="EURUSD", time="t1"))
+
+    assert gbp.signal is Signal.WAIT      # 0.8 < GBPUSD's 0.9 bar -> downgraded
+    assert gbp.confidence == 0.8
+    assert eur.signal is Signal.BUY       # 0.8 >= global 0.65 -> trades
+
+
+def test_min_confidence_and_interval_resolve_per_symbol():
+    strat = OllamaStrategy(OllamaStrategyConfig(
+        min_confidence=0.65, min_interval_seconds=60,
+        per_symbol_confidence={"GBPUSD": 0.9},
+        per_symbol_interval={"XAUUSD": 30},
+    ))
+    assert strat._min_confidence_for("GBPUSD") == 0.9    # override
+    assert strat._min_confidence_for("gbpusd") == 0.9    # case-insensitive
+    assert strat._min_confidence_for("EURUSD") == 0.65   # global fallback
+    assert strat._min_interval_for("XAUUSD") == 30       # override
+    assert strat._min_interval_for("EURUSD") == 60       # global fallback

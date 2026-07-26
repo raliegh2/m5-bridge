@@ -44,6 +44,16 @@ class Settings:
     ollama_min_confidence: float
     ollama_min_interval_seconds: float
 
+    # Per-symbol overrides for the LLM analyst (STRATEGY=claude|ollama). Each is
+    # a tuple of (SYMBOL, value); a symbol without an entry uses the global
+    # value above. This is what makes the Analyst reason INDEPENDENTLY per
+    # symbol -- GBPUSD can demand higher conviction (or call less often) than
+    # EURUSD without a second agent or a second prompt.
+    claude_confidence_overrides: tuple
+    claude_interval_overrides: tuple
+    ollama_confidence_overrides: tuple
+    ollama_interval_overrides: tuple
+
     lot_size: float
     ny_size_multiplier: float
     ny_start_hour: int
@@ -191,6 +201,26 @@ class Settings:
         return dict(self.regime_er_overrides).get(
             (symbol or "").upper(), self.regime_er_min)
 
+    def claude_confidence_for(self, symbol: str) -> float:
+        """Claude analyst min-confidence for a symbol (.env override else global)."""
+        return dict(self.claude_confidence_overrides).get(
+            (symbol or "").upper(), self.claude_min_confidence)
+
+    def claude_interval_for(self, symbol: str) -> float:
+        """Claude analyst min call interval (s) for a symbol (override else global)."""
+        return dict(self.claude_interval_overrides).get(
+            (symbol or "").upper(), self.claude_min_interval_seconds)
+
+    def ollama_confidence_for(self, symbol: str) -> float:
+        """Ollama analyst min-confidence for a symbol (.env override else global)."""
+        return dict(self.ollama_confidence_overrides).get(
+            (symbol or "").upper(), self.ollama_min_confidence)
+
+    def ollama_interval_for(self, symbol: str) -> float:
+        """Ollama analyst min call interval (s) for a symbol (override else global)."""
+        return dict(self.ollama_interval_overrides).get(
+            (symbol or "").upper(), self.ollama_min_interval_seconds)
+
     def prop_config(self):
         """Build a PropConfig from these settings."""
         from .prop import PropConfig
@@ -259,6 +289,12 @@ def load_settings(dotenv: bool = True) -> Settings:
     swing_overrides = _risk_overrides("SWING_RISK_PERCENT_")
     intraday_overrides = _risk_overrides("INTRADAY_RISK_PERCENT_")
     regime_overrides = _risk_overrides("REGIME_ER_MIN_")
+    # Per-symbol LLM-analyst overrides. Prefix has a trailing underscore so the
+    # global CLAUDE_MIN_CONFIDENCE (no trailing "_") is never mistaken for one.
+    claude_conf_overrides = _risk_overrides("CLAUDE_MIN_CONFIDENCE_")
+    claude_int_overrides = _risk_overrides("CLAUDE_MIN_INTERVAL_SECONDS_")
+    ollama_conf_overrides = _risk_overrides("OLLAMA_MIN_CONFIDENCE_")
+    ollama_int_overrides = _risk_overrides("OLLAMA_MIN_INTERVAL_SECONDS_")
     return Settings(
         login=_get_int("MT5_LOGIN"),
         password=os.getenv("MT5_PASSWORD"),
@@ -281,6 +317,10 @@ def load_settings(dotenv: bool = True) -> Settings:
         ollama_host=_get_str("OLLAMA_HOST", "http://localhost:11434"),
         ollama_min_confidence=_get_float("OLLAMA_MIN_CONFIDENCE", 0.65),
         ollama_min_interval_seconds=_get_float("OLLAMA_MIN_INTERVAL_SECONDS", 60.0),
+        claude_confidence_overrides=claude_conf_overrides,
+        claude_interval_overrides=claude_int_overrides,
+        ollama_confidence_overrides=ollama_conf_overrides,
+        ollama_interval_overrides=ollama_int_overrides,
         lot_size=_get_float("LOT_SIZE", 0.09),
         ny_size_multiplier=_get_float("NY_SIZE_MULTIPLIER", 2.0),
         ny_start_hour=_get_int("NY_START_HOUR", 12),
