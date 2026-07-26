@@ -47,6 +47,8 @@ from . import regime
 from . import exposure
 from .planner import (SessionConfig, SizingConfig, StaggerConfig, StyleConfig,
                       build_plan, is_ny_session, position_size, stagger)
+from .claude_strategy import ClaudeStrategy, ClaudeStrategyConfig
+from .ollama_strategy import OllamaStrategy, OllamaStrategyConfig
 from .reasoning import ReasoningConfig, ReasoningStrategy
 from .risk_engine import DailyLossTracker, RiskLimits, check_risk
 from .sizing import AtrConfig, RiskConfig, atr_stops, risk_lot
@@ -57,6 +59,29 @@ log = get_logger("app")
 
 
 def make_strategy(settings: Settings) -> Callable:
+    if settings.strategy == "ollama":
+        fallback = ReasoningStrategy(ReasoningConfig(
+            threshold=settings.reasoning_threshold,
+            rsi_overbought=settings.rsi_overbought,
+            rsi_oversold=settings.rsi_oversold,
+        ))
+        return OllamaStrategy(OllamaStrategyConfig(
+            model=settings.ollama_model,
+            host=settings.ollama_host,
+            min_confidence=settings.ollama_min_confidence,
+            min_interval_seconds=settings.ollama_min_interval_seconds,
+        ), fallback=fallback)
+    if settings.strategy == "claude":
+        fallback = ReasoningStrategy(ReasoningConfig(
+            threshold=settings.reasoning_threshold,
+            rsi_overbought=settings.rsi_overbought,
+            rsi_oversold=settings.rsi_oversold,
+        ))
+        return ClaudeStrategy(ClaudeStrategyConfig(
+            model=settings.claude_model,
+            min_confidence=settings.claude_min_confidence,
+            min_interval_seconds=settings.claude_min_interval_seconds,
+        ), fallback=fallback)
     if settings.strategy == "reasoning":
         return ReasoningStrategy(ReasoningConfig(
             threshold=settings.reasoning_threshold,

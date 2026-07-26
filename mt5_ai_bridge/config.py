@@ -35,6 +35,15 @@ class Settings:
     rsi_overbought: float
     rsi_oversold: float
 
+    claude_model: str
+    claude_min_confidence: float
+    claude_min_interval_seconds: float
+
+    ollama_model: str
+    ollama_host: str
+    ollama_min_confidence: float
+    ollama_min_interval_seconds: float
+
     lot_size: float
     ny_size_multiplier: float
     ny_start_hour: int
@@ -263,6 +272,15 @@ def load_settings(dotenv: bool = True) -> Settings:
         reasoning_threshold=_get_float("REASONING_THRESHOLD", 0.6),
         rsi_overbought=_get_float("RSI_OVERBOUGHT", 75),
         rsi_oversold=_get_float("RSI_OVERSOLD", 25),
+
+        claude_model=_get_str("CLAUDE_MODEL", "claude-sonnet-5"),
+        claude_min_confidence=_get_float("CLAUDE_MIN_CONFIDENCE", 0.65),
+        claude_min_interval_seconds=_get_float("CLAUDE_MIN_INTERVAL_SECONDS", 60.0),
+
+        ollama_model=_get_str("OLLAMA_MODEL", "llama3.1"),
+        ollama_host=_get_str("OLLAMA_HOST", "http://localhost:11434"),
+        ollama_min_confidence=_get_float("OLLAMA_MIN_CONFIDENCE", 0.65),
+        ollama_min_interval_seconds=_get_float("OLLAMA_MIN_INTERVAL_SECONDS", 60.0),
         lot_size=_get_float("LOT_SIZE", 0.09),
         ny_size_multiplier=_get_float("NY_SIZE_MULTIPLIER", 2.0),
         ny_start_hour=_get_int("NY_START_HOUR", 12),
