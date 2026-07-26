@@ -80,6 +80,27 @@ def test_make_trade_manager_off_by_default_on_when_enabled():
     assert agent is not None
 
 
+def test_desk_note_is_one_descriptive_line():
+    from mt5_ai_bridge.app import _desk_note
+    off = make_settings(trade_manager=False)
+    on = make_settings(trade_manager=True)
+    # Disabled -> nothing appended.
+    assert _desk_note(off, [{"symbol": "GBPUSD", "action": "EXIT"}]) == ""
+    # Enabled, no trades.
+    assert _desk_note(on, []) == "desk idle (no open trades)"
+    # Enabled, all holding.
+    holding = [{"symbol": "GBPUSD", "action": "HOLD"},
+               {"symbol": "EURUSD", "action": "HOLD"}]
+    assert _desk_note(on, holding) == "desk: watching 2 open, all holding"
+    # Enabled, acting -> names symbol, action, and a short reason, single line.
+    acting = [{"symbol": "XAUUSD", "action": "EXIT",
+               "reason": "RSI rolling down through the mid, trend done"},
+              {"symbol": "GBPUSD", "action": "PARTIAL", "reason": "cooling"}]
+    note = _desk_note(on, acting)
+    assert note.startswith("desk: XAUUSD EXIT — ")
+    assert "(+1)" in note and "\n" not in note
+
+
 def _rates(n=250):
     return [
         {"time": 1_700_000_000 + i * 1800, "open": 1.20, "high": 1.21,

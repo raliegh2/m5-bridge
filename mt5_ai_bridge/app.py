@@ -535,10 +535,10 @@ def _print_status(client, settings, active: bool = True, note: str = "") -> None
     state = "ACTIVE" if active else "PAUSED"
     tail = f" | {note}" if note else ""
     # Pad and clip to a stable width so the \r-redrawn line never leaves
-    # fragments of a previous, longer line behind.
+    # fragments of a previous, longer line behind. Kept to a single line.
     line = (f"{est_now()} | {settings.symbol} | {state} | pos {len(positions)} | "
             f"lots {lots:.2f} | P/L {pl:+.2f}{tail}")
-    print(f"\r{line:<110.110}", end="", flush=True)
+    print(f"\r{line:<150.150}", end="", flush=True)
 
 
 def _status(settings, message: str) -> None:
@@ -592,6 +592,26 @@ def _update_trailing_stops(client, settings, symbol=None) -> None:
 # Last Trade Manager action per ticket, for the dashboard ("agents managing
 # trades"). {ticket: {"symbol","side","action","reason","confidence","message"}}
 _TM_ACTIONS: dict = {}
+
+
+def _desk_note(settings, actions) -> str:
+    """One-line, plain-language summary of what the Trade Manager desk is doing
+    right now -- for the single console status line. Describes the notable
+    action (with the model's short reason) if the desk is acting, otherwise how
+    many open positions it is holding."""
+    if not settings.trade_manager:
+        return ""
+    if not actions:
+        return "desk idle (no open trades)"
+    acting = [a for a in actions if a.get("action") and a["action"] != "HOLD"]
+    if acting:
+        a = acting[0]
+        reason = (a.get("reason") or "").strip()
+        if len(reason) > 40:
+            reason = reason[:37] + "..."
+        extra = f" (+{len(acting) - 1})" if len(acting) > 1 else ""
+        return f"desk: {a['symbol']} {a['action']} — {reason}{extra}"
+    return f"desk: watching {len(actions)} open, all holding"
 
 
 def _position_context(client, settings, position, pip: float, snap: Optional[dict]):
@@ -908,8 +928,11 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     elif not active:
         note = "paused (dashboard)"
     else:
-        note = (f"{primary} {decision.signal.value} "
+        note = (f"analyst {primary} {decision.signal.value} "
                 f"{float(decision.confidence):.2f}")
+        desk = _desk_note(settings, trade_actions)
+        if desk:
+            note = f"{note} · {desk}"
     _print_status(client, settings, active=active, note=note)
 
 
