@@ -114,3 +114,27 @@ def test_thinking_waits_when_confirmation_timeframes_disagree():
     assert [engine["name"] for engine in thinking["engines"]] == [
         "Intraday", "Swing"]
     assert not any(engine["ready"] for engine in thinking["engines"])
+
+
+def test_thinking_surfaces_the_analyst_agent_and_its_words():
+    """The thinking payload carries the Analyst's own decision (who is deciding
+    plus its reason/confidence) so the dashboard can show 'the agent thinking'."""
+    def snapshot(_client, _symbol, timeframe, _bars):
+        return {"tf": timeframe, "close": 1.10, "ema_200": 1.20}
+
+    def strategy(market):
+        return Decision(Signal.BUY, "model says up on GBPUSD", 0.82)
+
+    settings = make_settings(multi_book=True, timeframe="M15", strategy="ollama")
+    with patch("mt5_ai_bridge.app.market_snapshot", side_effect=snapshot):
+        thinking = _bot_thinking(_client(), settings, strategy, symbol="GBPUSD")
+
+    a = thinking["analyst"]
+    assert a["agent"] == "ollama"
+    assert a["signal"] == Signal.BUY.value
+    assert a["confidence"] == 0.82
+    assert a["reason"] == "model says up on GBPUSD"      # the agent's own words
+    assert a["blurb"]                                     # human description present
+    # Each timeframe read also carries the agent's own sentence.
+    assert all(row["agent_reason"] == "model says up on GBPUSD"
+               for row in thinking["timeframes"])

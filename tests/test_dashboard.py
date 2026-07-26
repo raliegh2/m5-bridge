@@ -103,6 +103,29 @@ def test_dashboard_shows_waiting_and_timeframe_why_text(tmp_path):
     assert "MACD above zero" in html
 
 
+def test_dashboard_shows_analyst_agent_thinking_and_bot_description(tmp_path):
+    j = Journal(str(tmp_path / "analyst.db"))
+    thinking = {
+        "aligned": True, "bias": "BUY", "note": "aligned",
+        "analyst": {"agent": "ollama", "blurb": "local Ollama analyst",
+                    "signal": "BUY", "confidence": 0.82,
+                    "reason": "clean uptrend, MACD rising"},
+        "timeframes": [
+            {"label": "Entry", "tf": "M15", "signal": "BUY", "confidence": 0.82,
+             "reason": "price above EMA 200.", "agent_reason": "model: go long"},
+        ],
+    }
+    html = build_dashboard(j, live=_live(), thinking=thinking)
+    j.close()
+    # The analyst agent, its confidence and its own words all render.
+    assert "Analyst" in html
+    assert "ollama" in html
+    assert "clean uptrend, MACD rising" in html
+    assert "model: go long" in html            # the per-read agent sentence
+    # A short bot description is present on the page.
+    assert "multi-symbol demo trading bot" in html
+
+
 # --- live -------------------------------------------------------------------
 
 def test_live_dashboard_shows_pl_rr_session_pips(tmp_path):

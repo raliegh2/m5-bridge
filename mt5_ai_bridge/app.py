@@ -309,6 +309,10 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
             "signal": decision.signal.value,
             "confidence": round(float(decision.confidence), 2),
             "reason": explain_market(snap),
+            # The agent's OWN words for this read (the LLM's sentence when
+            # STRATEGY=claude/ollama; the rule engine's confluence string
+            # otherwise). "reason" above is the plain-English indicator read.
+            "agent_reason": decision.reason,
         }
         return decision, view, (snap or {}).get("er")
 
@@ -386,12 +390,25 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
     # Which engines actually trade this symbol (risk > 0), for a per-pair summary.
     trades = [e["name"] for e in engines if e["enabled"]]
 
+    # The Analyst's own decision on the ENTRY read -- who is deciding and what
+    # they think right now. This is what surfaces "the agent thinking" on the
+    # dashboard (the model's sentence when STRATEGY=claude/ollama).
+    entry_decision = decisions.get(entry_tf)
+    analyst = {
+        "agent": settings.strategy,
+        "blurb": strategy_blurb(settings.strategy),
+        "signal": entry_decision.signal.value if entry_decision else Signal.WAIT.value,
+        "confidence": round(float(entry_decision.confidence), 2) if entry_decision else 0.0,
+        "reason": entry_decision.reason if entry_decision else "Gathering the first read…",
+    }
+
     return {
         "timeframes": views,
         "bias": bias.value if bias else ("MULTIPLE" if len(biases) > 1 else "NONE"),
         "aligned": aligned,
         "setup_valid": setup_valid,
         "note": note,
+        "analyst": analyst,
         "engines": engines,
         "trades": trades,
         "regime": regime_info,
@@ -428,6 +445,44 @@ def _count_side(client, positions, symbol: str, side: Signal,
                and (magic is None or getattr(p, "magic", None) == magic))
 
 
+# One-line summaries of what each strategy/agent actually does, shown in the
+# startup banner and on the dashboard so it is always clear who is deciding.
+_STRATEGY_BLURB = {
+    "reasoning": "rule-based confluence engine (EMA/RSI/MACD/ER), no LLM",
+    "claude": "Claude analyst (agent_prompts/analyst.md) picks BUY/SELL/WAIT per symbol",
+    "ollama": "local Ollama analyst (agent_prompts/analyst.md) picks BUY/SELL/WAIT per symbol",
+    "trend": "simple trend-following strategy",
+}
+
+BOT_DESCRIPTION = (
+    "MT5 AI Bridge — a multi-symbol demo trading bot. An Analyst picks a "
+    "direction per symbol from live indicators; deterministic risk sizing "
+    "and execution then place and manage the trade under an account-level "
+    "session risk guard."
+)
+
+
+def strategy_blurb(strategy: str) -> str:
+    return _STRATEGY_BLURB.get(strategy, strategy)
+
+
+def _print_banner(settings) -> None:
+    """Print a short, one-time description of the bot at startup."""
+    if not settings.console_status:
+        return
+    line = "=" * 68
+    print(f"\n{line}")
+    print("  MT5 AI Bridge")
+    print("  A multi-symbol demo trading bot. An Analyst reads live indicators")
+    print("  and picks BUY/SELL/WAIT per symbol; deterministic risk sizing and")
+    print("  execution place and manage each trade under a session risk guard.")
+    print(f"  Analyst : {settings.strategy} — {strategy_blurb(settings.strategy)}")
+    print(f"  Mode    : {settings.mode.value}   Symbols: {', '.join(settings.symbols)}")
+    print(f"  Dashboard: http://{settings.dashboard_host}:{settings.dashboard_port}"
+          if settings.serve_dashboard else "  Dashboard: (disabled)")
+    print(f"{line}\n")
+
+
 def _announce_open(settings, side, volume, book, sl_pips, tp_pips,
                    symbol=None) -> None:
     if not settings.console_status:
@@ -436,7 +491,7 @@ def _announce_open(settings, side, volume, book, sl_pips, tp_pips,
           f"({book})  SL {sl_pips:g}p / TP {tp_pips:g}p")
 
 
-def _print_status(client, settings, active: bool = True) -> None:
+def _print_status(client, settings, active: bool = True, note: str = "") -> None:
     if not settings.console_status:
         return
     try:
@@ -447,8 +502,12 @@ def _print_status(client, settings, active: bool = True) -> None:
     lots = sum(getattr(p, "volume", 0.0) for p in positions)
     pl = (account.equity - account.balance) if account else 0.0
     state = "ACTIVE" if active else "PAUSED"
-    print(f"\r{est_now()} | {settings.symbol} | {state} | active {len(positions)} | "
-          f"lots {lots:.2f} | P/L {pl:+.2f}      ", end="", flush=True)
+    tail = f" | {note}" if note else ""
+    # Pad and clip to a stable width so the \r-redrawn line never leaves
+    # fragments of a previous, longer line behind.
+    line = (f"{est_now()} | {settings.symbol} | {state} | pos {len(positions)} | "
+            f"lots {lots:.2f} | P/L {pl:+.2f}{tail}")
+    print(f"\r{line:<110.110}", end="", flush=True)
 
 
 def _status(settings, message: str) -> None:
@@ -687,7 +746,22 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     _refresh_dashboard(client, journal, settings, control=control,
                        thinking=thinking, prop=prop, engines=breakdown,
                        exposure_view=exposure_view)
-    _print_status(client, settings, active=active)
+
+    # Compact "why" for the single status line: the reason trading is held, or
+    # otherwise the primary symbol's live analyst call. The full detail (and any
+    # per-loop guard blocks) still goes to logs/bridge.log.
+    if not risk.ok:
+        note = f"held: {risk.message}"
+    elif not demo_ok:
+        note = "held: real account (REQUIRE_DEMO)"
+    elif prop["enabled"] and not prop_ok:
+        note = f"held: prop {prop['status']}"
+    elif not active:
+        note = "paused (dashboard)"
+    else:
+        note = (f"{primary} {decision.signal.value} "
+                f"{float(decision.confidence):.2f}")
+    _print_status(client, settings, active=active, note=note)
 
 
 def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
@@ -929,8 +1003,13 @@ def run(settings: Optional[Settings] = None, client=None,
         journal: Optional[Journal] = None, strategy_fn: Optional[Callable] = None,
         max_iterations: Optional[int] = None, serve_dashboard: bool = True) -> None:
     settings = settings or load_settings()
+    # With the compact console status line on, keep routine WARNINGs (e.g. the
+    # session guard's per-loop "entry blocked" notices) off stdout so the line
+    # stays clean -- they are still written in full to logs/bridge.log. Only
+    # real ERRORs break through to the terminal.
     setup_logging(settings.log_level,
-                  console_level="WARNING" if settings.console_status else settings.log_level)
+                  console_level="ERROR" if settings.console_status else settings.log_level)
+    _print_banner(settings)
     journal = journal or Journal(settings.db_path)
     strategy_fn = strategy_fn or make_strategy(settings)
     planner_cfgs = make_planner_configs(settings)
