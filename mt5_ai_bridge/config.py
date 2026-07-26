@@ -163,6 +163,22 @@ class Settings:
     factor_caps: bool = True
     max_currency_risk: float = 2.0
 
+    # Trade Manager agent: a per-symbol agent that manages OPEN positions
+    # (breakeven / partial profit / exit as a trend slows or reverses). OFF by
+    # default; opt in with TRADE_MANAGER=true. The deterministic breakeven floor
+    # (BREAKEVEN_TRIGGER_PIPS) still runs whenever this is on, regardless of the
+    # agent. per-symbol overrides mirror the analyst pattern (append _<SYMBOL>).
+    trade_manager: bool = False
+    trade_manager_backend: str = "ollama"          # "ollama" or "claude"
+    trade_manager_model: str = "llama3.1"
+    trade_manager_host: str = "http://localhost:11434"
+    trade_manager_min_confidence: float = 0.6
+    trade_manager_min_interval_seconds: float = 30.0
+    breakeven_trigger_pips: float = 15.0
+    max_partial_fraction: float = 0.5
+    tm_confidence_overrides: tuple = ()
+    tm_interval_overrides: tuple = ()
+
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
@@ -220,6 +236,16 @@ class Settings:
         """Ollama analyst min call interval (s) for a symbol (override else global)."""
         return dict(self.ollama_interval_overrides).get(
             (symbol or "").upper(), self.ollama_min_interval_seconds)
+
+    def tm_confidence_for(self, symbol: str) -> float:
+        """Trade Manager min-confidence for a symbol (.env override else global)."""
+        return dict(self.tm_confidence_overrides).get(
+            (symbol or "").upper(), self.trade_manager_min_confidence)
+
+    def tm_interval_for(self, symbol: str) -> float:
+        """Trade Manager min call interval (s) for a symbol (override else global)."""
+        return dict(self.tm_interval_overrides).get(
+            (symbol or "").upper(), self.trade_manager_min_interval_seconds)
 
     def prop_config(self):
         """Build a PropConfig from these settings."""
@@ -295,6 +321,8 @@ def load_settings(dotenv: bool = True) -> Settings:
     claude_int_overrides = _risk_overrides("CLAUDE_MIN_INTERVAL_SECONDS_")
     ollama_conf_overrides = _risk_overrides("OLLAMA_MIN_CONFIDENCE_")
     ollama_int_overrides = _risk_overrides("OLLAMA_MIN_INTERVAL_SECONDS_")
+    tm_conf_overrides = _risk_overrides("TRADE_MANAGER_MIN_CONFIDENCE_")
+    tm_int_overrides = _risk_overrides("TRADE_MANAGER_MIN_INTERVAL_SECONDS_")
     return Settings(
         login=_get_int("MT5_LOGIN"),
         password=os.getenv("MT5_PASSWORD"),
@@ -398,4 +426,15 @@ def load_settings(dotenv: bool = True) -> Settings:
         regime_er_overrides=regime_overrides,
         factor_caps=_get_bool("FACTOR_CAPS", True),
         max_currency_risk=_get_float("MAX_CURRENCY_RISK", 2.0),
+        trade_manager=_get_bool("TRADE_MANAGER", False),
+        trade_manager_backend=_get_str("TRADE_MANAGER_BACKEND", "ollama").lower(),
+        trade_manager_model=_get_str("TRADE_MANAGER_MODEL", "llama3.1"),
+        trade_manager_host=_get_str("TRADE_MANAGER_HOST", "http://localhost:11434"),
+        trade_manager_min_confidence=_get_float("TRADE_MANAGER_MIN_CONFIDENCE", 0.6),
+        trade_manager_min_interval_seconds=_get_float(
+            "TRADE_MANAGER_MIN_INTERVAL_SECONDS", 30.0),
+        breakeven_trigger_pips=_get_float("BREAKEVEN_TRIGGER_PIPS", 15.0),
+        max_partial_fraction=_get_float("MAX_PARTIAL_FRACTION", 0.5),
+        tm_confidence_overrides=tm_conf_overrides,
+        tm_interval_overrides=tm_int_overrides,
     )

@@ -53,7 +53,9 @@ from .reasoning import ReasoningConfig, ReasoningStrategy
 from .risk_engine import DailyLossTracker, RiskLimits, check_risk
 from .sizing import AtrConfig, RiskConfig, atr_stops, risk_lot
 from .strategy import evaluate_strategy
-from .trade_manager import close_position, modify_position_sl, trailing_sl
+from .trade_manager import (close_position, modify_position_sl, move_to_breakeven,
+                            partial_close, profit_pips, trailing_sl)
+from .trade_agent import TradeManagerAgent, TradeManagerConfig
 
 log = get_logger("app")
 
@@ -93,6 +95,29 @@ def make_strategy(settings: Settings) -> Callable:
             rsi_oversold=settings.rsi_oversold,
         ))
     return evaluate_strategy
+
+
+def make_trade_manager(settings: Settings) -> Optional[TradeManagerAgent]:
+    """Build the per-symbol Trade Manager agent, or None when disabled.
+
+    One instance is shared across every open position (cached/throttled per
+    ticket). It is independent of the entry STRATEGY: the deterministic
+    breakeven floor still runs in the loop even when this returns None, so
+    TRADE_MANAGER only decides whether an LLM ALSO gets to manage exits.
+    """
+    if not settings.trade_manager:
+        return None
+    return TradeManagerAgent(TradeManagerConfig(
+        backend=settings.trade_manager_backend,
+        model=settings.trade_manager_model,
+        host=settings.trade_manager_host,
+        min_confidence=settings.trade_manager_min_confidence,
+        min_interval_seconds=settings.trade_manager_min_interval_seconds,
+        breakeven_trigger_pips=settings.breakeven_trigger_pips,
+        max_partial_fraction=settings.max_partial_fraction,
+        per_symbol_confidence=dict(settings.tm_confidence_overrides),
+        per_symbol_interval=dict(settings.tm_interval_overrides),
+    ))
 
 
 def make_planner_configs(settings: Settings):
@@ -477,6 +502,12 @@ def _print_banner(settings) -> None:
     print("  and picks BUY/SELL/WAIT per symbol; deterministic risk sizing and")
     print("  execution place and manage each trade under a session risk guard.")
     print(f"  Analyst : {settings.strategy} — {strategy_blurb(settings.strategy)}")
+    if settings.trade_manager:
+        print(f"  TradeMgr: ON ({settings.trade_manager_backend}) — breakeven/"
+              f"partial/exit; deterministic breakeven floor at "
+              f"{settings.breakeven_trigger_pips:g}p")
+    else:
+        print("  TradeMgr: off — deterministic breakeven floor only")
     print(f"  Mode    : {settings.mode.value}   Symbols: {', '.join(settings.symbols)}")
     print(f"  Dashboard: http://{settings.dashboard_host}:{settings.dashboard_port}"
           if settings.serve_dashboard else "  Dashboard: (disabled)")
@@ -522,7 +553,7 @@ def _status(settings, message: str) -> None:
 
 def _refresh_dashboard(client, journal, settings, control=None,
                        thinking=None, prop=None, engines=None,
-                       exposure_view=None) -> None:
+                       exposure_view=None, trade_actions=None) -> None:
     if not settings.write_dashboard:
         return
     try:
@@ -531,11 +562,13 @@ def _refresh_dashboard(client, journal, settings, control=None,
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking,
                              port=settings.dashboard_port, prop=prop,
-                             engines=engines, exposure=exposure_view)
+                             engines=engines, exposure=exposure_view,
+                             trade_actions=trade_actions)
         write_dashboard_data(journal, snap, _data_path(settings),
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking, prop=prop,
-                             engines=engines, exposure=exposure_view)
+                             engines=engines, exposure=exposure_view,
+                             trade_actions=trade_actions)
     except Exception as exc:  # noqa: BLE001
         log.warning("Dashboard refresh failed: %s", exc)
 
@@ -554,6 +587,112 @@ def _update_trailing_stops(client, settings, symbol=None) -> None:
             continue
         ok, message = modify_position_sl(client, p, new_sl)
         (log.info if ok else log.warning)("Trail: %s", message)
+
+
+# Last Trade Manager action per ticket, for the dashboard ("agents managing
+# trades"). {ticket: {"symbol","side","action","reason","confidence","message"}}
+_TM_ACTIONS: dict = {}
+
+
+def _position_context(client, settings, position, pip: float, snap: Optional[dict]):
+    """Build the JSON context the Trade Manager agent reads for one position."""
+    is_buy = position.type == client.POSITION_TYPE_BUY
+    entry = getattr(position, "price_open", 0.0)
+    current = getattr(position, "price_current", None)
+    if current is None:
+        tick = client.symbol_info_tick(position.symbol)
+        current = (tick.bid if is_buy else tick.ask) if tick else entry
+    ctx = {
+        "ticket": position.ticket, "symbol": position.symbol,
+        "side": "BUY" if is_buy else "SELL",
+        "entry": entry, "current": current,
+        "sl": getattr(position, "sl", 0.0) or 0.0,
+        "tp": getattr(position, "tp", 0.0) or 0.0, "pip": pip,
+        "profit_pips": round(profit_pips(is_buy, entry, current, pip), 1),
+        "breakeven_trigger_pips": settings.breakeven_trigger_pips,
+        "max_partial_fraction": settings.max_partial_fraction,
+    }
+    for k in ("ema_9", "ema_20", "ema_50", "ema_200", "rsi_14", "macd",
+              "macd_signal", "macd_hist", "atr", "er"):
+        if snap and snap.get(k) is not None:
+            ctx[k] = snap[k]
+    return ctx
+
+
+def _manage_positions(client, journal, settings, tm_agent=None) -> None:
+    """Per-symbol trade-lifecycle management for OPEN positions.
+
+    The deterministic breakeven FLOOR always runs first (risk comes off a
+    winner even with no agent). Then, if the Trade Manager agent is enabled, its
+    action (BREAKEVEN / PARTIAL / EXIT) is applied THROUGH the guardrailed
+    primitives. Never opens or enlarges a position. Runs while paused too, so
+    open risk is always managed; skipped only in READ_ONLY mode.
+    """
+    if settings.mode is Mode.READ_ONLY:
+        return
+    for symbol in settings.symbols:
+        positions = client.positions_get(symbol=symbol) or []
+        if not positions:
+            continue
+        pip = pip_size(client, symbol)
+        if not pip:
+            continue
+        info = client.symbol_info(symbol)
+        min_lot = float(getattr(info, "volume_min", 0.0) or 0.01)
+        lot_step = float(getattr(info, "volume_step", 0.0) or 0.01)
+        snap = None
+        if tm_agent is not None:
+            try:
+                snap = market_snapshot(client, symbol, settings.timeframe,
+                                       settings.atr_period)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Trade manager snapshot failed for %s: %s", symbol, exc)
+
+        for p in positions:
+            try:
+                # 1) Deterministic breakeven floor (always).
+                ok, msg = move_to_breakeven(client, p, pip,
+                                            settings.breakeven_trigger_pips)
+                if ok:
+                    log.info("Breakeven floor: %s", msg)
+                    journal.log_order(symbol, "MANAGE", p.volume, None, None,
+                                      None, p.ticket, "BREAKEVEN_FLOOR", msg)
+
+                if tm_agent is None:
+                    continue
+
+                # 2) Agent-managed action, through the guardrailed primitives.
+                ctx = _position_context(client, settings, p, pip, snap)
+                action = tm_agent(ctx)
+                _TM_ACTIONS[p.ticket] = {
+                    "symbol": symbol, "side": ctx["side"], "action": action.action,
+                    "reason": action.reason,
+                    "confidence": round(float(action.confidence), 2),
+                    "profit_pips": ctx["profit_pips"], "message": "",
+                }
+                if action.action == "HOLD":
+                    continue
+                if action.action == "BREAKEVEN":
+                    # Agent-driven: move to entry now (tighten-only), trigger 0.
+                    ok, msg = move_to_breakeven(client, p, pip, 0.0)
+                elif action.action == "PARTIAL":
+                    ok, msg, _lots = partial_close(client, p, action.fraction,
+                                                   min_lot, lot_step)
+                elif action.action == "EXIT":
+                    ok, msg = close_position(client, p.ticket)
+                else:
+                    ok, msg = False, "unknown action"
+                _TM_ACTIONS[p.ticket]["message"] = msg
+                (log.info if ok else log.warning)(
+                    "TradeManager[%s] %s (conf %.2f): %s | %s", symbol,
+                    action.action, action.confidence, action.reason, msg)
+                if ok:
+                    journal.log_order(symbol, f"MANAGE:{action.action}", p.volume,
+                                      None, None, None, p.ticket,
+                                      action.action, f"{action.reason} | {msg}")
+            except Exception as exc:  # noqa: BLE001  -- one bad position can't stall
+                log.warning("Trade manager error on ticket %s: %s",
+                            getattr(p, "ticket", "?"), exc)
 
 
 def _signal_flags(decision, thinking) -> tuple:
@@ -653,7 +792,7 @@ def _account_exposure(client, settings, positions) -> dict:
 
 def _run_once(client, journal, settings, strategy_fn, limits, tracker,
               planner_cfgs, state: Optional[ControlState] = None,
-              prop_guard=None) -> None:
+              prop_guard=None, tm_agent=None) -> None:
     active = state.is_active() if state is not None else True
 
     account = client.account_info()
@@ -740,12 +879,22 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
         for sym in settings.symbols:
             _update_trailing_stops(client, settings, symbol=sym)
 
+    # Per-symbol trade-lifecycle management: deterministic breakeven floor
+    # always, plus the Trade Manager agent's breakeven/partial/exit when on.
+    _manage_positions(client, journal, settings, tm_agent=tm_agent)
+
     control = {"active": active, "prop": prop_on} if state is not None else None
-    exposure_view = _account_exposure(client, settings,
-                                      client.positions_get() or [])
+    open_now = client.positions_get() or []
+    exposure_view = _account_exposure(client, settings, open_now)
+    # Trade Manager actions for positions that are still open (prune closed).
+    open_tickets = {getattr(p, "ticket", None) for p in open_now}
+    for t in list(_TM_ACTIONS):
+        if t not in open_tickets:
+            _TM_ACTIONS.pop(t, None)
+    trade_actions = [_TM_ACTIONS[t] for t in open_tickets if t in _TM_ACTIONS]
     _refresh_dashboard(client, journal, settings, control=control,
                        thinking=thinking, prop=prop, engines=breakdown,
-                       exposure_view=exposure_view)
+                       exposure_view=exposure_view, trade_actions=trade_actions)
 
     # Compact "why" for the single status line: the reason trading is held, or
     # otherwise the primary symbol's live analyst call. The full detail (and any
@@ -1012,6 +1161,7 @@ def run(settings: Optional[Settings] = None, client=None,
     _print_banner(settings)
     journal = journal or Journal(settings.db_path)
     strategy_fn = strategy_fn or make_strategy(settings)
+    tm_agent = make_trade_manager(settings)
     planner_cfgs = make_planner_configs(settings)
     limits = RiskLimits(settings.daily_max_loss, settings.total_max_loss,
                         settings.max_open_positions)
@@ -1079,7 +1229,8 @@ def run(settings: Optional[Settings] = None, client=None,
 
             try:
                 _run_once(client, journal, settings, strategy_fn, limits,
-                          tracker, planner_cfgs, state, prop_guard)
+                          tracker, planner_cfgs, state, prop_guard,
+                          tm_agent=tm_agent)
                 consecutive_failures = 0
             except Exception as exc:  # noqa: BLE001
                 consecutive_failures += 1

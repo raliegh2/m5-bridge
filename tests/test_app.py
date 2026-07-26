@@ -2,14 +2,82 @@
 
 from unittest.mock import patch
 
-from mt5_ai_bridge.app import (_bot_thinking, account_snapshot, connect,
-                               make_strategy, run)
+from mt5_ai_bridge.app import (_bot_thinking, _manage_positions, account_snapshot,
+                               connect, make_strategy, make_trade_manager, run)
 from mt5_ai_bridge.enums import Mode, Signal
 from mt5_ai_bridge.journal import Journal
 from mt5_ai_bridge.reasoning import ReasoningStrategy
 from mt5_ai_bridge.strategy import Decision, evaluate_strategy
+from mt5_ai_bridge.trade_agent import TradeAction
 from tests.fakes import (FakeMT5Client, make_account, make_order_result,
-                         make_settings, make_symbol_info, make_tick)
+                         make_position, make_settings, make_symbol_info, make_tick)
+
+
+class _RecJournal:
+    """Minimal journal double capturing log_order calls."""
+
+    def __init__(self):
+        self.orders = []
+
+    def log_order(self, *a, **k):
+        self.orders.append(a)
+        return len(self.orders)
+
+
+def test_manage_positions_runs_deterministic_breakeven_floor_without_agent():
+    # +25 pips on a buy, trigger 15 -> floor moves SL to entry, no agent needed.
+    pos = make_position(ticket=1, ptype=FakeMT5Client.POSITION_TYPE_BUY,
+                        price_open=1.2700, price_current=1.2725, sl=0.0, volume=0.10)
+    client = FakeMT5Client(positions=[pos], tick=make_tick(),
+                           symbol_info=make_symbol_info(), order_result=make_order_result())
+    settings = make_settings(symbols=("GBPUSD",), mode=Mode.AUTO,
+                             breakeven_trigger_pips=15, trade_manager=False)
+    _manage_positions(client, _RecJournal(), settings, tm_agent=None)
+    sltp = [r for r in client.sent_requests if r["action"] == client.TRADE_ACTION_SLTP]
+    assert sltp and sltp[-1]["sl"] == 1.2700
+
+
+def test_manage_positions_agent_exit_closes_full_position(monkeypatch):
+    pos = make_position(ticket=2, ptype=FakeMT5Client.POSITION_TYPE_BUY,
+                        price_open=1.2700, price_current=1.2705, sl=0.0, volume=0.10)
+    client = FakeMT5Client(positions=[pos], tick=make_tick(bid=1.2705, ask=1.2707),
+                           symbol_info=make_symbol_info(), order_result=make_order_result())
+    settings = make_settings(symbols=("GBPUSD",), mode=Mode.AUTO, trade_manager=True)
+    monkeypatch.setattr("mt5_ai_bridge.app.market_snapshot",
+                        lambda *a, **k: {"rsi_14": 40})
+    agent = lambda ctx: TradeAction("EXIT", 0.0, 0.9, "reversal")  # noqa: E731
+    _manage_positions(client, _RecJournal(), settings, tm_agent=agent)
+    deals = [r for r in client.sent_requests if r["action"] == client.TRADE_ACTION_DEAL]
+    assert deals and deals[-1]["position"] == 2 and deals[-1]["volume"] == 0.10
+
+
+def test_manage_positions_agent_partial_banks_bounded_fraction(monkeypatch):
+    pos = make_position(ticket=3, ptype=FakeMT5Client.POSITION_TYPE_BUY,
+                        price_open=1.2700, price_current=1.2705, sl=0.0, volume=0.10)
+    client = FakeMT5Client(positions=[pos], tick=make_tick(bid=1.2705, ask=1.2707),
+                           symbol_info=make_symbol_info(), order_result=make_order_result())
+    settings = make_settings(symbols=("GBPUSD",), mode=Mode.AUTO, trade_manager=True,
+                             max_partial_fraction=0.5)
+    monkeypatch.setattr("mt5_ai_bridge.app.market_snapshot", lambda *a, **k: {})
+    agent = lambda ctx: TradeAction("PARTIAL", 0.5, 0.9, "cooling")  # noqa: E731
+    _manage_positions(client, _RecJournal(), settings, tm_agent=agent)
+    deals = [r for r in client.sent_requests if r["action"] == client.TRADE_ACTION_DEAL]
+    assert deals and deals[-1]["volume"] == 0.05
+
+
+def test_manage_positions_noop_in_read_only():
+    pos = make_position(ticket=4, price_open=1.2700, price_current=1.2740, volume=0.10)
+    client = FakeMT5Client(positions=[pos], tick=make_tick(),
+                           symbol_info=make_symbol_info(), order_result=make_order_result())
+    settings = make_settings(symbols=("GBPUSD",), mode=Mode.READ_ONLY, trade_manager=True)
+    _manage_positions(client, _RecJournal(), settings, tm_agent=lambda ctx: TradeAction("EXIT"))
+    assert client.sent_requests == []
+
+
+def test_make_trade_manager_off_by_default_on_when_enabled():
+    assert make_trade_manager(make_settings()) is None
+    agent = make_trade_manager(make_settings(trade_manager=True))
+    assert agent is not None
 
 
 def _rates(n=250):

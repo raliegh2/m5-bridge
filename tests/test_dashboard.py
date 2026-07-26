@@ -126,6 +126,31 @@ def test_dashboard_shows_analyst_agent_thinking_and_bot_description(tmp_path):
     assert "multi-symbol demo trading bot" in html
 
 
+def test_dashboard_shows_trade_manager_actions(tmp_path):
+    j = Journal(str(tmp_path / "tm.db"))
+    actions = [
+        {"symbol": "GBPUSD", "side": "BUY", "action": "PARTIAL",
+         "reason": "momentum cooling", "confidence": 0.8, "profit_pips": 22.0,
+         "message": "Closed 0.05 of 0.1 on 42"},
+        {"symbol": "XAUUSD", "side": "SELL", "action": "EXIT",
+         "reason": "RSI reversing up", "confidence": 0.9, "profit_pips": 15.0,
+         "message": "Position closed"},
+    ]
+    html = build_dashboard(j, live=_live(), trade_actions=actions)
+    j.close()
+    assert "Trade desk" in html
+    assert "PARTIAL" in html and "EXIT" in html
+    assert "momentum cooling" in html
+    assert "RSI reversing up" in html
+
+
+def test_dashboard_trade_desk_empty_state_when_live(tmp_path):
+    j = Journal(str(tmp_path / "tm2.db"))
+    html = build_dashboard(j, live=_live(), trade_actions=[])
+    j.close()
+    assert "No open positions to manage" in html
+
+
 # --- live -------------------------------------------------------------------
 
 def test_live_dashboard_shows_pl_rr_session_pips(tmp_path):
