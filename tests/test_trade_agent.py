@@ -114,3 +114,13 @@ def test_agent_per_symbol_confidence_override():
 def test_agent_no_context_holds():
     agent = TradeManagerAgent(TradeManagerConfig())
     assert agent(None).action == "HOLD"
+
+
+def test_last_was_fresh_true_on_model_call_false_on_cache_hit():
+    t = _reply([{"action": "EXIT", "confidence": 0.9, "reason": "one"}])
+    agent = TradeManagerAgent(
+        TradeManagerConfig(min_interval_seconds=999), client=t)
+    agent(_ctx(ticket=1))
+    assert agent.last_was_fresh is True          # real model call
+    agent(_ctx(ticket=1))                         # throttled cache hit
+    assert agent.last_was_fresh is False          # not a fresh decision

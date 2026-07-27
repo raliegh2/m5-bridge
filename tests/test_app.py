@@ -80,6 +80,50 @@ def test_make_trade_manager_off_by_default_on_when_enabled():
     assert agent is not None
 
 
+def test_entry_gate_confirms_veto_and_fail_open():
+    from mt5_ai_bridge.app import _entry_gate_ok
+    # No gate -> always allowed (fail-open).
+    ok, _ = _entry_gate_ok(None, {"rsi_14": 60}, Signal.BUY)
+    assert ok is True
+    # Agent agreeing with the intended side -> confirm.
+    agree = lambda snap: Decision(Signal.BUY, "confluence up", 0.8)  # noqa: E731
+    ok, reason = _entry_gate_ok(agree, {"rsi_14": 60}, Signal.BUY)
+    assert ok is True and "confluence up" in reason
+    # Agent disagreeing (WAIT or opposite) -> veto.
+    wait = lambda snap: Decision(Signal.WAIT, "chop", 0.2)           # noqa: E731
+    ok, reason = _entry_gate_ok(wait, {"rsi_14": 50}, Signal.BUY)
+    assert ok is False and "WAIT" in reason
+    opp = lambda snap: Decision(Signal.SELL, "bearish", 0.9)         # noqa: E731
+    ok, reason = _entry_gate_ok(opp, {"rsi_14": 40}, Signal.BUY)
+    assert ok is False
+    # Empty snapshot -> allow (fail-open).
+    assert _entry_gate_ok(agree, None, Signal.BUY)[0] is True
+
+
+def test_entry_gate_relays_the_engine_proposal_to_the_analyst():
+    """The engine's proposed side + its confluence reasoning are passed verbatim
+    into the analyst's context, so it confirms/vetoes THAT specific trade."""
+    from mt5_ai_bridge.app import _entry_gate_ok
+    seen = {}
+
+    def capture(ctx):
+        seen.update(ctx)
+        return Decision(Signal.BUY, "agrees", 0.8)
+
+    _entry_gate_ok(capture, {"rsi_14": 61, "symbol": "GBPUSD"}, Signal.BUY,
+                   proposed_reason="Bull confluence: ema20/50 trend, macd cross")
+    assert seen["proposed_side"] == "BUY"
+    assert seen["proposed_reason"] == "Bull confluence: ema20/50 trend, macd cross"
+    assert seen["rsi_14"] == 61                    # original snapshot preserved
+
+
+def test_make_entry_gate_off_by_default_on_when_enabled():
+    from mt5_ai_bridge.app import make_entry_gate
+    assert make_entry_gate(make_settings()) is None
+    gate = make_entry_gate(make_settings(entry_gate=True))
+    assert gate is not None
+
+
 def test_position_context_carries_shared_entry_read():
     """The manager sees the SAME confluence engine's current verdict, and
     whether it supports or opposes the open position."""
@@ -102,25 +146,28 @@ def test_position_context_carries_shared_entry_read():
     assert ctx2["read_vs_position"] == "opposes"
 
 
-def test_desk_note_is_one_descriptive_line():
+def test_desk_note_is_one_line_with_purpose_and_thought():
     from mt5_ai_bridge.app import _desk_note
     off = make_settings(trade_manager=False)
-    on = make_settings(trade_manager=True)
+    on = make_settings(trade_manager=True)          # backend defaults to ollama
     # Disabled -> nothing appended.
     assert _desk_note(off, [{"symbol": "GBPUSD", "action": "EXIT"}]) == ""
-    # Enabled, no trades.
-    assert _desk_note(on, []) == "desk idle (no open trades)"
-    # Enabled, all holding.
-    holding = [{"symbol": "GBPUSD", "action": "HOLD"},
-               {"symbol": "EURUSD", "action": "HOLD"}]
-    assert _desk_note(on, holding) == "desk: watching 2 open, all holding"
-    # Enabled, acting -> names symbol, action, and a short reason, single line.
+    # Enabled, no trades -> states purpose + idle, single line.
+    assert _desk_note(on, []) == "desk[ollama] idle — no open trades"
+    # Enabled, all holding -> surfaces a held position's live thought.
+    holding = [{"symbol": "GBPUSD", "action": "HOLD",
+                "reason": "engine still supports long, momentum strong"},
+               {"symbol": "EURUSD", "action": "HOLD", "reason": "trend intact"}]
+    note = _desk_note(on, holding)
+    assert note.startswith("desk[ollama] holding 2 — GBPUSD: ")
+    assert "engine still supports long" in note and "\n" not in note
+    # Enabled, acting -> names symbol, action, and its live reason, single line.
     acting = [{"symbol": "XAUUSD", "action": "EXIT",
-               "reason": "RSI rolling down through the mid, trend done"},
+               "reason": "engine opposes position, momentum weakening"},
               {"symbol": "GBPUSD", "action": "PARTIAL", "reason": "cooling"}]
     note = _desk_note(on, acting)
-    assert note.startswith("desk: XAUUSD EXIT — ")
-    assert "(+1)" in note and "\n" not in note
+    assert note.startswith("desk[ollama] XAUUSD EXIT +1: ")
+    assert "\n" not in note
 
 
 def _rates(n=250):

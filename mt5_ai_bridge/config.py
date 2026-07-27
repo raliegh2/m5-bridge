@@ -179,6 +179,18 @@ class Settings:
     tm_confidence_overrides: tuple = ()
     tm_interval_overrides: tuple = ()
 
+    # LLM entry gate: the deterministic engine still FINDS setups; when this is
+    # on, the analyst confirms or vetoes each prospective NEW trade before it
+    # opens (one call per new candle per symbol, thanks to the analyst's cache).
+    # OFF by default; fail-OPEN (a down/slow model defers to the rule engine, so
+    # it never blocks all trading). Backend "ollama" needs `ollama serve`;
+    # "claude" needs ANTHROPIC_API_KEY. Reads agent_prompts/analyst.md.
+    entry_gate: bool = False
+    entry_gate_backend: str = "ollama"
+    entry_gate_model: str = "llama3.2:3b"
+    entry_gate_host: str = "http://localhost:11434"
+    entry_gate_min_confidence: float = 0.6
+
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
@@ -437,4 +449,9 @@ def load_settings(dotenv: bool = True) -> Settings:
         max_partial_fraction=_get_float("MAX_PARTIAL_FRACTION", 0.5),
         tm_confidence_overrides=tm_conf_overrides,
         tm_interval_overrides=tm_int_overrides,
+        entry_gate=_get_bool("ENTRY_GATE", False),
+        entry_gate_backend=_get_str("ENTRY_GATE_BACKEND", "ollama").lower(),
+        entry_gate_model=_get_str("ENTRY_GATE_MODEL", "llama3.2:3b"),
+        entry_gate_host=_get_str("ENTRY_GATE_HOST", "http://localhost:11434"),
+        entry_gate_min_confidence=_get_float("ENTRY_GATE_MIN_CONFIDENCE", 0.6),
     )

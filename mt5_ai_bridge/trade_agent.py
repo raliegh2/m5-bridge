@@ -123,6 +123,10 @@ class TradeManagerAgent:
         # Circuit breaker state (shared across tickets).
         self._fails = 0
         self._cooldown_until = 0.0
+        # True only when the LAST __call__ produced a fresh model decision (not a
+        # throttled cache hit or cooldown). The loop applies actions only on a
+        # fresh decision, so a held cache is never re-issued every loop.
+        self.last_was_fresh = False
 
     def _min_confidence_for(self, symbol) -> float:
         return self.config.per_symbol_confidence.get(
@@ -133,6 +137,7 @@ class TradeManagerAgent:
             str(symbol).upper(), self.config.min_interval_seconds)
 
     def __call__(self, ctx: Optional[dict]) -> TradeAction:
+        self.last_was_fresh = False
         if not ctx:
             return TradeAction("HOLD", 0.0, 0.0, "No position context.")
         ticket = ctx.get("ticket", "_")
@@ -140,14 +145,14 @@ class TradeManagerAgent:
         now = time.monotonic()
         entry = self._cache.get(ticket)
         if entry is not None and (now - entry["call_time"]) < self._interval_for(symbol):
-            return entry["action"]
+            return entry["action"]                # throttled cache hit -> not fresh
 
         # Circuit breaker: while cooling down after repeated failures, skip the
         # model entirely and use the deterministic floor -- no blocking calls.
         if now < self._cooldown_until:
             action = rule_trade_action(ctx, self.config)
             self._cache[ticket] = {"call_time": now, "action": action}
-            return action
+            return action                         # cooldown -> not fresh
 
         try:
             text = self._call_model(ctx)
@@ -167,6 +172,7 @@ class TradeManagerAgent:
                 log.warning("TradeManagerAgent failed for ticket %s: %s", ticket, e)
             action = rule_trade_action(ctx, self.config)
 
+        self.last_was_fresh = True                # a real decision cycle ran
         self._cache[ticket] = {"call_time": now, "action": action}
         return action
 
@@ -189,6 +195,9 @@ class TradeManagerAgent:
             ],
             "stream": False,
             "format": "json",
+            # Keep the model resident between calls so it never cold-loads
+            # mid-session (a cold load can time out and log as "ollama down").
+            "keep_alive": "30m",
         }
         req = urllib.request.Request(
             f"{self.config.host.rstrip('/')}/api/chat",

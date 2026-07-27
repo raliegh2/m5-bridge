@@ -62,6 +62,9 @@ class OllamaStrategy(ThrottledLLMStrategy):
             ],
             "stream": False,
             "format": "json",  # ask Ollama to constrain output to valid JSON
+            # Keep the model resident while the bot is running so it never has
+            # to cold-load between calls (which can time out and look "down").
+            "keep_alive": "30m",
         }
         body = self._client(payload) if self._client is not None \
             else self._post(payload)

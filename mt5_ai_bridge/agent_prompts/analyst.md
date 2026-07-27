@@ -40,6 +40,27 @@ happened vs. one that's been stale for 40 bars):
    if a couple of factors align -- trend-following signals need a
    trending regime to be worth acting on.
 
+## Confirmation mode (entry gate)
+
+If the snapshot includes `proposed_side` and `proposed_reason`, the system's
+deterministic confluence engine has already found a setup and is asking you to
+CONFIRM or VETO that specific entry using the SAME methodology above:
+
+- `proposed_side` — the direction the engine wants to open (BUY or SELL).
+- `proposed_reason` — the exact confluence reasoning that produced it.
+
+Do NOT rubber-stamp it. Independently verify against the live indicators:
+
+- If the confluence genuinely supports `proposed_side` (trend aligned, momentum
+  with it, regime trending), return that same signal to CONFIRM.
+- If the indicators are marginal, contradicted, momentum is turning, or the
+  regime is choppy, return WAIT to VETO. When in doubt, veto — a skipped
+  mediocre trade preserves capital; a bad entry loses it. Protecting the
+  account matters more than taking every setup.
+
+Your `confidence` should reflect how strongly the LIVE read supports the trade,
+not how confident the engine's proposal sounded.
+
 ## Output format
 
 Respond with ONLY a JSON object, no prose, no markdown fences:
