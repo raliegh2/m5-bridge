@@ -49,7 +49,7 @@ from .planner import (SessionConfig, SizingConfig, StaggerConfig, StyleConfig,
                       build_plan, is_ny_session, position_size, stagger)
 from .claude_strategy import ClaudeStrategy, ClaudeStrategyConfig
 from .ollama_strategy import OllamaStrategy, OllamaStrategyConfig
-from .reasoning import ReasoningConfig, ReasoningStrategy
+from .reasoning import ReasoningConfig, ReasoningStrategy, reason
 from .risk_engine import DailyLossTracker, RiskLimits, check_risk
 from .sizing import AtrConfig, RiskConfig, atr_stops, risk_lot
 from .strategy import evaluate_strategy
@@ -636,6 +636,27 @@ def _position_context(client, settings, position, pip: float, snap: Optional[dic
               "macd_signal", "macd_hist", "atr", "er"):
         if snap and snap.get(k) is not None:
             ctx[k] = snap[k]
+
+    # The SAME confluence logic that governs entries (reasoning.py / analyst.md),
+    # evaluated on this live MT5 snapshot. This anchors the manager to the model
+    # that opened the trade: it can see whether that thesis still SUPPORTS the
+    # position, has gone NEUTRAL, or has flipped to OPPOSE it (a reversal) --
+    # the basis for retaining profit (breakeven/partial) or banking it (exit).
+    if snap:
+        d = reason(snap, ReasoningConfig(
+            threshold=settings.reasoning_threshold,
+            rsi_overbought=settings.rsi_overbought,
+            rsi_oversold=settings.rsi_oversold))
+        ctx["entry_read"] = {
+            "signal": d.signal.value,
+            "confidence": round(float(d.confidence), 2),
+            "reason": d.reason,
+        }
+        sig = d.signal.value
+        ctx["read_vs_position"] = (
+            "supports" if sig == ctx["side"]
+            else "opposes" if sig in ("BUY", "SELL")
+            else "neutral")
     return ctx
 
 
@@ -690,7 +711,11 @@ def _manage_positions(client, journal, settings, tm_agent=None) -> None:
                     "confidence": round(float(action.confidence), 2),
                     "profit_pips": ctx["profit_pips"], "message": "",
                 }
-                if action.action == "HOLD":
+                # Apply ONLY on a fresh decision (throttled ~per interval), never
+                # a re-issued cache hit -- otherwise the same action fires every
+                # loop and floods the log. HOLD never acts.
+                fresh = getattr(tm_agent, "last_was_fresh", True)
+                if action.action == "HOLD" or not fresh:
                     continue
                 if action.action == "BREAKEVEN":
                     # Agent-driven: move to entry now (tighten-only), trigger 0.
@@ -703,13 +728,17 @@ def _manage_positions(client, journal, settings, tm_agent=None) -> None:
                 else:
                     ok, msg = False, "unknown action"
                 _TM_ACTIONS[p.ticket]["message"] = msg
-                (log.info if ok else log.warning)(
-                    "TradeManager[%s] %s (conf %.2f): %s | %s", symbol,
-                    action.action, action.confidence, action.reason, msg)
                 if ok:
+                    log.info("TradeManager[%s] %s (conf %.2f): %s | %s", symbol,
+                             action.action, action.confidence, action.reason, msg)
                     journal.log_order(symbol, f"MANAGE:{action.action}", p.volume,
                                       None, None, None, p.ticket,
                                       action.action, f"{action.reason} | {msg}")
+                else:
+                    # Benign no-op (e.g. breakeven not earned yet) -> debug only,
+                    # so the log is not flooded with expected non-actions.
+                    log.debug("TradeManager[%s] %s no-op: %s | %s", symbol,
+                              action.action, action.reason, msg)
             except Exception as exc:  # noqa: BLE001  -- one bad position can't stall
                 log.warning("Trade manager error on ticket %s: %s",
                             getattr(p, "ticket", "?"), exc)

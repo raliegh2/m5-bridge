@@ -80,6 +80,28 @@ def test_make_trade_manager_off_by_default_on_when_enabled():
     assert agent is not None
 
 
+def test_position_context_carries_shared_entry_read():
+    """The manager sees the SAME confluence engine's current verdict, and
+    whether it supports or opposes the open position."""
+    from mt5_ai_bridge.app import _position_context
+    client = FakeMT5Client(tick=make_tick(bid=1.2800, ask=1.2802),
+                           symbol_info=make_symbol_info())
+    settings = make_settings(reasoning_threshold=0.5)
+    # A clean BULL snapshot (all confluence up) on a BUY position -> supports.
+    bull = {"ema_20": 1.281, "ema_50": 1.279, "ema_200": 1.270, "close": 1.282,
+            "rsi_14": 62, "macd": 0.6, "macd_signal": 0.2, "macd_hist": 0.4}
+    pos = make_position(ticket=1, ptype=FakeMT5Client.POSITION_TYPE_BUY,
+                        price_open=1.2750, price_current=1.2800)
+    ctx = _position_context(client, settings, pos, 0.0001, bull)
+    assert ctx["entry_read"]["signal"] == "BUY"
+    assert ctx["read_vs_position"] == "supports"
+    # Same bull read but a SELL position -> the engine now opposes it (reversal).
+    sell_pos = make_position(ticket=2, ptype=FakeMT5Client.POSITION_TYPE_SELL,
+                             price_open=1.2850, price_current=1.2800)
+    ctx2 = _position_context(client, settings, sell_pos, 0.0001, bull)
+    assert ctx2["read_vs_position"] == "opposes"
+
+
 def test_desk_note_is_one_descriptive_line():
     from mt5_ai_bridge.app import _desk_note
     off = make_settings(trade_manager=False)
