@@ -103,6 +103,54 @@ def test_dashboard_shows_waiting_and_timeframe_why_text(tmp_path):
     assert "MACD above zero" in html
 
 
+def test_dashboard_shows_analyst_agent_thinking_and_bot_description(tmp_path):
+    j = Journal(str(tmp_path / "analyst.db"))
+    thinking = {
+        "aligned": True, "bias": "BUY", "note": "aligned",
+        "analyst": {"agent": "ollama", "blurb": "local Ollama analyst",
+                    "signal": "BUY", "confidence": 0.82,
+                    "reason": "clean uptrend, MACD rising"},
+        "timeframes": [
+            {"label": "Entry", "tf": "M15", "signal": "BUY", "confidence": 0.82,
+             "reason": "price above EMA 200.", "agent_reason": "model: go long"},
+        ],
+    }
+    html = build_dashboard(j, live=_live(), thinking=thinking)
+    j.close()
+    # The analyst agent, its confidence and its own words all render.
+    assert "Analyst" in html
+    assert "ollama" in html
+    assert "clean uptrend, MACD rising" in html
+    assert "model: go long" in html            # the per-read agent sentence
+    # A short bot description is present on the page.
+    assert "multi-symbol demo trading bot" in html
+
+
+def test_dashboard_shows_trade_manager_actions(tmp_path):
+    j = Journal(str(tmp_path / "tm.db"))
+    actions = [
+        {"symbol": "GBPUSD", "side": "BUY", "action": "PARTIAL",
+         "reason": "momentum cooling", "confidence": 0.8, "profit_pips": 22.0,
+         "message": "Closed 0.05 of 0.1 on 42"},
+        {"symbol": "XAUUSD", "side": "SELL", "action": "EXIT",
+         "reason": "RSI reversing up", "confidence": 0.9, "profit_pips": 15.0,
+         "message": "Position closed"},
+    ]
+    html = build_dashboard(j, live=_live(), trade_actions=actions)
+    j.close()
+    assert "Trade desk" in html
+    assert "PARTIAL" in html and "EXIT" in html
+    assert "momentum cooling" in html
+    assert "RSI reversing up" in html
+
+
+def test_dashboard_trade_desk_empty_state_when_live(tmp_path):
+    j = Journal(str(tmp_path / "tm2.db"))
+    html = build_dashboard(j, live=_live(), trade_actions=[])
+    j.close()
+    assert "No open positions to manage" in html
+
+
 # --- live -------------------------------------------------------------------
 
 def test_live_dashboard_shows_pl_rr_session_pips(tmp_path):

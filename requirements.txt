@@ -4,6 +4,7 @@ pandas>=2.0
 python-dotenv>=1.0
 tzdata ; platform_system == "Windows"   # EST/EDT zone data for the dashboard clock
 databento>=0.50
+anthropic>=0.40  # only required when STRATEGY=claude
 
 # Dev / test
 pytest>=7.0

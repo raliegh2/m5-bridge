@@ -47,16 +47,47 @@ from . import regime
 from . import exposure
 from .planner import (SessionConfig, SizingConfig, StaggerConfig, StyleConfig,
                       build_plan, is_ny_session, position_size, stagger)
-from .reasoning import ReasoningConfig, ReasoningStrategy
+from .claude_strategy import ClaudeStrategy, ClaudeStrategyConfig
+from .ollama_strategy import OllamaStrategy, OllamaStrategyConfig
+from .reasoning import ReasoningConfig, ReasoningStrategy, reason
 from .risk_engine import DailyLossTracker, RiskLimits, check_risk
 from .sizing import AtrConfig, RiskConfig, atr_stops, risk_lot
 from .strategy import evaluate_strategy
-from .trade_manager import close_position, modify_position_sl, trailing_sl
+from .trade_manager import (close_position, modify_position_sl, move_to_breakeven,
+                            partial_close, profit_pips, trailing_sl)
+from .trade_agent import TradeManagerAgent, TradeManagerConfig
 
 log = get_logger("app")
 
 
 def make_strategy(settings: Settings) -> Callable:
+    if settings.strategy == "ollama":
+        fallback = ReasoningStrategy(ReasoningConfig(
+            threshold=settings.reasoning_threshold,
+            rsi_overbought=settings.rsi_overbought,
+            rsi_oversold=settings.rsi_oversold,
+        ))
+        return OllamaStrategy(OllamaStrategyConfig(
+            model=settings.ollama_model,
+            host=settings.ollama_host,
+            min_confidence=settings.ollama_min_confidence,
+            min_interval_seconds=settings.ollama_min_interval_seconds,
+            per_symbol_confidence=dict(settings.ollama_confidence_overrides),
+            per_symbol_interval=dict(settings.ollama_interval_overrides),
+        ), fallback=fallback)
+    if settings.strategy == "claude":
+        fallback = ReasoningStrategy(ReasoningConfig(
+            threshold=settings.reasoning_threshold,
+            rsi_overbought=settings.rsi_overbought,
+            rsi_oversold=settings.rsi_oversold,
+        ))
+        return ClaudeStrategy(ClaudeStrategyConfig(
+            model=settings.claude_model,
+            min_confidence=settings.claude_min_confidence,
+            min_interval_seconds=settings.claude_min_interval_seconds,
+            per_symbol_confidence=dict(settings.claude_confidence_overrides),
+            per_symbol_interval=dict(settings.claude_interval_overrides),
+        ), fallback=fallback)
     if settings.strategy == "reasoning":
         return ReasoningStrategy(ReasoningConfig(
             threshold=settings.reasoning_threshold,
@@ -64,6 +95,74 @@ def make_strategy(settings: Settings) -> Callable:
             rsi_oversold=settings.rsi_oversold,
         ))
     return evaluate_strategy
+
+
+def make_trade_manager(settings: Settings) -> Optional[TradeManagerAgent]:
+    """Build the per-symbol Trade Manager agent, or None when disabled.
+
+    One instance is shared across every open position (cached/throttled per
+    ticket). It is independent of the entry STRATEGY: the deterministic
+    breakeven floor still runs in the loop even when this returns None, so
+    TRADE_MANAGER only decides whether an LLM ALSO gets to manage exits.
+    """
+    if not settings.trade_manager:
+        return None
+    return TradeManagerAgent(TradeManagerConfig(
+        backend=settings.trade_manager_backend,
+        model=settings.trade_manager_model,
+        host=settings.trade_manager_host,
+        min_confidence=settings.trade_manager_min_confidence,
+        min_interval_seconds=settings.trade_manager_min_interval_seconds,
+        breakeven_trigger_pips=settings.breakeven_trigger_pips,
+        max_partial_fraction=settings.max_partial_fraction,
+        per_symbol_confidence=dict(settings.tm_confidence_overrides),
+        per_symbol_interval=dict(settings.tm_interval_overrides),
+    ))
+
+
+def make_entry_gate(settings: Settings) -> Optional[Callable]:
+    """Build the analyst entry-gate agent, or None when disabled.
+
+    The deterministic engine still finds setups; this agent (the same Analyst,
+    reading agent_prompts/analyst.md) is asked to confirm each prospective NEW
+    trade. It falls back to the rule engine on any model error, so a down model
+    fails OPEN -- it never blocks trading, it just stops adding an extra veto.
+    """
+    if not settings.entry_gate:
+        return None
+    fallback = ReasoningStrategy(ReasoningConfig(
+        threshold=settings.reasoning_threshold,
+        rsi_overbought=settings.rsi_overbought,
+        rsi_oversold=settings.rsi_oversold))
+    if settings.entry_gate_backend == "claude":
+        return ClaudeStrategy(ClaudeStrategyConfig(
+            model=settings.entry_gate_model,
+            min_confidence=settings.entry_gate_min_confidence), fallback=fallback)
+    return OllamaStrategy(OllamaStrategyConfig(
+        model=settings.entry_gate_model, host=settings.entry_gate_host,
+        min_confidence=settings.entry_gate_min_confidence), fallback=fallback)
+
+
+def _entry_gate_ok(gate_agent, snap, side, proposed_reason: str = "") -> tuple:
+    """Ask the analyst gate to confirm a prospective entry on ``side``.
+
+    The deterministic engine's PROPOSAL is relayed verbatim to the analyst --
+    the intended side plus the exact confluence reasoning that produced it --
+    so the analyst confirms/vetoes THAT specific trade using the same
+    methodology, rather than judging in a vacuum. Returns (allowed, reason).
+    Confirms only when the analyst independently favours the SAME side with
+    enough confidence (its config downgrades weak calls to WAIT, so a marginal
+    setup is vetoed -- capital preservation). No gate / no snapshot -> allow
+    (fail-open, deferring to the rule engine that found the setup)."""
+    if gate_agent is None or not snap:
+        return True, ""
+    ctx = dict(snap)
+    ctx["proposed_side"] = side.value
+    ctx["proposed_reason"] = proposed_reason
+    decision = gate_agent(ctx)           # analyst; has its own rule fallback
+    if decision.signal == side:
+        return True, decision.reason
+    return False, f"analyst says {decision.signal.value} ({decision.reason})"
 
 
 def make_planner_configs(settings: Settings):
@@ -280,6 +379,10 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
             "signal": decision.signal.value,
             "confidence": round(float(decision.confidence), 2),
             "reason": explain_market(snap),
+            # The agent's OWN words for this read (the LLM's sentence when
+            # STRATEGY=claude/ollama; the rule engine's confluence string
+            # otherwise). "reason" above is the plain-English indicator read.
+            "agent_reason": decision.reason,
         }
         return decision, view, (snap or {}).get("er")
 
@@ -357,12 +460,25 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
     # Which engines actually trade this symbol (risk > 0), for a per-pair summary.
     trades = [e["name"] for e in engines if e["enabled"]]
 
+    # The Analyst's own decision on the ENTRY read -- who is deciding and what
+    # they think right now. This is what surfaces "the agent thinking" on the
+    # dashboard (the model's sentence when STRATEGY=claude/ollama).
+    entry_decision = decisions.get(entry_tf)
+    analyst = {
+        "agent": settings.strategy,
+        "blurb": strategy_blurb(settings.strategy),
+        "signal": entry_decision.signal.value if entry_decision else Signal.WAIT.value,
+        "confidence": round(float(entry_decision.confidence), 2) if entry_decision else 0.0,
+        "reason": entry_decision.reason if entry_decision else "Gathering the first read…",
+    }
+
     return {
         "timeframes": views,
         "bias": bias.value if bias else ("MULTIPLE" if len(biases) > 1 else "NONE"),
         "aligned": aligned,
         "setup_valid": setup_valid,
         "note": note,
+        "analyst": analyst,
         "engines": engines,
         "trades": trades,
         "regime": regime_info,
@@ -399,6 +515,55 @@ def _count_side(client, positions, symbol: str, side: Signal,
                and (magic is None or getattr(p, "magic", None) == magic))
 
 
+# One-line summaries of what each strategy/agent actually does, shown in the
+# startup banner and on the dashboard so it is always clear who is deciding.
+_STRATEGY_BLURB = {
+    "reasoning": "rule-based confluence engine (EMA/RSI/MACD/ER), no LLM",
+    "claude": "Claude analyst (agent_prompts/analyst.md) picks BUY/SELL/WAIT per symbol",
+    "ollama": "local Ollama analyst (agent_prompts/analyst.md) picks BUY/SELL/WAIT per symbol",
+    "trend": "simple trend-following strategy",
+}
+
+BOT_DESCRIPTION = (
+    "MT5 AI Bridge — a multi-symbol demo trading bot. An Analyst picks a "
+    "direction per symbol from live indicators; deterministic risk sizing "
+    "and execution then place and manage the trade under an account-level "
+    "session risk guard."
+)
+
+
+def strategy_blurb(strategy: str) -> str:
+    return _STRATEGY_BLURB.get(strategy, strategy)
+
+
+def _print_banner(settings) -> None:
+    """Print a short, one-time description of the bot at startup."""
+    if not settings.console_status:
+        return
+    line = "=" * 68
+    print(f"\n{line}")
+    print("  MT5 AI Bridge")
+    print("  A multi-symbol demo trading bot. An Analyst reads live indicators")
+    print("  and picks BUY/SELL/WAIT per symbol; deterministic risk sizing and")
+    print("  execution place and manage each trade under a session risk guard.")
+    print(f"  Analyst : {settings.strategy} — {strategy_blurb(settings.strategy)}")
+    if settings.entry_gate:
+        print(f"  Gate    : ON ({settings.entry_gate_backend} "
+              f"{settings.entry_gate_model}) — analyst confirms/vetoes entries")
+    else:
+        print("  Gate    : off — entries decided by the rule engine")
+    if settings.trade_manager:
+        print(f"  TradeMgr: ON ({settings.trade_manager_backend}) — breakeven/"
+              f"partial/exit; deterministic breakeven floor at "
+              f"{settings.breakeven_trigger_pips:g}p")
+    else:
+        print("  TradeMgr: off — deterministic breakeven floor only")
+    print(f"  Mode    : {settings.mode.value}   Symbols: {', '.join(settings.symbols)}")
+    print(f"  Dashboard: http://{settings.dashboard_host}:{settings.dashboard_port}"
+          if settings.serve_dashboard else "  Dashboard: (disabled)")
+    print(f"{line}\n")
+
+
 def _announce_open(settings, side, volume, book, sl_pips, tp_pips,
                    symbol=None) -> None:
     if not settings.console_status:
@@ -407,7 +572,7 @@ def _announce_open(settings, side, volume, book, sl_pips, tp_pips,
           f"({book})  SL {sl_pips:g}p / TP {tp_pips:g}p")
 
 
-def _print_status(client, settings, active: bool = True) -> None:
+def _print_status(client, settings, active: bool = True, note: str = "") -> None:
     if not settings.console_status:
         return
     try:
@@ -418,8 +583,15 @@ def _print_status(client, settings, active: bool = True) -> None:
     lots = sum(getattr(p, "volume", 0.0) for p in positions)
     pl = (account.equity - account.balance) if account else 0.0
     state = "ACTIVE" if active else "PAUSED"
-    print(f"\r{est_now()} | {settings.symbol} | {state} | active {len(positions)} | "
-          f"lots {lots:.2f} | P/L {pl:+.2f}      ", end="", flush=True)
+    tail = f" | {note}" if note else ""
+    # Size to the ACTUAL terminal width so the line never wraps (a wrapped line
+    # can't be redrawn in place and looks like a new line each loop). Pad/clip
+    # to width-1 so \r overwrites the whole line and leaves no fragments.
+    import shutil
+    width = max(40, shutil.get_terminal_size((120, 20)).columns - 1)
+    line = (f"{est_now()} | {settings.symbol} | {state} | pos {len(positions)} | "
+            f"lots {lots:.2f} | P/L {pl:+.2f}{tail}")
+    print(f"\r{line:<{width}.{width}}", end="", flush=True)
 
 
 def _status(settings, message: str) -> None:
@@ -434,7 +606,7 @@ def _status(settings, message: str) -> None:
 
 def _refresh_dashboard(client, journal, settings, control=None,
                        thinking=None, prop=None, engines=None,
-                       exposure_view=None) -> None:
+                       exposure_view=None, trade_actions=None) -> None:
     if not settings.write_dashboard:
         return
     try:
@@ -443,11 +615,13 @@ def _refresh_dashboard(client, journal, settings, control=None,
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking,
                              port=settings.dashboard_port, prop=prop,
-                             engines=engines, exposure=exposure_view)
+                             engines=engines, exposure=exposure_view,
+                             trade_actions=trade_actions)
         write_dashboard_data(journal, snap, _data_path(settings),
                              settings.dashboard_refresh_seconds,
                              control=control, thinking=thinking, prop=prop,
-                             engines=engines, exposure=exposure_view)
+                             engines=engines, exposure=exposure_view,
+                             trade_actions=trade_actions)
     except Exception as exc:  # noqa: BLE001
         log.warning("Dashboard refresh failed: %s", exc)
 
@@ -466,6 +640,169 @@ def _update_trailing_stops(client, settings, symbol=None) -> None:
             continue
         ok, message = modify_position_sl(client, p, new_sl)
         (log.info if ok else log.warning)("Trail: %s", message)
+
+
+# Last Trade Manager action per ticket, for the dashboard ("agents managing
+# trades"). {ticket: {"symbol","side","action","reason","confidence","message"}}
+_TM_ACTIONS: dict = {}
+
+# Last analyst entry-gate verdict per symbol (confirm/veto), for status/log.
+_GATE_STATUS: dict = {}
+
+
+def _desk_note(settings, actions) -> str:
+    """The Trade Manager desk as a single, in-place status segment: its purpose
+    (the backend managing open trades) plus its CURRENT thought -- the live
+    reason behind the most relevant position's decision. Redrawn every loop on
+    the one status line, so it never scrolls a new line per loop."""
+    if not settings.trade_manager:
+        return ""
+    tag = f"desk[{settings.trade_manager_backend}]"
+    if not actions:
+        return f"{tag} idle — no open trades"
+    # Focus on a position the desk is acting on, else the first held one, and
+    # surface its live reasoning so the line shows the thought process.
+    acting = [a for a in actions if a.get("action") and a["action"] != "HOLD"]
+    focus = acting[0] if acting else actions[0]
+    reason = (focus.get("reason") or "").strip()
+    if len(reason) > 62:
+        reason = reason[:59] + "..."
+    verb = focus.get("action", "HOLD")
+    sym = focus.get("symbol", "?")
+    if acting:
+        extra = f" +{len(acting) - 1}" if len(acting) > 1 else ""
+        return f"{tag} {sym} {verb}{extra}: {reason}"
+    return f"{tag} holding {len(actions)} — {sym}: {reason}"
+
+
+def _position_context(client, settings, position, pip: float, snap: Optional[dict]):
+    """Build the JSON context the Trade Manager agent reads for one position."""
+    is_buy = position.type == client.POSITION_TYPE_BUY
+    entry = getattr(position, "price_open", 0.0)
+    current = getattr(position, "price_current", None)
+    if current is None:
+        tick = client.symbol_info_tick(position.symbol)
+        current = (tick.bid if is_buy else tick.ask) if tick else entry
+    ctx = {
+        "ticket": position.ticket, "symbol": position.symbol,
+        "side": "BUY" if is_buy else "SELL",
+        "entry": entry, "current": current,
+        "sl": getattr(position, "sl", 0.0) or 0.0,
+        "tp": getattr(position, "tp", 0.0) or 0.0, "pip": pip,
+        "profit_pips": round(profit_pips(is_buy, entry, current, pip), 1),
+        "breakeven_trigger_pips": settings.breakeven_trigger_pips,
+        "max_partial_fraction": settings.max_partial_fraction,
+    }
+    for k in ("ema_9", "ema_20", "ema_50", "ema_200", "rsi_14", "macd",
+              "macd_signal", "macd_hist", "atr", "er"):
+        if snap and snap.get(k) is not None:
+            ctx[k] = snap[k]
+
+    # The SAME confluence logic that governs entries (reasoning.py / analyst.md),
+    # evaluated on this live MT5 snapshot. This anchors the manager to the model
+    # that opened the trade: it can see whether that thesis still SUPPORTS the
+    # position, has gone NEUTRAL, or has flipped to OPPOSE it (a reversal) --
+    # the basis for retaining profit (breakeven/partial) or banking it (exit).
+    if snap:
+        d = reason(snap, ReasoningConfig(
+            threshold=settings.reasoning_threshold,
+            rsi_overbought=settings.rsi_overbought,
+            rsi_oversold=settings.rsi_oversold))
+        ctx["entry_read"] = {
+            "signal": d.signal.value,
+            "confidence": round(float(d.confidence), 2),
+            "reason": d.reason,
+        }
+        sig = d.signal.value
+        ctx["read_vs_position"] = (
+            "supports" if sig == ctx["side"]
+            else "opposes" if sig in ("BUY", "SELL")
+            else "neutral")
+    return ctx
+
+
+def _manage_positions(client, journal, settings, tm_agent=None) -> None:
+    """Per-symbol trade-lifecycle management for OPEN positions.
+
+    The deterministic breakeven FLOOR always runs first (risk comes off a
+    winner even with no agent). Then, if the Trade Manager agent is enabled, its
+    action (BREAKEVEN / PARTIAL / EXIT) is applied THROUGH the guardrailed
+    primitives. Never opens or enlarges a position. Runs while paused too, so
+    open risk is always managed; skipped only in READ_ONLY mode.
+    """
+    if settings.mode is Mode.READ_ONLY:
+        return
+    for symbol in settings.symbols:
+        positions = client.positions_get(symbol=symbol) or []
+        if not positions:
+            continue
+        pip = pip_size(client, symbol)
+        if not pip:
+            continue
+        info = client.symbol_info(symbol)
+        min_lot = float(getattr(info, "volume_min", 0.0) or 0.01)
+        lot_step = float(getattr(info, "volume_step", 0.0) or 0.01)
+        snap = None
+        if tm_agent is not None:
+            try:
+                snap = market_snapshot(client, symbol, settings.timeframe,
+                                       settings.atr_period)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Trade manager snapshot failed for %s: %s", symbol, exc)
+
+        for p in positions:
+            try:
+                # 1) Deterministic breakeven floor (always).
+                ok, msg = move_to_breakeven(client, p, pip,
+                                            settings.breakeven_trigger_pips)
+                if ok:
+                    log.info("Breakeven floor: %s", msg)
+                    journal.log_order(symbol, "MANAGE", p.volume, None, None,
+                                      None, p.ticket, "BREAKEVEN_FLOOR", msg)
+
+                if tm_agent is None:
+                    continue
+
+                # 2) Agent-managed action, through the guardrailed primitives.
+                ctx = _position_context(client, settings, p, pip, snap)
+                action = tm_agent(ctx)
+                _TM_ACTIONS[p.ticket] = {
+                    "symbol": symbol, "side": ctx["side"], "action": action.action,
+                    "reason": action.reason,
+                    "confidence": round(float(action.confidence), 2),
+                    "profit_pips": ctx["profit_pips"], "message": "",
+                }
+                # Apply ONLY on a fresh decision (throttled ~per interval), never
+                # a re-issued cache hit -- otherwise the same action fires every
+                # loop and floods the log. HOLD never acts.
+                fresh = getattr(tm_agent, "last_was_fresh", True)
+                if action.action == "HOLD" or not fresh:
+                    continue
+                if action.action == "BREAKEVEN":
+                    # Agent-driven: move to entry now (tighten-only), trigger 0.
+                    ok, msg = move_to_breakeven(client, p, pip, 0.0)
+                elif action.action == "PARTIAL":
+                    ok, msg, _lots = partial_close(client, p, action.fraction,
+                                                   min_lot, lot_step)
+                elif action.action == "EXIT":
+                    ok, msg = close_position(client, p.ticket)
+                else:
+                    ok, msg = False, "unknown action"
+                _TM_ACTIONS[p.ticket]["message"] = msg
+                if ok:
+                    log.info("TradeManager[%s] %s (conf %.2f): %s | %s", symbol,
+                             action.action, action.confidence, action.reason, msg)
+                    journal.log_order(symbol, f"MANAGE:{action.action}", p.volume,
+                                      None, None, None, p.ticket,
+                                      action.action, f"{action.reason} | {msg}")
+                else:
+                    # Benign no-op (e.g. breakeven not earned yet) -> debug only,
+                    # so the log is not flooded with expected non-actions.
+                    log.debug("TradeManager[%s] %s no-op: %s | %s", symbol,
+                              action.action, action.reason, msg)
+            except Exception as exc:  # noqa: BLE001  -- one bad position can't stall
+                log.warning("Trade manager error on ticket %s: %s",
+                            getattr(p, "ticket", "?"), exc)
 
 
 def _signal_flags(decision, thinking) -> tuple:
@@ -565,7 +902,7 @@ def _account_exposure(client, settings, positions) -> dict:
 
 def _run_once(client, journal, settings, strategy_fn, limits, tracker,
               planner_cfgs, state: Optional[ControlState] = None,
-              prop_guard=None) -> None:
+              prop_guard=None, tm_agent=None, gate_agent=None) -> None:
     active = state.is_active() if state is not None else True
 
     account = client.account_info()
@@ -639,7 +976,7 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
                 # sees trades opened for earlier symbols this same iteration.
                 _run_books(client, journal, settings, strategy_fn, planner_cfgs,
                            client.positions_get() or [], account=account,
-                           symbol=sym, risk_scale=risk_scale)
+                           symbol=sym, risk_scale=risk_scale, gate_agent=gate_agent)
         elif decision.signal.is_trade:
             _consider_trade(client, journal, settings, decision, positions,
                             planner_cfgs)
@@ -652,18 +989,47 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
         for sym in settings.symbols:
             _update_trailing_stops(client, settings, symbol=sym)
 
+    # Per-symbol trade-lifecycle management: deterministic breakeven floor
+    # always, plus the Trade Manager agent's breakeven/partial/exit when on.
+    _manage_positions(client, journal, settings, tm_agent=tm_agent)
+
     control = {"active": active, "prop": prop_on} if state is not None else None
-    exposure_view = _account_exposure(client, settings,
-                                      client.positions_get() or [])
+    open_now = client.positions_get() or []
+    exposure_view = _account_exposure(client, settings, open_now)
+    # Trade Manager actions for positions that are still open (prune closed).
+    open_tickets = {getattr(p, "ticket", None) for p in open_now}
+    for t in list(_TM_ACTIONS):
+        if t not in open_tickets:
+            _TM_ACTIONS.pop(t, None)
+    trade_actions = [_TM_ACTIONS[t] for t in open_tickets if t in _TM_ACTIONS]
     _refresh_dashboard(client, journal, settings, control=control,
                        thinking=thinking, prop=prop, engines=breakdown,
-                       exposure_view=exposure_view)
-    _print_status(client, settings, active=active)
+                       exposure_view=exposure_view, trade_actions=trade_actions)
+
+    # Compact "why" for the single status line: the reason trading is held, or
+    # otherwise the primary symbol's live analyst call. The full detail (and any
+    # per-loop guard blocks) still goes to logs/bridge.log.
+    if not risk.ok:
+        note = f"held: {risk.message}"
+    elif not demo_ok:
+        note = "held: real account (REQUIRE_DEMO)"
+    elif prop["enabled"] and not prop_ok:
+        note = f"held: prop {prop['status']}"
+    elif not active:
+        note = "paused (dashboard)"
+    else:
+        note = (f"analyst {primary} {decision.signal.value} "
+                f"{float(decision.confidence):.2f}")
+        desk = _desk_note(settings, trade_actions)
+        if desk:
+            note = f"{note} · {desk}"
+    _print_status(client, settings, active=active, note=note)
 
 
 def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
                now_utc: Optional[datetime] = None, account=None,
-               symbol: Optional[str] = None, risk_scale: float = 1.0) -> None:
+               symbol: Optional[str] = None, risk_scale: float = 1.0,
+               gate_agent=None) -> None:
     """Run the intraday + swing engines for ONE symbol under shared limits.
 
     In multi-symbol mode this is called once per symbol each loop. ``positions``
@@ -750,6 +1116,24 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
         if desired <= 0:
             return
         snap = decide(snap_tf)[0]
+        # LLM entry gate: relay the engine's proposal + its exact confluence
+        # reasoning to the analyst, which confirms/vetoes using the same
+        # methodology. Fails open (a down model defers to the rule engine).
+        entry_decision = decisions.get(settings.timeframe)
+        proposed_reason = "; ".join(x for x in (
+            setup.get("reason"),
+            (entry_decision.reason if entry_decision is not None else None),
+        ) if x)
+        gate_ok, gate_reason = _entry_gate_ok(gate_agent, snap, side, proposed_reason)
+        if not gate_ok:
+            log.info("%s [%s] entry vetoed by analyst gate — %s",
+                     name, symbol, gate_reason)
+            _GATE_STATUS[symbol] = {"decision": "veto", "side": side.value,
+                                    "reason": gate_reason}
+            return
+        if gate_agent is not None:
+            _GATE_STATUS[symbol] = {"decision": "confirm", "side": side.value,
+                                    "reason": gate_reason}
         stops = atr_stops((snap or {}).get("atr"), pip, atr_cfg) \
             if atr_cfg.enabled else None
         base_sl, base_tp = stops if stops else (book.sl_pips, book.tp_pips)
@@ -900,10 +1284,17 @@ def run(settings: Optional[Settings] = None, client=None,
         journal: Optional[Journal] = None, strategy_fn: Optional[Callable] = None,
         max_iterations: Optional[int] = None, serve_dashboard: bool = True) -> None:
     settings = settings or load_settings()
+    # With the compact console status line on, keep routine WARNINGs (e.g. the
+    # session guard's per-loop "entry blocked" notices) off stdout so the line
+    # stays clean -- they are still written in full to logs/bridge.log. Only
+    # real ERRORs break through to the terminal.
     setup_logging(settings.log_level,
-                  console_level="WARNING" if settings.console_status else settings.log_level)
+                  console_level="ERROR" if settings.console_status else settings.log_level)
+    _print_banner(settings)
     journal = journal or Journal(settings.db_path)
     strategy_fn = strategy_fn or make_strategy(settings)
+    tm_agent = make_trade_manager(settings)
+    gate_agent = make_entry_gate(settings)
     planner_cfgs = make_planner_configs(settings)
     limits = RiskLimits(settings.daily_max_loss, settings.total_max_loss,
                         settings.max_open_positions)
@@ -971,7 +1362,8 @@ def run(settings: Optional[Settings] = None, client=None,
 
             try:
                 _run_once(client, journal, settings, strategy_fn, limits,
-                          tracker, planner_cfgs, state, prop_guard)
+                          tracker, planner_cfgs, state, prop_guard,
+                          tm_agent=tm_agent, gate_agent=gate_agent)
                 consecutive_failures = 0
             except Exception as exc:  # noqa: BLE001
                 consecutive_failures += 1

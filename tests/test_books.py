@@ -117,6 +117,23 @@ def test_intraday_is_blocked_by_strong_opposing_h4():
     assert client.sent_requests == []
 
 
+def test_confirming_gate_allows_entries_vetoing_gate_blocks_them():
+    """Proves the entry gate is wired into execution: a confirming analyst lets
+    the deterministic trades fire; a vetoing analyst stops every one."""
+    settings = make_settings(multi_book=True, max_open_positions=7)
+    confirm = lambda snap: Decision(Signal.BUY, "confluence up", 0.8)  # noqa: E731
+    client = _client()
+    _run_books(client, Journal(":memory:"), settings, _buy(0.85),
+               make_planner_configs(settings), [], now_utc=NY, gate_agent=confirm)
+    assert len(client.sent_requests) == 4          # gate confirmed -> trades fire
+
+    veto = lambda snap: Decision(Signal.WAIT, "chop", 0.2)            # noqa: E731
+    client2 = _client()
+    _run_books(client2, Journal(":memory:"), settings, _buy(0.85),
+               make_planner_configs(settings), [], now_utc=NY, gate_agent=veto)
+    assert client2.sent_requests == []             # gate vetoed -> nothing opens
+
+
 def test_existing_book_positions_are_respected():
     settings = make_settings(multi_book=True)
     day = build_books(settings)[2]

@@ -337,7 +337,10 @@ def _thinking_panel(thinking: Optional[dict], symbol: str = "") -> str:
             f'<tr><td>{_esc(v.get("label"))}</td><td>{_esc(v.get("tf"))}</td>'
             f'<td class="{_sig_cls(v.get("signal"))}">{_esc(v.get("signal"))}</td>'
             f'<td>{float(v.get("confidence", 0)):.2f}</td>'
-            f'<td>{_esc(v.get("reason"))}</td></tr>'
+            f'<td>{_esc(v.get("reason"))}'
+            + (f'<div class="agentsay">{_esc(v.get("agent_reason"))}</div>'
+               if v.get("agent_reason") else "")
+            + '</td></tr>'
             for v in views
         )
         table = (
@@ -369,9 +372,66 @@ def _thinking_panel(thinking: Optional[dict], symbol: str = "") -> str:
         '<span class="analyzing"><span class="pulse"></span> '
         f'<span id="think_sym">Analyzing {sym} — live</span></span>'
         f'<span class="note" id="think_note">{_esc(thinking.get("note", ""))}</span></div>'
+        f'<div id="analyst_line">{_analyst_line(thinking.get("analyst"))}</div>'
         f'{engine_panel}'
         f'<div id="think_table">{table}</div>'
         '<div class="scan" title="Continuously reading the market"></div>'
+        '</div>'
+    )
+
+
+def _tm_rows_html(actions: Optional[list]) -> str:
+    if not actions:
+        return ('<tr><td colspan="6" class="empty">No open positions to '
+                'manage.</td></tr>')
+    out = []
+    for a in actions:
+        pips = a.get("profit_pips")
+        pips_txt = f'{float(pips):+.1f}' if pips is not None else "—"
+        msg = a.get("message")
+        out.append(
+            f'<tr><td>{_esc(a.get("symbol"))}</td>'
+            f'<td>{_esc(a.get("side"))}</td>'
+            f'<td class="tmact {_esc(str(a.get("action", "")).lower())}">'
+            f'{_esc(a.get("action"))}</td>'
+            f'<td>{float(a.get("confidence", 0) or 0):.2f}</td>'
+            f'<td>{pips_txt}</td>'
+            f'<td>{_esc(a.get("reason"))}'
+            + (f'<div class="agentsay">{_esc(msg)}</div>' if msg else "")
+            + '</td></tr>')
+    return "".join(out)
+
+
+def _trade_manager_panel(actions: Optional[list], live: bool = False) -> str:
+    """The per-symbol Trade Manager desk: what each open position is being told
+    to do right now (HOLD / BREAKEVEN / PARTIAL / EXIT) and why."""
+    if not live and not actions:
+        return ""
+    return (
+        '<h2>Trade desk — managing open positions</h2>'
+        '<div class="panel think">'
+        '<div class="tablewrap"><table><thead><tr><th>Symbol</th><th>Side</th>'
+        '<th>Action</th><th>Conf.</th><th>Pips</th><th>Why</th></tr></thead>'
+        f'<tbody id="tm_rows">{_tm_rows_html(actions)}</tbody></table></div>'
+        '<div class="note">Deterministic breakeven floor always runs; the agent '
+        'adds partial-profit and exit-on-reversal as a trend fades.</div>'
+        '</div>'
+    )
+
+
+def _analyst_line(analyst: Optional[dict]) -> str:
+    """The Analyst agent's live call: who is deciding + its own words."""
+    if not analyst:
+        return ""
+    sig = _esc(analyst.get("signal", "WAIT"))
+    conf = float(analyst.get("confidence", 0) or 0)
+    return (
+        '<div class="analyst">'
+        f'<span class="alabel">Analyst</span>'
+        f'<span class="aagent">{_esc(analyst.get("agent"))}</span>'
+        f'<span class="asig {_sig_cls(analyst.get("signal"))}">{sig} {conf:.2f}</span>'
+        f'<span class="areason">{_esc(analyst.get("reason"))}</span>'
+        f'<div class="ablurb">{_esc(analyst.get("blurb"))}</div>'
         '</div>'
     )
 
@@ -489,7 +549,8 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
                          thinking: Optional[dict] = None,
                          prop: Optional[dict] = None,
                          engines: Optional[list] = None,
-                         exposure: Optional[dict] = None) -> dict:
+                         exposure: Optional[dict] = None,
+                         trade_actions: Optional[list] = None) -> dict:
     """The JSON snapshot the page polls for in-place live updates."""
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
@@ -506,6 +567,7 @@ def build_dashboard_data(journal: Journal, live: Optional[dict] = None,
         "prop": prop,
         "engines_by_symbol": engines or [],
         "exposure": exposure or {},
+        "trade_actions": trade_actions or [],
         "cards": {
             "open_pl": c["open_pl"], "day_pl": c["day_pl"],
             "rr": c["rr_headline"], "balance": c["balance"], "equity": c["equity"],
@@ -533,6 +595,7 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#93a4bd;
 margin:26px 0 10px}
 .since{font-size:10px;color:#5f6b84;text-transform:none;letter-spacing:0}
 .meta{color:#9fb0cc;font-size:13px;margin-bottom:14px}
+.botdesc{color:#b7c2d8;font-size:13px;line-height:1.5;margin:-4px 0 12px;max-width:820px}
 .meta b{color:#e7ecf3}
 .control{display:flex;align-items:center;gap:12px;background:#141c33;
 border:1px solid #223052;border-radius:10px;padding:12px 14px;margin-bottom:16px;flex-wrap:wrap}
@@ -560,6 +623,16 @@ font-size:13px;flex:1 1 auto;min-width:130px}
 .engine .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8aa0c0}
 .estate{font-size:14px;font-weight:700;margin-top:3px}.estate.ready{color:#34d399}.estate.waiting{color:#fbbf24}
 .ereason{font-size:11px;color:#9fb0cc;margin-top:3px}
+.agentsay{font-size:11px;color:#8fe3c0;margin-top:3px;font-style:italic}
+.tmact{font-weight:800}
+.tmact.hold{color:#8aa0c0}.tmact.breakeven{color:#60a5fa}
+.tmact.partial{color:#fbbf24}.tmact.exit{color:#f87171}
+.analyst{background:#0c162e;border:1px solid #26406e;border-radius:8px;padding:10px 12px;margin:0 0 14px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.analyst .alabel{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#8aa0c0;font-weight:700}
+.analyst .aagent{font-size:12px;font-weight:700;color:#cdd8ee;background:#16223f;border-radius:5px;padding:2px 8px}
+.analyst .asig{font-size:13px;font-weight:800}
+.analyst .areason{font-size:13px;color:#e6ecf7;flex:1 1 240px;min-width:180px}
+.analyst .ablurb{flex-basis:100%;font-size:11px;color:#8aa0c0}
 .analyzing{color:#8fe3c0;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
 .pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:#34d399;
 box-shadow:0 0 0 0 rgba(52,211,153,.7);animation:pulse 1.6s infinite}
@@ -805,6 +878,13 @@ if(d.thinking){var t=d.thinking;var tb=q('think_badge');
 if(tb){tb.textContent=t.aligned?('ALIGNED '+t.bias):'WAITING';tb.className='badge '+(t.aligned?'on':'off');}
 setTxt('think_sym','Analyzing '+(d.symbol||'the market')+' — live');
 setTxt('think_note',t.note);
+var a=t.analyst;
+if(a){setHTML('analyst_line','<div class="analyst"><span class="alabel">Analyst</span>'+
+'<span class="aagent">'+esc(a.agent)+'</span>'+
+'<span class="asig '+sigCls(a.signal)+'">'+esc(a.signal)+' '+Number(a.confidence||0).toFixed(2)+'</span>'+
+'<span class="areason">'+esc(a.reason)+'</span>'+
+'<div class="ablurb">'+esc(a.blurb)+'</div></div>');}
+else setHTML('analyst_line','');
 var eg=(t.engines||[]).map(function(e){return '<div class="engine"><div class="k">'+
 esc(e.name)+'</div><div class="estate '+(e.ready?'ready':'waiting')+'">'+
 (e.ready?('READY '+esc(e.bias)):'WAITING')+'</div><div class="ereason">'+
@@ -812,10 +892,19 @@ esc(e.reason)+'</div></div>';}).join('');setHTML('engine_grid',eg);
 var tf=t.timeframes||[];
 if(tf.length){var tr=tf.map(function(v){return '<tr><td>'+esc(v.label)+'</td><td>'+esc(v.tf)+
 '</td><td class="'+sigCls(v.signal)+'">'+esc(v.signal)+'</td><td>'+Number(v.confidence).toFixed(2)+
-'</td><td>'+esc(v.reason)+'</td></tr>';}).join('');
+'</td><td>'+esc(v.reason)+(v.agent_reason?('<div class="agentsay">'+esc(v.agent_reason)+'</div>'):'')+
+'</td></tr>';}).join('');
 setHTML('think_table','<div class="tablewrap"><table><thead><tr><th>Read</th><th>Timeframe</th>'+
 '<th>Signal</th><th>Conf.</th><th>Why</th></tr></thead><tbody>'+tr+'</tbody></table></div>');}
 else setHTML('think_table','<p class="empty">Gathering the first read…</p>');}
+if(q('tm_rows')){var ta=d.trade_actions||[];
+if(ta.length){setHTML('tm_rows',ta.map(function(a){
+var pips=(a.profit_pips==null)?'—':(Number(a.profit_pips)>=0?'+':'')+Number(a.profit_pips).toFixed(1);
+return '<tr><td>'+esc(a.symbol)+'</td><td>'+esc(a.side)+'</td>'+
+'<td class="tmact '+esc(String(a.action||'').toLowerCase())+'">'+esc(a.action)+'</td>'+
+'<td>'+Number(a.confidence||0).toFixed(2)+'</td><td>'+pips+'</td><td>'+esc(a.reason)+
+(a.message?('<div class="agentsay">'+esc(a.message)+'</div>'):'')+'</td></tr>';}).join(''));}
+else setHTML('tm_rows','<tr><td colspan="6" class="empty">No open positions to manage.</td></tr>');}
 setHTML('pos_panel',posTable(d.positions));
 setHTML('persym_panel',persymTable(d.positions,d.symbols));
 if(d.prop)setHTML('prop_panel',propInner(d.prop));
@@ -859,7 +948,8 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
                     thinking: Optional[dict] = None, port: int = 8800,
                     prop: Optional[dict] = None,
                     engines: Optional[list] = None,
-                    exposure: Optional[dict] = None) -> str:
+                    exposure: Optional[dict] = None,
+                    trade_actions: Optional[list] = None) -> str:
     now_utc = now_utc or datetime.now(timezone.utc)
     c = _compute(journal, live, now_utc)
     balance, equity = c["balance"], c["equity"]
@@ -936,6 +1026,9 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
 <style>{_CSS}</style></head>
 <body>
 <h1>{live_dot}MT5 AI Bridge — {'Live' if live else 'Snapshot'} Dashboard</h1>
+<div class="botdesc">A multi-symbol demo trading bot: an Analyst picks BUY/SELL/WAIT per
+symbol from live indicators, then deterministic risk sizing and execution place and manage each
+trade under an account-level session risk guard.</div>
 <div class="meta">
   <b id="m_time">{_esc(est_now(now_utc))}</b> &middot; Session:
   <b id="m_session">{_esc(session_label(now_utc))}</b>
@@ -951,6 +1044,7 @@ def build_dashboard(journal: Journal, live: Optional[dict] = None,
 <div class="panel" id="persym_panel">{_table(["Symbol", "Open", "P/L"],
     _per_symbol_rows(positions, symbols))}</div>
 {_thinking_panel(thinking, symbol)}
+{_trade_manager_panel(trade_actions, live is not None)}
 {_engine_breakdown_panel(engines)}
 {_signal_breakdown_panel(c["signal_stats"])}
 {positions_section}
@@ -972,11 +1066,13 @@ def write_dashboard_live(journal: Journal, live: dict, path: str,
                          thinking: Optional[dict] = None,
                          port: int = 8800, prop: Optional[dict] = None,
                          engines: Optional[list] = None,
-                         exposure: Optional[dict] = None) -> str:
+                         exposure: Optional[dict] = None,
+                         trade_actions: Optional[list] = None) -> str:
     """Refresh the live dashboard HTML shell (bot writes this each loop)."""
     html_text = build_dashboard(journal, live=live, refresh_seconds=refresh_seconds,
                                 control=control, thinking=thinking, port=port,
-                                prop=prop, engines=engines, exposure=exposure)
+                                prop=prop, engines=engines, exposure=exposure,
+                                trade_actions=trade_actions)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(html_text)
     return path
@@ -988,14 +1084,16 @@ def write_dashboard_data(journal: Journal, live: dict, path: str,
                          thinking: Optional[dict] = None,
                          prop: Optional[dict] = None,
                          engines: Optional[list] = None,
-                         exposure: Optional[dict] = None) -> str:
+                         exposure: Optional[dict] = None,
+                         trade_actions: Optional[list] = None) -> str:
     """Write the JSON snapshot the page polls for in-place live updates.
 
     Written atomically (temp file + os.replace) so the server never serves a
     half-written file."""
     data = build_dashboard_data(journal, live=live, refresh_seconds=refresh_seconds,
                                 control=control, thinking=thinking, prop=prop,
-                                engines=engines, exposure=exposure)
+                                engines=engines, exposure=exposure,
+                                trade_actions=trade_actions)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh)

@@ -73,6 +73,58 @@ def test_env_override_beats_builtin_gold_default(monkeypatch):
     assert s.intraday_risk_for("XAUUSD") == 0.0       # 0 disables that engine
 
 
+def test_per_symbol_llm_overrides_from_env(monkeypatch):
+    """The LLM analyst reasons independently per symbol: each can carry its own
+    confidence bar and call interval, falling back to the global otherwise."""
+    monkeypatch.setenv("CLAUDE_MIN_CONFIDENCE", "0.65")
+    monkeypatch.setenv("CLAUDE_MIN_INTERVAL_SECONDS", "60")
+    monkeypatch.setenv("CLAUDE_MIN_CONFIDENCE_GBPUSD", "0.8")
+    monkeypatch.setenv("CLAUDE_MIN_INTERVAL_SECONDS_XAUUSD", "30")
+    monkeypatch.setenv("OLLAMA_MIN_CONFIDENCE_EURUSD", "0.6")
+    monkeypatch.setenv("OLLAMA_MIN_INTERVAL_SECONDS_GBPUSD", "120")
+    s = load_settings(dotenv=False)
+
+    assert s.claude_confidence_for("GBPUSD") == 0.8       # override
+    assert s.claude_confidence_for("EURUSD") == 0.65      # global fallback
+    assert s.claude_confidence_for("gbpusd") == 0.8       # case-insensitive
+    assert s.claude_interval_for("XAUUSD") == 30          # override
+    assert s.claude_interval_for("GBPUSD") == 60          # global fallback
+    assert s.ollama_confidence_for("EURUSD") == 0.6       # override
+    assert s.ollama_confidence_for("GBPUSD") == 0.65      # global fallback
+    assert s.ollama_interval_for("GBPUSD") == 120         # override
+
+    # The global var (no trailing "_SYMBOL") must never be read as an override.
+    assert s.claude_confidence_overrides == (("GBPUSD", 0.8),)
+
+
+def test_make_settings_defaults_have_no_llm_overrides():
+    s = make_settings()
+    assert s.claude_confidence_for("ANYTHING") == s.claude_min_confidence
+    assert s.claude_interval_for("ANYTHING") == s.claude_min_interval_seconds
+    assert s.ollama_confidence_for("ANYTHING") == s.ollama_min_confidence
+    assert s.ollama_interval_for("ANYTHING") == s.ollama_min_interval_seconds
+
+
+def test_trade_manager_per_symbol_overrides_from_env(monkeypatch):
+    monkeypatch.setenv("TRADE_MANAGER", "true")
+    monkeypatch.setenv("TRADE_MANAGER_MIN_CONFIDENCE", "0.6")
+    monkeypatch.setenv("TRADE_MANAGER_MIN_CONFIDENCE_XAUUSD", "0.85")
+    monkeypatch.setenv("TRADE_MANAGER_MIN_INTERVAL_SECONDS_GBPUSD", "15")
+    monkeypatch.setenv("BREAKEVEN_TRIGGER_PIPS", "12")
+    s = load_settings(dotenv=False)
+    assert s.trade_manager is True
+    assert s.breakeven_trigger_pips == 12
+    assert s.tm_confidence_for("XAUUSD") == 0.85       # override
+    assert s.tm_confidence_for("EURUSD") == 0.6        # global fallback
+    assert s.tm_interval_for("GBPUSD") == 15           # override
+
+
+def test_make_settings_trade_manager_defaults_off():
+    s = make_settings()
+    assert s.trade_manager is False
+    assert s.tm_confidence_for("ANYTHING") == s.trade_manager_min_confidence
+
+
 def test_factor_caps_defaults_and_env(monkeypatch):
     s = load_settings(dotenv=False)
     assert s.factor_caps is True and s.max_currency_risk == 2.0   # on, loose

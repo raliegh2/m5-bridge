@@ -35,6 +35,25 @@ class Settings:
     rsi_overbought: float
     rsi_oversold: float
 
+    claude_model: str
+    claude_min_confidence: float
+    claude_min_interval_seconds: float
+
+    ollama_model: str
+    ollama_host: str
+    ollama_min_confidence: float
+    ollama_min_interval_seconds: float
+
+    # Per-symbol overrides for the LLM analyst (STRATEGY=claude|ollama). Each is
+    # a tuple of (SYMBOL, value); a symbol without an entry uses the global
+    # value above. This is what makes the Analyst reason INDEPENDENTLY per
+    # symbol -- GBPUSD can demand higher conviction (or call less often) than
+    # EURUSD without a second agent or a second prompt.
+    claude_confidence_overrides: tuple
+    claude_interval_overrides: tuple
+    ollama_confidence_overrides: tuple
+    ollama_interval_overrides: tuple
+
     lot_size: float
     ny_size_multiplier: float
     ny_start_hour: int
@@ -144,6 +163,34 @@ class Settings:
     factor_caps: bool = True
     max_currency_risk: float = 2.0
 
+    # Trade Manager agent: a per-symbol agent that manages OPEN positions
+    # (breakeven / partial profit / exit as a trend slows or reverses). OFF by
+    # default; opt in with TRADE_MANAGER=true. The deterministic breakeven floor
+    # (BREAKEVEN_TRIGGER_PIPS) still runs whenever this is on, regardless of the
+    # agent. per-symbol overrides mirror the analyst pattern (append _<SYMBOL>).
+    trade_manager: bool = False
+    trade_manager_backend: str = "ollama"          # "ollama" or "claude"
+    trade_manager_model: str = "llama3.1"
+    trade_manager_host: str = "http://localhost:11434"
+    trade_manager_min_confidence: float = 0.6
+    trade_manager_min_interval_seconds: float = 30.0
+    breakeven_trigger_pips: float = 15.0
+    max_partial_fraction: float = 0.5
+    tm_confidence_overrides: tuple = ()
+    tm_interval_overrides: tuple = ()
+
+    # LLM entry gate: the deterministic engine still FINDS setups; when this is
+    # on, the analyst confirms or vetoes each prospective NEW trade before it
+    # opens (one call per new candle per symbol, thanks to the analyst's cache).
+    # OFF by default; fail-OPEN (a down/slow model defers to the rule engine, so
+    # it never blocks all trading). Backend "ollama" needs `ollama serve`;
+    # "claude" needs ANTHROPIC_API_KEY. Reads agent_prompts/analyst.md.
+    entry_gate: bool = False
+    entry_gate_backend: str = "ollama"
+    entry_gate_model: str = "llama3.2:3b"
+    entry_gate_host: str = "http://localhost:11434"
+    entry_gate_min_confidence: float = 0.6
+
     @property
     def has_credentials(self) -> bool:
         return bool(self.login and self.password and self.server)
@@ -181,6 +228,36 @@ class Settings:
         """ER directional threshold for a symbol (.env override else global)."""
         return dict(self.regime_er_overrides).get(
             (symbol or "").upper(), self.regime_er_min)
+
+    def claude_confidence_for(self, symbol: str) -> float:
+        """Claude analyst min-confidence for a symbol (.env override else global)."""
+        return dict(self.claude_confidence_overrides).get(
+            (symbol or "").upper(), self.claude_min_confidence)
+
+    def claude_interval_for(self, symbol: str) -> float:
+        """Claude analyst min call interval (s) for a symbol (override else global)."""
+        return dict(self.claude_interval_overrides).get(
+            (symbol or "").upper(), self.claude_min_interval_seconds)
+
+    def ollama_confidence_for(self, symbol: str) -> float:
+        """Ollama analyst min-confidence for a symbol (.env override else global)."""
+        return dict(self.ollama_confidence_overrides).get(
+            (symbol or "").upper(), self.ollama_min_confidence)
+
+    def ollama_interval_for(self, symbol: str) -> float:
+        """Ollama analyst min call interval (s) for a symbol (override else global)."""
+        return dict(self.ollama_interval_overrides).get(
+            (symbol or "").upper(), self.ollama_min_interval_seconds)
+
+    def tm_confidence_for(self, symbol: str) -> float:
+        """Trade Manager min-confidence for a symbol (.env override else global)."""
+        return dict(self.tm_confidence_overrides).get(
+            (symbol or "").upper(), self.trade_manager_min_confidence)
+
+    def tm_interval_for(self, symbol: str) -> float:
+        """Trade Manager min call interval (s) for a symbol (override else global)."""
+        return dict(self.tm_interval_overrides).get(
+            (symbol or "").upper(), self.trade_manager_min_interval_seconds)
 
     def prop_config(self):
         """Build a PropConfig from these settings."""
@@ -250,6 +327,14 @@ def load_settings(dotenv: bool = True) -> Settings:
     swing_overrides = _risk_overrides("SWING_RISK_PERCENT_")
     intraday_overrides = _risk_overrides("INTRADAY_RISK_PERCENT_")
     regime_overrides = _risk_overrides("REGIME_ER_MIN_")
+    # Per-symbol LLM-analyst overrides. Prefix has a trailing underscore so the
+    # global CLAUDE_MIN_CONFIDENCE (no trailing "_") is never mistaken for one.
+    claude_conf_overrides = _risk_overrides("CLAUDE_MIN_CONFIDENCE_")
+    claude_int_overrides = _risk_overrides("CLAUDE_MIN_INTERVAL_SECONDS_")
+    ollama_conf_overrides = _risk_overrides("OLLAMA_MIN_CONFIDENCE_")
+    ollama_int_overrides = _risk_overrides("OLLAMA_MIN_INTERVAL_SECONDS_")
+    tm_conf_overrides = _risk_overrides("TRADE_MANAGER_MIN_CONFIDENCE_")
+    tm_int_overrides = _risk_overrides("TRADE_MANAGER_MIN_INTERVAL_SECONDS_")
     return Settings(
         login=_get_int("MT5_LOGIN"),
         password=os.getenv("MT5_PASSWORD"),
@@ -263,6 +348,19 @@ def load_settings(dotenv: bool = True) -> Settings:
         reasoning_threshold=_get_float("REASONING_THRESHOLD", 0.6),
         rsi_overbought=_get_float("RSI_OVERBOUGHT", 75),
         rsi_oversold=_get_float("RSI_OVERSOLD", 25),
+
+        claude_model=_get_str("CLAUDE_MODEL", "claude-sonnet-5"),
+        claude_min_confidence=_get_float("CLAUDE_MIN_CONFIDENCE", 0.65),
+        claude_min_interval_seconds=_get_float("CLAUDE_MIN_INTERVAL_SECONDS", 60.0),
+
+        ollama_model=_get_str("OLLAMA_MODEL", "llama3.1"),
+        ollama_host=_get_str("OLLAMA_HOST", "http://localhost:11434"),
+        ollama_min_confidence=_get_float("OLLAMA_MIN_CONFIDENCE", 0.65),
+        ollama_min_interval_seconds=_get_float("OLLAMA_MIN_INTERVAL_SECONDS", 60.0),
+        claude_confidence_overrides=claude_conf_overrides,
+        claude_interval_overrides=claude_int_overrides,
+        ollama_confidence_overrides=ollama_conf_overrides,
+        ollama_interval_overrides=ollama_int_overrides,
         lot_size=_get_float("LOT_SIZE", 0.09),
         ny_size_multiplier=_get_float("NY_SIZE_MULTIPLIER", 2.0),
         ny_start_hour=_get_int("NY_START_HOUR", 12),
@@ -340,4 +438,20 @@ def load_settings(dotenv: bool = True) -> Settings:
         regime_er_overrides=regime_overrides,
         factor_caps=_get_bool("FACTOR_CAPS", True),
         max_currency_risk=_get_float("MAX_CURRENCY_RISK", 2.0),
+        trade_manager=_get_bool("TRADE_MANAGER", False),
+        trade_manager_backend=_get_str("TRADE_MANAGER_BACKEND", "ollama").lower(),
+        trade_manager_model=_get_str("TRADE_MANAGER_MODEL", "llama3.1"),
+        trade_manager_host=_get_str("TRADE_MANAGER_HOST", "http://localhost:11434"),
+        trade_manager_min_confidence=_get_float("TRADE_MANAGER_MIN_CONFIDENCE", 0.6),
+        trade_manager_min_interval_seconds=_get_float(
+            "TRADE_MANAGER_MIN_INTERVAL_SECONDS", 30.0),
+        breakeven_trigger_pips=_get_float("BREAKEVEN_TRIGGER_PIPS", 15.0),
+        max_partial_fraction=_get_float("MAX_PARTIAL_FRACTION", 0.5),
+        tm_confidence_overrides=tm_conf_overrides,
+        tm_interval_overrides=tm_int_overrides,
+        entry_gate=_get_bool("ENTRY_GATE", False),
+        entry_gate_backend=_get_str("ENTRY_GATE_BACKEND", "ollama").lower(),
+        entry_gate_model=_get_str("ENTRY_GATE_MODEL", "llama3.2:3b"),
+        entry_gate_host=_get_str("ENTRY_GATE_HOST", "http://localhost:11434"),
+        entry_gate_min_confidence=_get_float("ENTRY_GATE_MIN_CONFIDENCE", 0.6),
     )
