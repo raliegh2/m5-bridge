@@ -1,0 +1,204 @@
+{
+  "timeframe": "H4",
+  "cost": "typical",
+  "data": {
+    "AUDUSD": {
+      "from": "1993-04-27",
+      "bars": 44477,
+      "dropped": 0,
+      "vr30": "0.926",
+      "quote": "USD",
+      "pip_value": 10.0
+    },
+    "EURUSD": {
+      "from": "1999-01-01",
+      "bars": 43008,
+      "dropped": 7161,
+      "vr30": "0.962",
+      "quote": "USD",
+      "pip_value": 10.0
+    },
+    "GBPJPY": {
+      "from": "1993-04-19",
+      "bars": 44466,
+      "dropped": 0,
+      "vr30": "0.994",
+      "quote": "JPY",
+      "pip_value": 1000.0
+    },
+    "GBPUSD": {
+      "from": "1993-05-12",
+      "bars": 44471,
+      "dropped": 0,
+      "vr30": "0.934",
+      "quote": "USD",
+      "pip_value": 10.0
+    },
+    "USDJPY": {
+      "from": "1988-07-11",
+      "bars": 45729,
+      "dropped": 4433,
+      "vr30": "1.011",
+      "quote": "JPY",
+      "pip_value": 1000.0
+    },
+    "XAUUSD": {
+      "from": "2004-06-11",
+      "bars": 33972,
+      "dropped": 0,
+      "vr30": "1.031",
+      "quote": "USD",
+      "pip_value": 1.0
+    }
+  },
+  "results": {
+    "V15 momentum (Donchian 20/10 breakout)": {
+      "AUDUSD": {
+        "trades": 1619,
+        "win_rate": 0.322,
+        "gross": -5002.94,
+        "costs": 2373.61,
+        "net": -6422.52,
+        "net_pf": 0.771,
+        "oos_trades": 1404,
+        "oos_net": -7259.67,
+        "oos_pf": 0.786,
+        "folds_pos": 0.2
+      },
+      "EURUSD": {
+        "trades": 1560,
+        "win_rate": 0.346,
+        "gross": -1337.23,
+        "costs": 2398.61,
+        "net": -3648.54,
+        "net_pf": 0.891,
+        "oos_trades": 1354,
+        "oos_net": -3235.94,
+        "oos_pf": 0.905,
+        "folds_pos": 0.2
+      },
+      "GBPJPY": {
+        "trades": 1530,
+        "win_rate": 0.353,
+        "gross": 5082.06,
+        "costs": 3986.36,
+        "net": 157.64,
+        "net_pf": 1.004,
+        "oos_trades": 1314,
+        "oos_net": 1266.79,
+        "oos_pf": 1.038,
+        "folds_pos": 0.4
+      },
+      "GBPUSD": {
+        "trades": 1609,
+        "win_rate": 0.337,
+        "gross": -2085.55,
+        "costs": 1902.24,
+        "net": -3688.38,
+        "net_pf": 0.89,
+        "oos_trades": 1394,
+        "oos_net": -2766.19,
+        "oos_pf": 0.918,
+        "folds_pos": 0.2
+      },
+      "USDJPY": {
+        "trades": 1599,
+        "win_rate": 0.352,
+        "gross": 4302.28,
+        "costs": 3269.45,
+        "net": 302.14,
+        "net_pf": 1.007,
+        "oos_trades": 1395,
+        "oos_net": -690.09,
+        "oos_pf": 0.981,
+        "folds_pos": 0.6
+      },
+      "XAUUSD": {
+        "trades": 1179,
+        "win_rate": 0.353,
+        "gross": 7313.66,
+        "costs": 4507.66,
+        "net": 1185.11,
+        "net_pf": 1.04,
+        "oos_trades": 1006,
+        "oos_net": 2217.49,
+        "oos_pf": 1.082,
+        "folds_pos": 0.6
+      }
+    },
+    "V16 mean reversion (2 sigma fade)": {
+      "AUDUSD": {
+        "trades": 2587,
+        "win_rate": 0.515,
+        "gross": 81.78,
+        "costs": 3207.2,
+        "net": -3767.81,
+        "net_pf": 0.9,
+        "oos_trades": 2213,
+        "oos_net": -2070.67,
+        "oos_pf": 0.956,
+        "folds_pos": 0.4
+      },
+      "EURUSD": {
+        "trades": 2482,
+        "win_rate": 0.517,
+        "gross": 922.58,
+        "costs": 2982.81,
+        "net": -2672.96,
+        "net_pf": 0.939,
+        "oos_trades": 2127,
+        "oos_net": -1521.15,
+        "oos_pf": 0.966,
+        "folds_pos": 0.6
+      },
+      "GBPJPY": {
+        "trades": 2660,
+        "win_rate": 0.487,
+        "gross": -4636.71,
+        "costs": 2776.05,
+        "net": -6841.83,
+        "net_pf": 0.81,
+        "oos_trades": 2274,
+        "oos_net": -9221.52,
+        "oos_pf": 0.805,
+        "folds_pos": 0.0
+      },
+      "GBPUSD": {
+        "trades": 2581,
+        "win_rate": 0.529,
+        "gross": 2594.98,
+        "costs": 2959.48,
+        "net": -908.49,
+        "net_pf": 0.983,
+        "oos_trades": 2202,
+        "oos_net": -145.48,
+        "oos_pf": 0.997,
+        "folds_pos": 0.2
+      },
+      "USDJPY": {
+        "trades": 2720,
+        "win_rate": 0.5,
+        "gross": -2539.77,
+        "costs": 2555.26,
+        "net": -5095.53,
+        "net_pf": 0.872,
+        "oos_trades": 2356,
+        "oos_net": -5654.05,
+        "oos_pf": 0.886,
+        "folds_pos": 0.2
+      },
+      "XAUUSD": {
+        "trades": 2022,
+        "win_rate": 0.488,
+        "gross": -3300.28,
+        "costs": 3776.72,
+        "net": -6833.06,
+        "net_pf": 0.78,
+        "oos_trades": 1742,
+        "oos_net": -6236.46,
+        "oos_pf": 0.84,
+        "folds_pos": 0.0
+      }
+    }
+  }
+}

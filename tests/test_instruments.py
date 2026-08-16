@@ -8,7 +8,7 @@ from mt5_ai_bridge.candidate_v15 import LOCKED, replay
 from mt5_ai_bridge.costs import ZERO_COST
 from mt5_ai_bridge.instruments import (CONVERTIBLE, INSTRUMENTS, Converter,
                                        Instrument, conversion_series_for,
-                                       instrument_for, is_supported,
+                                       cost_for, instrument_for, is_supported,
                                        quote_currency_of)
 
 from .test_candidate_v15 import _bars
@@ -140,6 +140,62 @@ def test_usd_quoted_instrument_ignores_conversion():
     assert not inst.needs_conversion
     assert inst.to_usd(123.45, 1_500_000_000) == approx(123.45)
     assert inst.pip_value_per_lot_at(1) == approx(10.0)
+
+
+# --- per-instrument spreads -------------------------------------------------
+
+
+def test_gold_spread_is_not_an_fx_spread():
+    """0.9 pips is normal on EURUSD and absurd on gold, where a pip is 1c."""
+    fx = cost_for("EURUSD", "typical")
+    gold = cost_for("XAUUSD", "typical")
+    assert fx.spread_pips == approx(0.9)
+    assert gold.spread_pips == approx(30.0)
+    assert gold.spread_pips / fx.spread_pips > 30
+
+
+def test_gold_costs_far_more_per_trade_in_dollars_than_fx():
+    """The bug this caught: gold looked 20x cheaper to trade than EURUSD."""
+    fx = cost_for("EURUSD", "typical")
+    gold = cost_for("XAUUSD", "typical")
+    fx_inst = instrument_for("EURUSD")
+    gold_inst = instrument_for("XAUUSD")
+    fx_usd = fx.round_trip_pips * fx_inst.pip_value_per_lot
+    gold_usd = gold.round_trip_pips * gold_inst.pip_value_per_lot
+    # Per lot, gold's round trip is a real cost, not a rounding error.
+    assert gold_usd > fx_usd
+
+
+def test_tiers_are_ordered_for_every_instrument():
+    for symbol in list(INSTRUMENTS) + list(CONVERTIBLE):
+        tight = cost_for(symbol, "tight").spread_pips
+        typical = cost_for(symbol, "typical").spread_pips
+        wide = cost_for(symbol, "wide").spread_pips
+        assert 0 < tight < typical < wide, symbol
+
+
+def test_jpy_cross_is_wider_than_the_major():
+    assert (cost_for("GBPJPY", "typical").spread_pips
+            > cost_for("USDJPY", "typical").spread_pips)
+
+
+def test_slippage_scales_with_the_spread():
+    fx = cost_for("EURUSD", "typical")
+    gold = cost_for("XAUUSD", "typical")
+    assert gold.slippage_pips > fx.slippage_pips
+
+
+def test_zero_tier_and_unknown_symbol_fall_back_to_the_preset():
+    from mt5_ai_bridge.costs import PRESETS
+    assert cost_for("XAUUSD", "zero") is PRESETS["zero"]
+    assert cost_for("NOTASYMBOL", "typical") is PRESETS["typical"]
+
+
+def test_commission_is_not_rescaled():
+    from mt5_ai_bridge.costs import CostModel
+    base = CostModel(spread_pips=0.9, commission_per_lot_round_turn=7.0)
+    scaled = cost_for("XAUUSD", "typical", base=base)
+    assert scaled.commission_per_lot_round_turn == approx(7.0)
 
 
 def test_converted_instrument_without_a_converter_raises_on_use():

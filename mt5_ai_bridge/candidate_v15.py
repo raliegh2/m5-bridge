@@ -40,6 +40,12 @@ import pandas as pd
 
 from .costs import ZERO_COST, CostModel
 from .enums import Signal
+from .instruments import Instrument, settle
+
+
+def _plain_instrument(cfg) -> Instrument:
+    """USD-quoted instrument implied by a config, for callers that pass none."""
+    return Instrument("CONFIG", cfg.pip, cfg.contract_size)
 
 __all__ = [
     "MomentumConfig",
@@ -225,7 +231,9 @@ def replay(bars: pd.DataFrame, cfg: MomentumConfig = LOCKED,
     P&L -- pass it.
     """
     cfg.validate()
-    if instrument is not None:
+    if instrument is None:
+        instrument = _plain_instrument(cfg)
+    else:
         cfg = replace(cfg, pip=instrument.pip,
                       contract_size=instrument.contract_size)
         cfg.validate()
@@ -244,11 +252,9 @@ def replay(bars: pd.DataFrame, cfg: MomentumConfig = LOCKED,
         """Book the open position and add it to the ledger."""
         nonlocal balance, side
         direction = 1.0 if side is Signal.BUY else -1.0
-        gross = direction * (exit_price - entry) * lots * cfg.contract_size
         nights = max(0, int((exit_time - entry_time) // 86_400))
-        trade_cost = (cost.round_trip_pips * lots * pip_value_per_lot
-                      + cost.commission_cost(lots)
-                      + cost.swap_cost(side, lots, nights, pip_value_per_lot))
+        gross, trade_cost = settle(instrument, side, lots, entry,
+                                   float(exit_price), nights, cost, exit_time)
         profit = gross - trade_cost
         balance += profit
         trades.append(CandidateTrade(
@@ -303,7 +309,9 @@ def replay(bars: pd.DataFrame, cfg: MomentumConfig = LOCKED,
             stop_distance = cfg.atr_stop_mult * atr
             risk_amount = balance * (cfg.risk_percent / 100.0)
             stop_pips = stop_distance / cfg.pip
-            lots = risk_amount / (stop_pips * pip_value_per_lot)
+            # Risk is budgeted in USD, so the pip value must be too.
+            lots = risk_amount / (
+                stop_pips * instrument.pip_value_per_lot_at(int(row.time)))
             lots = max(0.01, round(lots, 2))
 
             side = want

@@ -35,6 +35,7 @@ import pandas as pd
 from .candidate_v15 import CandidateResult, CandidateTrade, _atr
 from .costs import ZERO_COST, CostModel
 from .enums import Signal
+from .instruments import Instrument, settle
 
 __all__ = ["ReversionConfig", "LOCKED_V16", "locked_config_v16",
            "add_bands", "replay_v16"]
@@ -115,7 +116,9 @@ def replay_v16(bars: pd.DataFrame, cfg: ReversionConfig = LOCKED_V16,
                instrument=None) -> CandidateResult:
     """Replay the locked reversion rules. One position at a time."""
     cfg.validate()
-    if instrument is not None:
+    if instrument is None:
+        instrument = Instrument("CONFIG", cfg.pip, cfg.contract_size)
+    else:
         cfg = replace(cfg, pip=instrument.pip,
                       contract_size=instrument.contract_size)
         cfg.validate()
@@ -135,11 +138,9 @@ def replay_v16(bars: pd.DataFrame, cfg: ReversionConfig = LOCKED_V16,
     def close_out(exit_price: float, when: int, reason: str) -> None:
         nonlocal balance, side
         direction = 1.0 if side is Signal.BUY else -1.0
-        gross = direction * (exit_price - entry) * lots * cfg.contract_size
         nights = max(0, int((when - entry_time) // 86_400))
-        trade_cost = (cost.round_trip_pips * lots * pip_value_per_lot
-                      + cost.commission_cost(lots)
-                      + cost.swap_cost(side, lots, nights, pip_value_per_lot))
+        gross, trade_cost = settle(instrument, side, lots, entry,
+                                   float(exit_price), nights, cost, when)
         profit = gross - trade_cost
         balance += profit
         trades.append(CandidateTrade(
@@ -198,7 +199,9 @@ def replay_v16(bars: pd.DataFrame, cfg: ReversionConfig = LOCKED_V16,
             stop_pips = stop_distance / cfg.pip
             risk_amount = balance * (cfg.risk_percent / 100.0)
             lots = max(0.01, round(
-                risk_amount / (stop_pips * pip_value_per_lot), 2))
+                risk_amount / (stop_pips
+                               * instrument.pip_value_per_lot_at(int(row.time))),
+                2))
 
             side = want
             entry = float(row.close)

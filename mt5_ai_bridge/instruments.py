@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from typing import Optional, Sequence
 
 __all__ = ["Instrument", "INSTRUMENTS", "instrument_for", "is_supported",
-           "Converter", "quote_currency_of"]
+           "Converter", "quote_currency_of", "cost_for", "settle"]
 
 
 @dataclass(frozen=True)
@@ -48,6 +48,12 @@ class Instrument:
     note: str = ""
     quote: str = "USD"
     converter: Optional["Converter"] = None
+    # Typical retail spread in THIS instrument's pips, as (tight, typical,
+    # wide). A pip is not a universal unit: 0.9 pips is a normal EURUSD spread
+    # and an absurd one for gold, where a pip is $0.01 and the real spread is
+    # nearer 30 of them. Applying one number to every symbol understates gold's
+    # cost by ~20x and makes it look like the only profitable instrument.
+    spread_tiers: tuple = (0.4, 0.9, 1.8)
 
     @property
     def needs_conversion(self) -> bool:
@@ -154,21 +160,85 @@ def quote_currency_of(symbol: str) -> str:
     return s[3:6] if len(s) >= 6 else "USD"
 
 
+_TIER_INDEX = {"tight": 0, "typical": 1, "wide": 2}
+
+
+def cost_for(symbol: str, tier: str = "typical", base=None):
+    """A :class:`~mt5_ai_bridge.costs.CostModel` scaled to this instrument.
+
+    Takes the slippage/commission/swap structure from ``base`` (default:
+    the named preset) but replaces the spread with the symbol's own typical
+    figure, expressed in that symbol's pips. Slippage scales with it.
+    """
+    from .costs import PRESETS, CostModel
+
+    key = str(symbol).upper()
+    inst = INSTRUMENTS.get(key) or CONVERTIBLE.get(key)
+    base = base if base is not None else PRESETS[str(tier).lower()]
+    if inst is None or str(tier).lower() == "zero":
+        return base
+
+    idx = _TIER_INDEX.get(str(tier).lower())
+    if idx is None:
+        return base
+    spread = float(inst.spread_tiers[idx])
+    # Slippage keeps its proportion to the spread rather than staying fixed at
+    # an FX-sized number.
+    fx_reference = INSTRUMENTS["EURUSD"].spread_tiers[idx]
+    scale = spread / fx_reference if fx_reference else 1.0
+    return CostModel(
+        spread_pips=spread,
+        slippage_pips=base.slippage_pips * scale,
+        commission_per_lot_round_turn=base.commission_per_lot_round_turn,
+        swap_pips_per_night_long=base.swap_pips_per_night_long * scale,
+        swap_pips_per_night_short=base.swap_pips_per_night_short * scale,
+    )
+
+
+def settle(inst: Instrument, side, lots: float, entry: float,
+           exit_price: float, nights: int, cost, when: int
+           ) -> tuple[float, float]:
+    """(gross USD, total cost USD) for one closed round turn.
+
+    The single place trade settlement is defined, so every replay engine
+    agrees. Spread, slippage and swap are incurred in the **quote currency**
+    alongside the P&L and convert with it at the exit-time rate. Commission is
+    quoted in USD per lot and must NOT be converted -- mixing the two is a
+    silent error worth the exchange rate itself.
+    """
+    is_buy = (side.value == "BUY" if hasattr(side, "value")
+              else str(side).upper().endswith("BUY"))
+    direction = 1.0 if is_buy else -1.0
+    pip_value_quote = inst.pip_value_per_lot
+
+    gross_quote = direction * (exit_price - entry) * lots * inst.contract_size
+    cost_quote = (cost.round_trip_pips * lots * pip_value_quote
+                  + cost.swap_cost(side, lots, nights, pip_value_quote))
+
+    gross_usd = inst.to_usd(gross_quote, when)
+    cost_usd = inst.to_usd(cost_quote, when) + cost.commission_cost(lots)
+    return gross_usd, cost_usd
+
+
 INSTRUMENTS: dict[str, Instrument] = {
     "EURUSD": Instrument("EURUSD", 0.0001, 100_000),
     "GBPUSD": Instrument("GBPUSD", 0.0001, 100_000),
     "AUDUSD": Instrument("AUDUSD", 0.0001, 100_000),
     "NZDUSD": Instrument("NZDUSD", 0.0001, 100_000),
+    # Gold: a "pip" of 0.01 is one cent, and retail spreads run 15-60 cents.
     "XAUUSD": Instrument("XAUUSD", 0.01, 100,
-                         note="100 troy ounces; $1 per 0.01 move per lot"),
+                         note="100 troy ounces; $1 per 0.01 move per lot",
+                         spread_tiers=(15.0, 30.0, 60.0)),
     "XAGUSD": Instrument("XAGUSD", 0.01, 5_000,
-                         note="5,000 troy ounces"),
+                         note="5,000 troy ounces",
+                         spread_tiers=(2.0, 4.0, 8.0)),
 }
 
 # Symbols priceable only when the matching converter is supplied.
 CONVERTIBLE: dict[str, Instrument] = {
     "USDJPY": Instrument("USDJPY", 0.01, 100_000, quote="JPY"),
-    "GBPJPY": Instrument("GBPJPY", 0.01, 100_000, quote="JPY"),
+    "GBPJPY": Instrument("GBPJPY", 0.01, 100_000, quote="JPY",
+                         spread_tiers=(1.0, 2.0, 4.0)),
     "EURJPY": Instrument("EURJPY", 0.01, 100_000, quote="JPY"),
     "AUDJPY": Instrument("AUDJPY", 0.01, 100_000, quote="JPY"),
     "CHFJPY": Instrument("CHFJPY", 0.01, 100_000, quote="JPY"),
