@@ -34,6 +34,7 @@ from typing import Callable, Iterable, List, Optional, Sequence
 import numpy as np
 
 __all__ = [
+    "TrialRegistry",
     "Split",
     "walk_forward_splits",
     "FoldResult",
@@ -52,6 +53,94 @@ __all__ = [
 
 _NORMAL = NormalDist()
 _EULER_MASCHERONI = 0.5772156649015329
+
+
+# --- multiplicity bookkeeping ----------------------------------------------
+
+
+class TrialRegistry:
+    """Persistent count of every specification ever evaluated.
+
+    A deflated Sharpe is only as honest as its trial count, and the count is
+    the easiest thing in the world to understate: each session starts fresh,
+    remembers trying "just a few" variants, and passes ``n_trials=1``. Twenty
+    such sessions is twenty-five profiles and a deflation of one.
+
+    This records each distinct specification to a JSON file so the count
+    survives across runs and cannot quietly reset. Re-evaluating the *same*
+    specification does not increase the count -- only genuinely new ones do.
+    """
+
+    def __init__(self, path=None, autosave: bool = True) -> None:
+        from pathlib import Path
+        self.path = Path(path) if path else None
+        self.autosave = autosave
+        self._trials: dict[str, dict] = {}
+        if self.path and self.path.exists():
+            self._load()
+
+    # -- persistence --
+    def _load(self) -> None:
+        import json
+        payload = json.loads(self.path.read_text(encoding="utf-8-sig") or "{}")
+        self._trials = dict(payload.get("trials", {}))
+
+    def save(self) -> None:
+        import json
+        if not self.path:
+            return
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(json.dumps(
+            {"n_trials": self.count, "trials": self._trials}, indent=2),
+            encoding="utf-8")
+
+    # -- recording --
+    @staticmethod
+    def fingerprint(spec) -> str:
+        """Stable key for a specification dict."""
+        import hashlib
+        import json
+        blob = json.dumps(spec, sort_keys=True, default=str)
+        return hashlib.sha256(blob.encode()).hexdigest()[:16]
+
+    def record(self, spec: dict, score: Optional[float] = None,
+               label: str = "") -> str:
+        """Register one evaluated specification and return its fingerprint."""
+        key = self.fingerprint(spec)
+        entry = self._trials.setdefault(
+            key, {"spec": spec, "label": label, "evaluations": 0})
+        entry["evaluations"] += 1
+        if score is not None:
+            entry["last_score"] = score
+        if label:
+            entry["label"] = label
+        if self.autosave:
+            self.save()
+        return key
+
+    def record_many(self, specs: Iterable[dict], label: str = "") -> int:
+        for spec in specs:
+            self.record(spec, label=label)
+        return self.count
+
+    # -- reading --
+    @property
+    def count(self) -> int:
+        """Distinct specifications tried. This is your ``n_trials``."""
+        return len(self._trials)
+
+    @property
+    def scores(self) -> List[float]:
+        return [t["last_score"] for t in self._trials.values()
+                if "last_score" in t]
+
+    def summary(self) -> dict:
+        return {"n_trials": self.count,
+                "with_scores": len(self.scores),
+                "path": str(self.path) if self.path else None}
+
+    def __len__(self) -> int:
+        return self.count
 
 
 # --- splitting -------------------------------------------------------------

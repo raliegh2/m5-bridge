@@ -1,0 +1,45 @@
+{
+  "n_trials": 4,
+  "trials": {
+    "bd546bfd2a92cd62": {
+      "spec": {
+        "candidate": "V15",
+        "symbol": "AUDUSD",
+        "timeframe": "H4",
+        "portfolio": true
+      },
+      "label": "portfolio",
+      "evaluations": 1
+    },
+    "86e1c57d692f902c": {
+      "spec": {
+        "candidate": "V15",
+        "symbol": "EURUSD",
+        "timeframe": "H4",
+        "portfolio": true
+      },
+      "label": "portfolio",
+      "evaluations": 1
+    },
+    "e9e4726e8ec21c57": {
+      "spec": {
+        "candidate": "V15",
+        "symbol": "GBPUSD",
+        "timeframe": "H4",
+        "portfolio": true
+      },
+      "label": "portfolio",
+      "evaluations": 1
+    },
+    "27173d55751999cb": {
+      "spec": {
+        "candidate": "V15",
+        "symbol": "XAUUSD",
+        "timeframe": "H4",
+        "portfolio": true
+      },
+      "label": "portfolio",
+      "evaluations": 1
+    }
+  }
+}
