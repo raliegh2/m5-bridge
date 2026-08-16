@@ -31,7 +31,7 @@ The parameters are frozen in ``research/v15_locked_candidate.json``;
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import List, Optional
 
@@ -209,16 +209,26 @@ class CandidateResult:
 
 
 def replay(bars: pd.DataFrame, cfg: MomentumConfig = LOCKED,
-           cost: CostModel = ZERO_COST, starting_balance: float = 10_000.0
-           ) -> CandidateResult:
+           cost: CostModel = ZERO_COST, starting_balance: float = 10_000.0,
+           instrument=None) -> CandidateResult:
     """Replay the locked candidate over already-resampled bars.
 
     One position at a time. Entry on a close beyond the entry channel and on
     the right side of the trend filter; exit on the opposite short channel or
     the ATR stop, whichever the bar reaches first (stop assumed first when a
     bar spans both).
+
+    ``instrument`` overrides the config's pip and contract size with that
+    symbol's real conventions (see :mod:`mt5_ai_bridge.instruments`). This is
+    not a change to the locked strategy: pip size is a fact about the market,
+    not a tuned parameter. Omitting it on a non-FX-major silently scales the
+    P&L -- pass it.
     """
     cfg.validate()
+    if instrument is not None:
+        cfg = replace(cfg, pip=instrument.pip,
+                      contract_size=instrument.contract_size)
+        cfg.validate()
     df = add_channels(bars, cfg)
     balance = starting_balance
     trades: List[CandidateTrade] = []

@@ -1,0 +1,199 @@
+{
+  "generated_at": "2026-08-16T19:15:16.907026+00:00",
+  "server": "MetaQuotes-Demo",
+  "is_demo": true,
+  "symbols": {
+    "GBPUSD": {
+      "selected": true,
+      "timeframes": {
+        "D1": {
+          "bars": 8648,
+          "available": true,
+          "start": "1993-05-12T00:00:00+00:00",
+          "end": "2026-08-14T00:00:00+00:00",
+          "years": 33.26,
+          "file": "GBPUSD_D1.csv",
+          "bytes": 505960
+        },
+        "H4": {
+          "bars": 44471,
+          "available": true,
+          "start": "1993-05-12T00:00:00+00:00",
+          "end": "2026-08-14T20:00:00+00:00",
+          "years": 33.26,
+          "file": "GBPUSD_H4.csv",
+          "bytes": 2582314
+        },
+        "H1": {
+          "bars": 172841,
+          "available": true,
+          "start": "1993-05-12T00:00:00+00:00",
+          "end": "2026-08-14T23:00:00+00:00",
+          "years": 33.26,
+          "file": "GBPUSD_H1.csv",
+          "bytes": 9925505
+        }
+      }
+    },
+    "EURUSD": {
+      "selected": true,
+      "timeframes": {
+        "D1": {
+          "bars": 14341,
+          "available": true,
+          "start": "1971-01-04T00:00:00+00:00",
+          "end": "2026-08-14T00:00:00+00:00",
+          "years": 55.61,
+          "file": "EURUSD_D1.csv",
+          "bytes": 718945
+        },
+        "H4": {
+          "bars": 50169,
+          "available": true,
+          "start": "1971-01-04T00:00:00+00:00",
+          "end": "2026-08-14T20:00:00+00:00",
+          "years": 55.61,
+          "file": "EURUSD_H4.csv",
+          "bytes": 2606922
+        },
+        "H1": {
+          "bars": 178616,
+          "available": true,
+          "start": "1971-01-04T00:00:00+00:00",
+          "end": "2026-08-14T23:00:00+00:00",
+          "years": 55.61,
+          "file": "EURUSD_H1.csv",
+          "bytes": 9277316
+        }
+      }
+    },
+    "GBPJPY": {
+      "selected": true,
+      "timeframes": {
+        "D1": {
+          "bars": 8657,
+          "available": true,
+          "start": "1993-04-19T00:00:00+00:00",
+          "end": "2026-08-14T00:00:00+00:00",
+          "years": 33.32,
+          "file": "GBPJPY_D1.csv",
+          "bytes": 436647
+        },
+        "H4": {
+          "bars": 44466,
+          "available": true,
+          "start": "1993-04-19T00:00:00+00:00",
+          "end": "2026-08-14T20:00:00+00:00",
+          "years": 33.32,
+          "file": "GBPJPY_H4.csv",
+          "bytes": 2235589
+        },
+        "H1": {
+          "bars": 172782,
+          "available": true,
+          "start": "1993-04-19T00:00:00+00:00",
+          "end": "2026-08-14T23:00:00+00:00",
+          "years": 33.32,
+          "file": "GBPJPY_H1.csv",
+          "bytes": 8579339
+        }
+      }
+    },
+    "AUDUSD": {
+      "selected": true,
+      "timeframes": {
+        "D1": {
+          "bars": 8659,
+          "available": true,
+          "start": "1993-04-27T00:00:00+00:00",
+          "end": "2026-08-14T00:00:00+00:00",
+          "years": 33.3,
+          "file": "AUDUSD_D1.csv",
+          "bytes": 427904
+        },
+        "H4": {
+          "bars": 44477,
+          "available": true,
+          "start": "1993-04-27T00:00:00+00:00",
+          "end": "2026-08-14T20:00:00+00:00",
+          "years": 33.3,
+          "file": "AUDUSD_H4.csv",
+          "bytes": 2201359
+        },
+        "H1": {
+          "bars": 172846,
+          "available": true,
+          "start": "1993-04-27T00:00:00+00:00",
+          "end": "2026-08-14T23:00:00+00:00",
+          "years": 33.3,
+          "file": "AUDUSD_H1.csv",
+          "bytes": 8475689
+        }
+      }
+    },
+    "USDJPY": {
+      "selected": true,
+      "timeframes": {
+        "D1": {
+          "bars": 14344,
+          "available": true,
+          "start": "1971-01-04T00:00:00+00:00",
+          "end": "2026-08-14T00:00:00+00:00",
+          "years": 55.61,
+          "file": "USDJPY_D1.csv",
+          "bytes": 668869
+        },
+        "H4": {
+          "bars": 50162,
+          "available": true,
+          "start": "1971-01-04T00:00:00+00:00",
+          "end": "2026-08-14T20:00:00+00:00",
+          "years": 55.61,
+          "file": "USDJPY_H4.csv",
+          "bytes": 2418868
+        },
+        "H1": {
+          "bars": 178527,
+          "available": true,
+          "start": "1971-01-04T00:00:00+00:00",
+          "end": "2026-08-14T23:00:00+00:00",
+          "years": 55.61,
+          "file": "USDJPY_H1.csv",
+          "bytes": 8595090
+        }
+      }
+    },
+    "XAUUSD": {
+      "selected": true,
+      "timeframes": {
+        "D1": {
+          "bars": 5698,
+          "available": true,
+          "start": "2004-06-11T00:00:00+00:00",
+          "end": "2026-08-14T00:00:00+00:00",
+          "years": 22.17,
+          "file": "XAUUSD_D1.csv",
+          "bytes": 286864
+        },
+        "H4": {
+          "bars": 33972,
+          "available": true,
+          "start": "2004-06-11T04:00:00+00:00",
+          "end": "2026-08-14T20:00:00+00:00",
+          "years": 22.17,
+          "file": "XAUUSD_H4.csv",
+          "bytes": 1685116
+        },
+        "H1": {
+          "bars": 128981,
+          "available": true,
+          "start": "2004-06-11T07:00:00+00:00",
+          "end": "2026-08-14T22:00:00+00:00",
+          "years": 22.17,
+          "file": "XAUUSD_H1.csv",
+          "bytes": 6321048
+        }
+      }
+    }
+  }
+}

@@ -109,48 +109,115 @@ parameterisation, the ATR settings from the existing `sizing.py` defaults. They
 are frozen in `research/v15_locked_candidate.json`, and `locked_config()`
 aborts if the file and the code disagree.
 
-Result on the committed data (`research/v15_forward_test.py`):
+## Finding 5 — the data gap is now closed
 
-| | value |
-|---|---:|
-| full-sample net | -243.19 |
-| profit factor | 0.75 |
-| out-of-sample trades | 31 |
-| folds positive | 2 of 5 |
-| verdict | **FAIL** (all five gates) |
+The lock file's `honest_limitation` field recorded that the repo held only eight
+months of GBPUSD M5, too little to test anything. **That has been resolved.**
 
-**This failure is not conclusive, and the script says so.** 31 out-of-sample
-trades against a 200-trade gate is noise. The candidate is neither validated nor
-refuted.
+`tools/export_validation_history.py` pulls the deepest history the terminal will
+serve and writes a manifest of what was and was not available. Against the
+MetaQuotes-Demo account it returned:
 
-## The binding constraint is data, not strategy
+| symbol | H4 bars | span |
+|---|---:|---|
+| GBPUSD | 44,471 | 1993 → 2026 (33.3y) |
+| EURUSD | 50,169 | (55.6y nominal, see caveat) |
+| GBPJPY | 44,466 | 1993 → 2026 (33.3y) |
+| AUDUSD | 44,477 | 1993 → 2026 (33.3y) |
+| USDJPY | 50,162 | (55.6y nominal, see caveat) |
+| XAUUSD | 33,972 | 2004 → 2026 (22.2y) |
 
-The only price data in this repository is `GBPUSD_M5.csv`: 50,000 M5 bars,
-2025-10-28 → 2026-06-30, roughly eight months of one symbol. Every 10-year claim
-in `research/` references data that is not committed, so none of those reports
-can be reproduced or checked here.
+D1 and H4 are committed under `research/data/` so these results are
+reproducible. H1 (~49 MB) is git-ignored and regenerates in seconds.
 
-Eight months of one pair cannot settle whether any strategy has an edge. Before
-the next profile is written:
+**Caveat:** MetaQuotes reports EURUSD and USDJPY from 1971. The euro did not
+exist until 1999, so those early bars are synthetic or proxied. Treat pre-1999
+EURUSD as unusable.
 
-1. Export several years of history for every traded symbol
-   (`tools/export_v9_history.py`, `Export History.bat`) and commit it or pin it
-   somewhere reproducible.
-2. Re-run `research/honest_walk_forward.py` on it.
-3. Re-run `research/v15_forward_test.py` on it.
-4. Count every specification tried and pass that count as `n_trials`. The
-   deflated Sharpe is only honest if the trial count is.
+## Finding 6 — a silent 300x pricing bug, and what it hid
+
+The first multi-symbol run reported XAUUSD at **+2,244,625** and USDJPY at
+**+1,678,893** on a $10,000 account. Those were not results. The locked config
+carried `pip=0.0001` and `contract_size=100_000` — correct for EURUSD, wrong for
+everything else. Gold trades 100 ounces, not 100,000 units, and a JPY pip is
+0.01.
+
+The distortion did not come from the price maths directly: risk-based sizing
+mostly cancels it. It came from `max(0.01, ...)` — with FX conventions the
+computed gold lot rounds below the minimum, gets clamped up, and is then
+multiplied by a 1000x-too-large contract size.
+
+**Fixed.** `mt5_ai_bridge/instruments.py` holds real per-symbol conventions and
+`instrument_for()` **raises** on anything it cannot price rather than guessing.
+JPY-quoted pairs are refused outright: their P&L is earned in yen and needs a
+USDJPY conversion per trade, which requires a second price series.
+
+This is the same disease as Finding 1 — a number that looks like a result but
+was never measured correctly.
+
+## Result: the locked V15 candidate, tested properly
+
+`research/v15_forward_test.py` on 33 years of GBPUSD H4, and
+`research/v15_multi_symbol_test.py` across every priceable symbol. Identical
+parameters everywhere; nothing tuned per symbol.
+
+| symbol | trades | gross | net | net PF | out-of-sample | folds + |
+|---|---:|---:|---:|---:|---:|---:|
+| AUDUSD | 1,619 | -5,002.94 | -6,422.52 | 0.771 | -7,259.67 | 20% |
+| EURUSD | 1,784 | +54,679.97 | +30,399.20 | 1.129 | -3,969.27 | 40% |
+| GBPUSD | 1,609 | -2,085.55 | -3,688.38 | 0.890 | -2,766.19 | 20% |
+| **XAUUSD** | **1,179** | **+7,313.66** | **+7,140.98** | **1.192** | **+5,455.76** | **100%** |
+
+GBPUSD alone, with 1,394 out-of-sample trades — comfortably past the 200-trade
+gate — **fails conclusively**: PF 0.945, 2 of 5 folds positive, deflated Sharpe
+0.232. The candidate is now genuinely refuted on GBPUSD, not merely untested.
+
+EURUSD is the cautionary case: strongly profitable in-sample (+30,399, PF 1.129)
+and **negative out of sample**. That is selection bias visible in a single row.
+
+**XAUUSD is the one real signal.** 1,006 out-of-sample trades, PF 1.207, and
+every one of five folds positive. Four of the five locked gates pass.
+
+It still **FAILS** the fifth: deflated Sharpe **0.4526** against a 0.95 bar,
+after deflating by the four symbols tried. The honest reading is *suggestive,
+not proven* — consistent enough to be worth pursuing, not strong enough to fund.
+
+Two things are worth noting about it. The return is modest: +$5,455 on $10,000
+across 22 years is roughly 2%/yr, before any slippage beyond the modelled 1.3
+pips. And the repo already throttles gold hardest — `config.py` ships
+`_BUILTIN_SWING_RISK = {"XAUUSD": 0.2}`, treating it as the dangerous instrument,
+when it is the only symbol here showing cross-fold consistency.
+
+## What to do next
+
+1. **Do not fund XAUUSD on this evidence.** Deflated Sharpe 0.45 is below the
+   bar you set. Forward-test it on the demo account and compare live fills
+   against `research/v15_multi_symbol_h4.json`.
+2. **Every further variant raises the bar.** Trying more symbols, timeframes or
+   parameters increases `n_trials`; the deflated Sharpe must be recomputed
+   against the new count or it means nothing.
+3. **Extend `instruments.py` before testing JPY pairs.** GBPJPY and USDJPY are
+   currently refused, so two of the six exported symbols are untested.
+4. **Re-check the pre-1999 EURUSD bars** before trusting any EURUSD figure.
 
 ## What did not change
 
 No strategy logic, no risk limits, no live execution path. The session guard's
 behaviour is byte-identical — the refactor is covered by the existing suite.
-593 tests pass (484 before this work, 109 added).
+610 tests pass (484 before this work, 126 added).
 
 ## Honest summary
 
-There is no evidence of a trading edge in this repository, and there never was
-measurable evidence — the instrument that would have detected one did not charge
-costs and did not correct for selection. Those instruments now exist and are
-tested. The tooling to find an edge is in place; the edge is not, and finding one
-requires data this repo does not yet contain.
+The reported edges were never measured correctly: costs were not charged,
+selection was not corrected for, and instrument conventions were assumed. Those
+three instruments now exist, are tested, and refuse to guess.
+
+Applied to 22–33 years of real history, the pre-registered V15 candidate is
+**refuted on GBPUSD, AUDUSD and EURUSD** — conclusively, on thousands of
+out-of-sample trades. On **XAUUSD** it is profitable out of sample with every
+fold positive, but at a deflated Sharpe of 0.45 it does not clear the 0.95 bar
+and should not be funded on this evidence.
+
+That is a real answer rather than a twenty-sixth report: one live hypothesis
+worth forward-testing, three closed off, and measurement you can trust the next
+time.
