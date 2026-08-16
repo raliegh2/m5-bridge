@@ -1,5 +1,5 @@
 {
-  "n_trials": 10,
+  "n_trials": 11,
   "trials": {
     "bd546bfd2a92cd62": {
       "spec": {
@@ -96,6 +96,16 @@
       },
       "label": "v16",
       "evaluations": 1
+    },
+    "6b327cf27da3e6b9": {
+      "spec": {
+        "system": "V17",
+        "timeframe": "H4",
+        "entry_z": 3.0,
+        "vr_max": 1.0
+      },
+      "label": "v17",
+      "evaluations": 2
     }
   }
 }
