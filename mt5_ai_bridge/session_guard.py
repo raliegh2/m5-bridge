@@ -19,6 +19,7 @@ from types import SimpleNamespace
 from typing import Any, Optional
 
 from .books import build_books
+from .entry_diagnostics import RejectionLedger, evaluate_entry_gates
 from .execution import MAGIC as EXECUTION_MAGIC
 from .logging_config import get_logger
 from .trade_manager import MAGIC as CLOSE_MAGIC
@@ -164,6 +165,9 @@ class RiskGuardedClient:
         self._last_reject_at = 0.0
         self._managed_magics = self._build_managed_magics()
         self._state = self._load_state()
+        # Running tally of why entries were refused, so a session that placed
+        # no trades can be explained after the fact rather than only in logs.
+        self.rejections = RejectionLedger()
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._client, name)
@@ -209,72 +213,43 @@ class RiskGuardedClient:
     def can_open_new_trade(self, symbol: str, order_type,
                            requested_volume: float) -> tuple[bool, str]:
         """Central permission check used by every live entry order."""
+        diagnosis = self.diagnose_entry(symbol, order_type, requested_volume)
+        if diagnosis is None:
+            return False, "account information unavailable"
+        return diagnosis.allowed, diagnosis.first_reason
+
+    def diagnose_entry(self, symbol: str, order_type,
+                       requested_volume: float):
+        """Standing of every entry gate, or None if the account is unreadable.
+
+        This is the full picture behind :meth:`can_open_new_trade`: the same
+        gate evaluation, but with every gate's verdict retained instead of
+        stopping at the first refusal. Each call is recorded in
+        :attr:`rejections` so a quiet session can be explained afterwards.
+        """
         del order_type  # Reserved for future side-specific controls.
         with self._lock:
             account = self._client.account_info()
             if account is None:
-                return False, "account information unavailable"
+                return None
             self._refresh(account)
 
             now = self._broker_now()
             now_ts = now.timestamp()
             state = self._state
-            cfg = self.config
 
-            if state.get("daily_lock"):
-                return False, state.get("lock_reason") or "daily trading lock active"
-
+            # An expired cooldown is cleared before evaluation so the gate
+            # reflects the state the next order will actually see.
             cooldown_until = float(state.get("cooldown_until") or 0.0)
-            if cooldown_until > now_ts:
-                remaining = max(1, int((cooldown_until - now_ts + 59) // 60))
-                return False, (
-                    f"loss cooldown active for approximately {remaining} more minute(s)"
-                )
             if cooldown_until and cooldown_until <= now_ts:
                 state["cooldown_until"] = 0.0
                 state["consecutive_losses"] = 0
                 self._save_state(force=True)
 
-            if requested_volume <= 0:
-                return False, "requested volume is not positive"
-            if cfg.minimum_lot > 0 and requested_volume + _EPS < cfg.minimum_lot:
-                return False, (
-                    f"requested volume {requested_volume:g} is below "
-                    f"SESSION_MINIMUM_LOT {cfg.minimum_lot:g}"
-                )
-            if cfg.maximum_lot > 0 and requested_volume > cfg.maximum_lot + _EPS:
-                return False, (
-                    f"requested volume {requested_volume:g} exceeds "
-                    f"SESSION_MAXIMUM_LOT {cfg.maximum_lot:g}"
-                )
-
-            if cfg.enable_trade_limit:
-                total = int(state.get("trades_today") or 0)
-                if cfg.max_trades_per_day > 0 and total >= cfg.max_trades_per_day:
-                    return False, (
-                        f"daily trade limit reached "
-                        f"({total}/{cfg.max_trades_per_day})"
-                    )
-                per_symbol = dict(state.get("trades_by_symbol") or {})
-                sym_count = int(per_symbol.get(symbol.upper(), 0))
-                if (cfg.max_trades_per_symbol_per_day > 0
-                        and sym_count >= cfg.max_trades_per_symbol_per_day):
-                    return False, (
-                        f"{symbol} daily trade limit reached "
-                        f"({sym_count}/{cfg.max_trades_per_symbol_per_day})"
-                    )
-                last_entry = float(state.get("last_entry_time") or 0.0)
-                wait_seconds = cfg.minimum_minutes_between_entries * 60
-                if wait_seconds > 0 and last_entry > 0 \
-                        and now_ts - last_entry < wait_seconds:
-                    remaining = max(
-                        1, int((wait_seconds - (now_ts - last_entry) + 59) // 60))
-                    return False, (
-                        f"minimum entry interval active for approximately "
-                        f"{remaining} more minute(s)"
-                    )
-
-            return True, "session risk checks passed"
+            diagnosis = evaluate_entry_gates(
+                state, self.config, symbol, requested_volume, now_ts)
+            self.rejections.record(diagnosis, timestamp=now_ts)
+            return diagnosis
 
     def status(self) -> dict:
         """Return a copy of the latest persisted guard status."""
