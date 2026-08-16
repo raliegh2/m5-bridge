@@ -43,7 +43,7 @@ import pandas as pd
 from .candidate_v15 import LOCKED, MomentumConfig, add_channels
 from .costs import ZERO_COST, CostModel
 from .enums import Signal
-from .instruments import instrument_for
+from .instruments import instrument_for, quote_currency_of
 
 __all__ = [
     "PortfolioConfig",
@@ -224,6 +224,27 @@ class PortfolioResult:
         }
 
 
+def _settle(inst, side, lots: float, entry: float, exit_price: float,
+            nights: int, cost: CostModel, when: int) -> tuple[float, float]:
+    """(gross USD, total cost USD) for one closed trade.
+
+    Spread, slippage and swap are incurred in the **quote currency** along with
+    the P&L, so they convert at the exit-time rate. Commission is quoted in USD
+    per lot and must NOT be converted -- mixing the two is a silent error worth
+    up to the exchange rate itself.
+    """
+    direction = 1.0 if side is Signal.BUY else -1.0
+    pip_value_quote = inst.pip_value_per_lot
+
+    gross_quote = direction * (exit_price - entry) * lots * inst.contract_size
+    cost_quote = (cost.round_trip_pips * lots * pip_value_quote
+                  + cost.swap_cost(side, lots, nights, pip_value_quote))
+
+    gross_usd = inst.to_usd(gross_quote, when)
+    cost_usd = inst.to_usd(cost_quote, when) + cost.commission_cost(lots)
+    return gross_usd, cost_usd
+
+
 def _prepare(bars_by_symbol: Dict[str, pd.DataFrame],
              cfg: MomentumConfig) -> Dict[str, pd.DataFrame]:
     """Attach signals per symbol and index by bar time."""
@@ -240,7 +261,8 @@ def replay_portfolio(bars_by_symbol: Dict[str, pd.DataFrame],
                      portfolio: PortfolioConfig = PortfolioConfig(),
                      cost: CostModel = ZERO_COST,
                      starting_balance: float = 10_000.0,
-                     admitted: Optional[Sequence[str]] = None
+                     admitted: Optional[Sequence[str]] = None,
+                     converters: Optional[Dict[str, "object"]] = None
                      ) -> PortfolioResult:
     """Replay the locked signals across symbols on one shared account.
 
@@ -257,7 +279,9 @@ def replay_portfolio(bars_by_symbol: Dict[str, pd.DataFrame],
     if not symbols:
         return PortfolioResult([], starting_balance, starting_balance, [])
 
-    instruments = {s: instrument_for(s) for s in symbols}
+    converters = converters or {}
+    instruments = {s: instrument_for(s, converters.get(quote_currency_of(s)))
+                   for s in symbols}
     prepared = _prepare({s: bars_by_symbol[s] for s in symbols}, cfg)
 
     timeline = sorted({int(t) for df in prepared.values()
@@ -299,13 +323,10 @@ def replay_portfolio(bars_by_symbol: Dict[str, pd.DataFrame],
 
             direction = 1.0 if side is Signal.BUY else -1.0
             lots = pos["lots"]
-            pip_value = inst.pip_value_per_lot
-            gross = direction * (exit_price - pos["entry"]) * lots * inst.contract_size
             nights = max(0, int((now - pos["entry_time"]) // 86_400))
-            trade_cost = (cost.round_trip_pips * lots * pip_value
-                          + cost.commission_cost(lots)
-                          + cost.swap_cost(side, lots, nights, pip_value))
-            profit = gross - trade_cost
+            gross_usd, trade_cost = _settle(inst, side, lots, pos["entry"],
+                                            float(exit_price), nights, cost, now)
+            profit = gross_usd - trade_cost
             balance += profit
             trades.append(PortfolioTrade(
                 symbol=symbol, entry_time=pos["entry_time"], exit_time=now,
@@ -368,10 +389,12 @@ def replay_portfolio(bars_by_symbol: Dict[str, pd.DataFrame],
             # --- volatility-targeted size --------------------------------
             stop_distance = cfg.atr_stop_mult * atr
             stop_pips = stop_distance / inst.pip
-            pip_value = inst.pip_value_per_lot
+            # Risk is budgeted in USD, so the pip value must be in USD too --
+            # at this bar's rate for a converted instrument.
+            pip_value_usd = inst.pip_value_per_lot_at(now)
             if portfolio.volatility_target:
                 risk_amount = balance * (risk_pct / 100.0)
-                lots = risk_amount / (stop_pips * pip_value)
+                lots = risk_amount / (stop_pips * pip_value_usd)
             else:
                 lots = cfg.risk_percent / 100.0
             lots = max(0.01, round(lots, 2))
@@ -395,8 +418,9 @@ def replay_portfolio(bars_by_symbol: Dict[str, pd.DataFrame],
                 row = row.iloc[0]
             inst = instruments[symbol]
             direction = 1.0 if pos["side"] is Signal.BUY else -1.0
-            floating += (direction * (float(row["close"]) - pos["entry"])
-                         * pos["lots"] * inst.contract_size)
+            unrealised = (direction * (float(row["close"]) - pos["entry"])
+                          * pos["lots"] * inst.contract_size)
+            floating += inst.to_usd(unrealised, now)
         equity_curve.append(round(balance + floating, 2))
 
     # --- close whatever is still open at the end -------------------------
@@ -404,15 +428,13 @@ def replay_portfolio(bars_by_symbol: Dict[str, pd.DataFrame],
         df = prepared[symbol]
         last = df.iloc[-1]
         inst = instruments[symbol]
-        direction = 1.0 if pos["side"] is Signal.BUY else -1.0
+        when = int(last["time"])
+        nights = max(0, int((when - pos["entry_time"]) // 86_400))
+        gross_usd, trade_cost = _settle(inst, pos["side"], pos["lots"],
+                                        pos["entry"], float(last["close"]),
+                                        nights, cost, when)
+        profit = gross_usd - trade_cost
         lots = pos["lots"]
-        pip_value = inst.pip_value_per_lot
-        gross = direction * (float(last["close"]) - pos["entry"]) * lots * inst.contract_size
-        nights = max(0, int((int(last["time"]) - pos["entry_time"]) // 86_400))
-        trade_cost = (cost.round_trip_pips * lots * pip_value
-                      + cost.commission_cost(lots)
-                      + cost.swap_cost(pos["side"], lots, nights, pip_value))
-        profit = gross - trade_cost
         balance += profit
         trades.append(PortfolioTrade(
             symbol=symbol, entry_time=pos["entry_time"],

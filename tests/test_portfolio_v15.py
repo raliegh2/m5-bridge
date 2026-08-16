@@ -169,10 +169,38 @@ def test_summary_and_drawdown_are_sane():
     assert len(r.equity_curve) > 0
 
 
-def test_unpriceable_symbol_is_refused_not_guessed():
-    with pytest.raises(ValueError, match="not priceable"):
+def test_jpy_pair_is_refused_without_a_converter():
+    with pytest.raises(ValueError, match="quoted in JPY"):
         replay_portfolio({"USDJPY": _trend()}, LOCKED, PortfolioConfig(),
                          ZERO_COST)
+
+
+def test_jpy_pair_trades_once_a_converter_is_supplied():
+    """The unlock: JPY pairs become priceable, adding the second bloc."""
+    from mt5_ai_bridge.instruments import Converter
+
+    bars = _trend(n=200, base=150.0, step=0.20)     # yen-like prices
+    conv = Converter([START, START + 200 * H4], [150.0, 150.0], "USDJPY")
+    result = replay_portfolio({"USDJPY": bars}, LOCKED, PortfolioConfig(),
+                              ZERO_COST, converters={"JPY": conv})
+    assert result.trades
+    assert all(t.symbol == "USDJPY" for t in result.trades)
+
+
+def test_conversion_rate_changes_reported_pnl():
+    from mt5_ai_bridge.instruments import Converter
+
+    bars = _trend(n=200, base=150.0, step=0.20)
+    span = [START, START + 200 * H4]
+    strong = Converter(span, [100.0, 100.0], "USDJPY")
+    weak = Converter(span, [200.0, 200.0], "USDJPY")
+
+    a = replay_portfolio({"USDJPY": bars}, LOCKED, PortfolioConfig(),
+                         ZERO_COST, converters={"JPY": strong})
+    b = replay_portfolio({"USDJPY": bars}, LOCKED, PortfolioConfig(),
+                         ZERO_COST, converters={"JPY": weak})
+    # Same yen P&L, different dollar value -- a fixed rate would hide this.
+    assert a.net_profit != approx(b.net_profit)
 
 
 # --- diversification maths --------------------------------------------------

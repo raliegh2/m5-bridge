@@ -21,10 +21,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import pandas as pd  # noqa: E402
+
 from mt5_ai_bridge.candidate_v15 import locked_config, replay  # noqa: E402
 from mt5_ai_bridge.costs import preset  # noqa: E402
 from mt5_ai_bridge.data import load_csv  # noqa: E402
-from mt5_ai_bridge.instruments import instrument_for  # noqa: E402
+from mt5_ai_bridge.data_audit import audit_bars  # noqa: E402
+from mt5_ai_bridge.instruments import (CONVERSION_SERIES, Converter,  # noqa: E402
+                                       instrument_for, quote_currency_of)
 from mt5_ai_bridge.persistence import log_returns, variance_ratio  # noqa: E402
 from mt5_ai_bridge.portfolio_v15 import (PortfolioConfig,  # noqa: E402
                                          diversification_report,
@@ -37,21 +41,51 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "research" / "data"
 REGISTRY = Path(__file__).resolve().parents[1] / "research" / "v15_trials.json"
 
 
-def load_symbols(timeframe: str, since: int | None):
-    """Load every priceable symbol, skipping what instruments.py refuses."""
-    out, skipped = {}, {}
+def build_converters(timeframe: str):
+    """Load the series needed to state non-USD-quoted P&L in dollars."""
+    converters = {}
+    for quote, series in CONVERSION_SERIES.items():
+        path = DATA_DIR / f"{series}_{timeframe}.csv"
+        if not path.exists():
+            continue
+        df = load_csv(str(path))
+        # The converter itself must be built from trustworthy bars.
+        audit = audit_bars(pd.read_csv(path), series, timeframe)
+        if audit.trusted_from:
+            df = df[df["time"] >= audit.trusted_from]
+        if not df.empty:
+            converters[quote] = Converter.from_frame(df, series)
+    return converters
+
+
+def load_symbols(timeframe: str, since: int | None, converters: dict):
+    """Load every priceable symbol, trimmed to its audited trusted window."""
+    out, skipped, trimmed = {}, {}, {}
     for path in sorted(DATA_DIR.glob(f"*_{timeframe}.csv")):
         symbol = path.stem.rsplit("_", 1)[0]
         try:
-            instrument_for(symbol)
+            instrument_for(symbol, converters.get(quote_currency_of(symbol)))
         except ValueError as exc:
-            skipped[symbol] = str(exc).split(".")[0]
+            skipped[symbol] = str(exc).split(";")[0]
             continue
+
+        raw = pd.read_csv(path)
+        audit = audit_bars(raw, symbol, timeframe)
+        if not audit.usable:
+            skipped[symbol] = "failed data audit: " + ", ".join(
+                i.code for i in audit.fatal)
+            continue
+
         df = load_csv(str(path)).reset_index(drop=True)
-        if since:
-            df = df[df["time"] >= since].reset_index(drop=True)
+        # Start at the later of the audit's trusted date and any explicit --since.
+        start = max(audit.trusted_from or 0, since or 0)
+        if start:
+            before = len(df)
+            df = df[df["time"] >= start].reset_index(drop=True)
+            if len(df) < before:
+                trimmed[symbol] = (audit.trusted_from_date, before - len(df))
         out[symbol] = df
-    return out, skipped
+    return out, skipped, trimmed
 
 
 def main(argv=None) -> int:
@@ -60,9 +94,9 @@ def main(argv=None) -> int:
     p.add_argument("--timeframe", default="H4")
     p.add_argument("--cost", default="typical")
     p.add_argument("--folds", type=int, default=5)
-    p.add_argument("--since", type=int, default=915148800,
-                   help="Drop bars before this epoch (default: 1999-01-01, "
-                        "which removes MetaQuotes' synthetic pre-euro bars)")
+    p.add_argument("--since", type=int, default=None,
+                   help="Extra floor on the start date. Each symbol is already "
+                        "trimmed to its audited trusted window automatically.")
     p.add_argument("--require-persistence", action="store_true",
                    help="Admit a symbol only if its variance ratio shows "
                         "significant trending on the folds seen so far")
@@ -73,7 +107,9 @@ def main(argv=None) -> int:
     cost = preset(args.cost)
     pcfg = PortfolioConfig()
 
-    bars, skipped = load_symbols(args.timeframe, args.since)
+    converters = build_converters(args.timeframe)
+    bars, skipped, trimmed = load_symbols(args.timeframe, args.since,
+                                          converters)
     if not bars:
         print(f"No priceable {args.timeframe} data in {DATA_DIR}.")
         return 2
@@ -91,10 +127,15 @@ def main(argv=None) -> int:
           f"{pcfg.max_total_risk_percent}% total, "
           f"{pcfg.max_currency_risk_percent}%/currency, "
           f"max {pcfg.max_concurrent_positions} open")
-    if args.since:
-        print(f"Bars from epoch {args.since} onward (synthetic history dropped)")
+    if converters:
+        print(f"Converters loaded: "
+              + ", ".join(f"{q}<-{c.name}" for q, c in converters.items()))
+    if trimmed:
+        print("Trimmed to audited trusted window:")
+        for sym, (date, dropped) in trimmed.items():
+            print(f"  {sym}: from {date} ({dropped} bars dropped)")
     if skipped:
-        print(f"Refused (not priceable): {', '.join(skipped)}")
+        print(f"Refused: {'; '.join(f'{k} ({v})' for k, v in skipped.items())}")
 
     # How much diversification is actually on offer, before any P&L.
     div = diversification_report(bars)
@@ -151,7 +192,8 @@ def main(argv=None) -> int:
 
         slice_ = {s: bars[s].iloc[split.test_slice()].reset_index(drop=True)
                   for s in admitted}
-        result = replay_portfolio(slice_, cfg, pcfg, cost)
+        result = replay_portfolio(slice_, cfg, pcfg, cost,
+                                  converters=converters)
         folds.append(FoldResult(split=split, net_profit=result.net_profit,
                                 trades=len(result.trades),
                                 returns=result.returns))

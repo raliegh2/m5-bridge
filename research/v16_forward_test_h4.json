@@ -1,0 +1,76 @@
+{
+  "candidate": "V16_RANGE_MEAN_REVERSION",
+  "cost": "typical",
+  "n_trials": 10,
+  "best_symbol": "GBPUSD",
+  "metrics": {
+    "trades": 2202,
+    "net_profit": -145.48,
+    "profit_factor": 0.997,
+    "positive_fold_fraction": 0.2,
+    "deflated_sharpe": 0.1467
+  },
+  "verdict": {
+    "passed": false,
+    "failed_gates": [
+      "net_profitable",
+      "profit_factor",
+      "majority_of_folds_positive",
+      "deflated_sharpe"
+    ]
+  },
+  "skipped": {
+    "GBPJPY": "needs a quote-currency converter",
+    "USDJPY": "needs a quote-currency converter"
+  },
+  "by_symbol": {
+    "AUDUSD": {
+      "trusted_from": "1993-04-27",
+      "bars": 44477,
+      "trades": 2587,
+      "gross": 81.78,
+      "net": -3767.81,
+      "net_pf": 0.9,
+      "oos_net": -2070.67,
+      "oos_trades": 2213,
+      "oos_pf": 0.956,
+      "folds_positive": 0.4
+    },
+    "EURUSD": {
+      "trusted_from": "1999-01-01",
+      "bars": 43008,
+      "trades": 2482,
+      "gross": 922.58,
+      "net": -2672.96,
+      "net_pf": 0.939,
+      "oos_net": -1521.15,
+      "oos_trades": 2127,
+      "oos_pf": 0.966,
+      "folds_positive": 0.6
+    },
+    "GBPUSD": {
+      "trusted_from": "1993-05-12",
+      "bars": 44471,
+      "trades": 2581,
+      "gross": 2594.98,
+      "net": -908.49,
+      "net_pf": 0.983,
+      "oos_net": -145.48,
+      "oos_trades": 2202,
+      "oos_pf": 0.997,
+      "folds_positive": 0.2
+    },
+    "XAUUSD": {
+      "trusted_from": "2004-06-11",
+      "bars": 33972,
+      "trades": 2022,
+      "gross": -3300.28,
+      "net": -3486.01,
+      "net_pf": 0.907,
+      "oos_net": -3037.73,
+      "oos_trades": 1742,
+      "oos_pf": 0.921,
+      "folds_positive": 0.4
+    }
+  }
+}

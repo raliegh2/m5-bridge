@@ -1,5 +1,5 @@
 {
-  "n_trials": 4,
+  "n_trials": 10,
   "trials": {
     "bd546bfd2a92cd62": {
       "spec": {
@@ -21,10 +21,30 @@
       "label": "portfolio",
       "evaluations": 1
     },
+    "c966949a7ed8044b": {
+      "spec": {
+        "candidate": "V15",
+        "symbol": "GBPJPY",
+        "timeframe": "H4",
+        "portfolio": true
+      },
+      "label": "portfolio",
+      "evaluations": 1
+    },
     "e9e4726e8ec21c57": {
       "spec": {
         "candidate": "V15",
         "symbol": "GBPUSD",
+        "timeframe": "H4",
+        "portfolio": true
+      },
+      "label": "portfolio",
+      "evaluations": 1
+    },
+    "f810a2e19bc0fcc6": {
+      "spec": {
+        "candidate": "V15",
+        "symbol": "USDJPY",
         "timeframe": "H4",
         "portfolio": true
       },
@@ -39,6 +59,42 @@
         "portfolio": true
       },
       "label": "portfolio",
+      "evaluations": 1
+    },
+    "1f88dc1f1c451ffb": {
+      "spec": {
+        "candidate": "V16",
+        "symbol": "AUDUSD",
+        "timeframe": "H4"
+      },
+      "label": "v16",
+      "evaluations": 1
+    },
+    "19f96ff26c4d5b95": {
+      "spec": {
+        "candidate": "V16",
+        "symbol": "EURUSD",
+        "timeframe": "H4"
+      },
+      "label": "v16",
+      "evaluations": 1
+    },
+    "09c5b735a3bac7aa": {
+      "spec": {
+        "candidate": "V16",
+        "symbol": "GBPUSD",
+        "timeframe": "H4"
+      },
+      "label": "v16",
+      "evaluations": 1
+    },
+    "164099aa3dfb658c": {
+      "spec": {
+        "candidate": "V16",
+        "symbol": "XAUUSD",
+        "timeframe": "H4"
+      },
+      "label": "v16",
       "evaluations": 1
     }
   }
