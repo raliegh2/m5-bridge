@@ -60,6 +60,14 @@ class Instrument:
     # wrong, and badly so, because an index lot is ~1.0 where an FX lot is
     # ~0.01. Left unset it made the "tight" tier cost more than "wide".
     commission_per_lot: Optional[float] = None
+    # Smallest position the broker will accept, and the increment above it.
+    # These are the difference between a sizing model and a tradeable one: on
+    # a small account the minimum can exceed the intended risk, at which point
+    # every position is oversized and a drawdown ceiling computed from the
+    # model will not hold. Verify against the terminal with
+    # tools/verify_instruments.py.
+    min_lot: float = 0.01
+    lot_step: float = 0.01
 
     @property
     def needs_conversion(self) -> bool:
@@ -257,15 +265,19 @@ INSTRUMENTS: dict[str, Instrument] = {
     # broker's own history (research/data/*_H4.csv spread column) rather than
     # assumed.
     "US30": Instrument("US30", 1.0, 1.0, note="Dow, $1 per index point",
-                       spread_tiers=(1.0, 1.5, 3.0), commission_per_lot=0.0),
+                       spread_tiers=(1.0, 1.5, 3.0), commission_per_lot=0.0,
+                       min_lot=0.10, lot_step=0.10),
     "US500": Instrument("US500", 1.0, 1.0, note="S&P, $1 per index point",
-                        spread_tiers=(0.3, 0.5, 1.0), commission_per_lot=0.0),
+                        spread_tiers=(0.3, 0.5, 1.0), commission_per_lot=0.0,
+                        min_lot=0.10, lot_step=0.10),
     "USTEC": Instrument("USTEC", 1.0, 1.0, note="Nasdaq, $1 per index point",
-                        spread_tiers=(0.7, 1.0, 2.0), commission_per_lot=0.0),
+                        spread_tiers=(0.7, 1.0, 2.0), commission_per_lot=0.0,
+                        min_lot=0.10, lot_step=0.10),
     "US2000": Instrument("US2000", 1.0, 1.0,
                          note="Russell, $1 per index point",
                          spread_tiers=(0.15, 0.24, 0.5),
-                         commission_per_lot=0.0),
+                         commission_per_lot=0.0,
+                         min_lot=1.00, lot_step=1.00),
 
     # US-listed ETFs. One lot is one share, quoted in USD, so a $0.01 move on
     # one share is one cent. Spread tiers are in cents: liquid US ETFs quote a
@@ -273,17 +285,23 @@ INSTRUMENTS: dict[str, Instrument] = {
     # Unlike the index CFDs above, these are FULLY TRADABLE on this account --
     # every one of the 26 index CFDs is trade_mode=DISABLED.
     "ONEQ": Instrument("ONEQ", 0.01, 1.0, note="Fidelity Nasdaq Composite ETF",
-                       spread_tiers=(1.0, 3.0, 8.0), commission_per_lot=0.0),
+                       spread_tiers=(1.0, 3.0, 8.0), commission_per_lot=0.0,
+                       min_lot=1.0, lot_step=1.0),
     "IVV": Instrument("IVV", 0.01, 1.0, note="iShares S&P 500 ETF",
-                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
+                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0,
+                      min_lot=1.0, lot_step=1.0),
     "IWM": Instrument("IWM", 0.01, 1.0, note="iShares Russell 2000 ETF",
-                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
+                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0,
+                      min_lot=1.0, lot_step=1.0),
     "VTI": Instrument("VTI", 0.01, 1.0, note="Vanguard Total Market ETF",
-                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
+                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0,
+                      min_lot=1.0, lot_step=1.0),
     "TQQQ": Instrument("TQQQ", 0.01, 1.0, note="3x leveraged Nasdaq 100",
-                       spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
+                       spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0,
+                      min_lot=1.0, lot_step=1.0),
     "EEM": Instrument("EEM", 0.01, 1.0, note="iShares Emerging Markets ETF",
-                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
+                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0,
+                      min_lot=1.0, lot_step=1.0),
 }
 
 # Symbols priceable only when the matching converter is supplied.
@@ -300,22 +318,32 @@ CONVERTIBLE: dict[str, Instrument] = {
     # Indices quoted in their home currency. Priceable only with the matching
     # converter; guessing would repeat the gold mistake on a larger scale,
     # since JPN225 carries a 100-unit contract on a ~68,000 quote.
+    # Minimum lots below are the broker's, verified by
+    # tools/verify_instruments.py rather than assumed to be 0.01.
     "DE40": Instrument("DE40", 1.0, 1.0, quote="EUR",
-                       spread_tiers=(0.7, 1.0, 2.0)),
+                       spread_tiers=(0.7, 1.0, 2.0),
+                       min_lot=0.10, lot_step=0.10),
     "FRA40": Instrument("FRA40", 0.1, 1.0, quote="EUR",
-                        spread_tiers=(0.8, 1.1, 2.5)),
+                        spread_tiers=(0.8, 1.1, 2.5),
+                        min_lot=1.00, lot_step=1.00),
     "EUSTX50": Instrument("EUSTX50", 0.1, 1.0, quote="EUR",
-                          spread_tiers=(0.4, 0.6, 1.5)),
+                          spread_tiers=(0.4, 0.6, 1.5),
+                          min_lot=1.00, lot_step=1.00),
     "UK100": Instrument("UK100", 0.1, 10.0, quote="GBP",
-                        spread_tiers=(0.7, 1.0, 2.2)),
+                        spread_tiers=(0.7, 1.0, 2.2),
+                        min_lot=0.10, lot_step=0.10),
     "JPN225": Instrument("JPN225", 1.0, 100.0, quote="JPY",
-                         spread_tiers=(3.0, 5.0, 8.0)),
+                         spread_tiers=(3.0, 5.0, 8.0),
+                         min_lot=1.00, lot_step=1.00),
     "AUS200": Instrument("AUS200", 0.1, 10.0, quote="AUD",
-                         spread_tiers=(0.8, 1.2, 1.9)),
-    "HK50": Instrument("HK50", 1.0, 1.0, quote="HKD",
-                       spread_tiers=(0.5, 0.7, 0.9)),
+                         spread_tiers=(0.8, 1.2, 1.9),
+                         min_lot=0.10, lot_step=0.10),
+    "HK50": Instrument("HK50", 0.1, 1.0, quote="HKD",
+                       spread_tiers=(5.0, 7.0, 9.0),
+                       min_lot=1.00, lot_step=1.00),
     "SWI20": Instrument("SWI20", 1.0, 1.0, quote="CHF",
-                        spread_tiers=(2.0, 3.0, 5.0)),
+                        spread_tiers=(2.0, 3.0, 5.0),
+                        min_lot=1.00, lot_step=1.00),
 }
 
 # Which series converts each quote currency to USD.

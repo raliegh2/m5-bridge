@@ -348,12 +348,21 @@ def test_engine_respects_open_exposure():
     assert "risk budget" in d.reason
 
 
-def test_engine_refuses_when_size_would_round_below_the_minimum():
+def test_engine_refuses_when_the_broker_minimum_exceeds_the_budget():
+    """A small account cannot trade an instrument whose minimum is too big.
+
+    Sizing up to the minimum instead would breach the risk budget on every
+    trade, which is how a computed 10% drawdown ceiling becomes a real 17% one.
+    """
     engine = RiskEngine()
     engine.governor.observe(500)
     d = engine.size(**_kw(balance=500, equity=500, stop_distance=0.0500))
     assert not d.approved
-    assert "minimum lot" in d.reason
+    assert d.lots == 0.0
+    assert "broker minimum" in d.reason
+    assert "no tradeable size" in d.reason
+    # The detail should quantify by how much, so the refusal is actionable.
+    assert d.detail["min_lot_risk"] > d.detail["risk_budget_money"]
 
 
 def test_stronger_edge_earns_a_larger_position():

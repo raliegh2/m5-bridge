@@ -77,6 +77,8 @@ def main(argv=None) -> int:
     p.add_argument("--balance", type=float, default=4802.43)
     p.add_argument("--risk-pct", type=float, default=0.5,
                    help="Intended risk per trade, %% of balance")
+    p.add_argument("--leverage", type=float, default=100.0,
+                   help="Account leverage, for the margin figure")
     p.add_argument("--json-out", default=None)
     args = p.parse_args(argv)
 
@@ -167,11 +169,18 @@ def main(argv=None) -> int:
     heavy = [r for r in tradable if r["exposure_pct"] > 50]
     if heavy:
         print(f"\n  Minimum position exceeds 50% of the account in notional "
-              f"exposure on {len(heavy)}:")
+              f"on {len(heavy)}:")
         for r in heavy:
-            print(f"    {r['symbol']:<8} ${r['exposure']:,.0f} = "
-                  f"{r['exposure_pct']:.0f}% of ${args.balance:,.0f}")
-        print("  Margin, not risk, becomes the binding constraint there.")
+            margin = r["exposure"] / args.leverage
+            print(f"    {r['symbol']:<8} ${r['exposure']:,.0f} notional = "
+                  f"{r['exposure_pct']:.0f}% of ${args.balance:,.0f}, but only "
+                  f"${margin:,.2f} margin at 1:{args.leverage:g}")
+        print("  Notional as a share of equity is the WRONG lens here: a"
+              " routine 0.4-lot")
+        print("  EURUSD position is ~480% of a $10k account in notional and"
+              " entirely normal.")
+        print("  The binding constraint is the min-lot risk above, not"
+              " exposure.")
 
     print(f"\n  Practical conclusion for a ${args.balance:,.0f} account:")
     if ok:

@@ -288,18 +288,55 @@ class KillSwitch:
 
 @dataclass
 class RiskBudget:
-    """Aggregate exposure caps across concurrent positions."""
+    """Aggregate risk and exposure caps across concurrent positions.
+
+    Risk and exposure are different things and both need a limit. *Risk* is
+    stop distance times size -- what you lose if the stop fills. *Exposure* is
+    the capital the broker ties up, which is what a margin call acts on.
+
+    The right exposure unit is **margin**, not raw notional. Notional as a
+    fraction of equity is meaningless across asset classes: a routine 0.4-lot
+    EURUSD position is ~4.8x equity in notional, while a minimum-size gold
+    position on a small account is 0.9x. Judged on notional, normal FX looks
+    reckless and the genuinely awkward gold position looks safe. Judged on
+    margin -- notional divided by leverage -- both come out where they should.
+
+    The gold problem on a $4,802 account is not exposure at all; it is that one
+    minimum lot risks 1.6x the intended budget. That is caught by the min-lot
+    check in :meth:`RiskEngine.size`, not here.
+    """
 
     max_total_risk_fraction: float = 0.06
     max_currency_risk_fraction: float = 0.04
     max_symbol_risk_fraction: float = 0.02
     max_concurrent_positions: int = 5
+    # Margin committed per position and in aggregate, as a fraction of equity.
+    # 20%/50% leaves room to survive an adverse move without a margin call.
+    max_symbol_margin_fraction: float = 0.20
+    max_total_margin_fraction: float = 0.50
 
     def __post_init__(self) -> None:
         if self.max_symbol_risk_fraction > self.max_total_risk_fraction:
             raise ValueError("per-symbol risk cannot exceed total risk")
         if self.max_concurrent_positions < 1:
             raise ValueError("max_concurrent_positions must be at least 1")
+        if self.max_symbol_margin_fraction <= 0:
+            raise ValueError("max_symbol_margin_fraction must be positive")
+        if self.max_symbol_margin_fraction > self.max_total_margin_fraction:
+            raise ValueError("per-symbol margin cannot exceed total margin")
+
+    def margin_room(self, requested: float,
+                    open_margin: Dict[str, float]) -> tuple[bool, str]:
+        """Whether ``requested`` margin fraction fits the exposure caps."""
+        if requested > self.max_symbol_margin_fraction + 1e-9:
+            return False, (f"margin {requested:.1%} of equity exceeds the "
+                           f"{self.max_symbol_margin_fraction:.0%} "
+                           "per-symbol cap")
+        total = sum(open_margin.values())
+        if total + requested > self.max_total_margin_fraction + 1e-9:
+            return False, (f"aggregate margin {total + requested:.1%} exceeds "
+                           f"the {self.max_total_margin_fraction:.0%} ceiling")
+        return True, "within margin caps"
 
     def room_for(self, symbol: str, requested: float,
                  open_risk: Dict[str, float]) -> tuple[float, str]:
@@ -366,7 +403,11 @@ class RiskEngine:
     def size(self, *, symbol: str, balance: float, equity: float,
              stop_distance: float, pip: float, pip_value_per_lot: float,
              edge: dict, open_risk: Optional[Dict[str, float]] = None,
-             min_lot: float = 0.01, max_lot: float = 100.0) -> RiskDecision:
+             min_lot: float = 0.01, max_lot: float = 100.0,
+             lot_step: float = 0.01, price: Optional[float] = None,
+             contract_size: float = 1.0, leverage: float = 100.0,
+             open_margin: Optional[Dict[str, float]] = None
+             ) -> RiskDecision:
         """Decide whether to trade and at what size.
 
         ``edge`` is the output of :func:`edge_from_trades` for the signal's
@@ -406,15 +447,46 @@ class RiskEngine:
             return RiskDecision(False, 0.0, 0.0,
                                 f"risk budget: {budget_reason}", detail)
 
+        # The broker's minimum is a hard floor. If one minimum lot already
+        # risks more than the budget, there is no tradeable size -- refusing is
+        # what makes the drawdown ceiling hold. Sizing up to the minimum
+        # instead would silently exceed the budget on every trade, which is
+        # exactly how a computed 10% ceiling becomes a real 17% one.
+        min_lot_risk = (stop_distance / pip) * pip_value_per_lot * min_lot
+        budget_money = balance * risk
+        detail["min_lot_risk"] = round(min_lot_risk, 2)
+        detail["risk_budget_money"] = round(budget_money, 2)
+        if min_lot_risk > budget_money:
+            over = min_lot_risk / budget_money if budget_money > 0 else 0.0
+            return RiskDecision(
+                False, 0.0, risk,
+                f"broker minimum {min_lot:g} lots risks "
+                f"${min_lot_risk:,.2f}, {over:.1f}x the ${budget_money:,.2f} "
+                "budget: no tradeable size on this account", detail)
+
         lots = volatility_target_lots(
             balance, risk, stop_distance, pip, pip_value_per_lot,
-            min_lot=min_lot, max_lot=max_lot)
+            min_lot=min_lot, max_lot=max_lot, lot_step=lot_step)
         detail["lots_before_rounding"] = lots
         if lots <= 0:
             return RiskDecision(
                 False, 0.0, risk,
                 "position below the minimum lot; rounding up would exceed the "
                 "risk budget", detail)
+
+        # Margin exposure, which a risk check does not see.
+        if price and price > 0 and equity > 0 and leverage > 0:
+            notional = lots * contract_size * price
+            margin = notional / leverage
+            fraction = margin / equity
+            detail["notional"] = round(notional, 2)
+            detail["margin"] = round(margin, 2)
+            detail["margin_fraction"] = round(fraction, 4)
+            ok, why = self.budget.margin_room(
+                fraction, dict(open_margin or {}))
+            if not ok:
+                return RiskDecision(False, 0.0, risk, f"exposure: {why}",
+                                    detail)
 
         return RiskDecision(True, lots, risk,
                             f"sized from measured edge ({budget_reason})",

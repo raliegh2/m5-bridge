@@ -154,6 +154,25 @@ class TradeIntent:
     pip: float
     pip_value_per_lot: float
     reason: str = ""
+    # Broker contract facts. Defaults are FX-major conventions; pass the real
+    # ones from mt5_ai_bridge.instruments, because assuming these is what
+    # produced four separate wrong-by-a-factor bugs in this repository.
+    min_lot: float = 0.01
+    lot_step: float = 0.01
+    contract_size: float = 100_000.0
+
+    @classmethod
+    def from_instrument(cls, instrument, *, side: Side, entry: float,
+                        stop: float, when: Optional[int] = None,
+                        reason: str = "") -> "TradeIntent":
+        """Build an intent carrying an instrument's verified specs."""
+        pip_value = (instrument.pip_value_per_lot_at(when) if when is not None
+                     else instrument.pip_value_per_lot)
+        return cls(symbol=instrument.symbol, side=side, entry=entry,
+                   stop=stop, pip=instrument.pip,
+                   pip_value_per_lot=pip_value, reason=reason,
+                   min_lot=instrument.min_lot, lot_step=instrument.lot_step,
+                   contract_size=instrument.contract_size)
 
     @property
     def stop_distance(self) -> float:
@@ -221,14 +240,17 @@ class TradingSystem:
 
     def __init__(self, *, gate: Optional[EdgeGate] = None,
                  risk: Optional[RiskEngine] = None,
-                 starting_equity: float = 10_000.0) -> None:
+                 starting_equity: float = 10_000.0,
+                 leverage: float = 100.0) -> None:
         self.gate = gate or EdgeGate()
         self.risk = risk or RiskEngine()
         self.equity = float(starting_equity)
         self.balance = float(starting_equity)
+        self.leverage = float(leverage)
         self._signals: Dict[str, SignalSpec] = {}
         self._gate_results: Dict[str, GateResult] = {}
         self._open_risk: Dict[str, float] = {}
+        self._open_margin: Dict[str, float] = {}
         self.risk.governor.observe(self.equity)
 
     # -- registration --
@@ -265,6 +287,7 @@ class TradingSystem:
         self.equity = self.balance
         self.risk.kill_switch.record_trade(float(profit))
         self._open_risk.pop(symbol, None)
+        self._open_margin.pop(symbol, None)
         self.risk.governor.observe(self.equity)
 
     # -- planning --
@@ -295,10 +318,15 @@ class TradingSystem:
             symbol=intent.symbol, balance=self.balance, equity=self.equity,
             stop_distance=intent.stop_distance, pip=intent.pip,
             pip_value_per_lot=intent.pip_value_per_lot,
-            edge=spec.validation.edge(), open_risk=self._open_risk)
+            edge=spec.validation.edge(), open_risk=self._open_risk,
+            min_lot=intent.min_lot, lot_step=intent.lot_step,
+            price=intent.entry, contract_size=intent.contract_size,
+            leverage=self.leverage, open_margin=self._open_margin)
 
         if decision.approved:
             self._open_risk[intent.symbol] = decision.risk_fraction
+            self._open_margin[intent.symbol] = decision.detail.get(
+                "margin_fraction", 0.0)
 
         return OrderPlan(intent, decision.approved, decision.lots,
                          decision.risk_fraction, decision.reason,
