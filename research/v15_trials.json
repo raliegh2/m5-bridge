@@ -1,5 +1,5 @@
 {
-  "n_trials": 1379,
+  "n_trials": 1385,
   "trials": {
     "bd546bfd2a92cd62": {
       "spec": {
@@ -17890,6 +17890,60 @@
       },
       "label": "exhaustive_search",
       "evaluations": 1
+    },
+    "0afc0f22e3a333b3": {
+      "spec": {
+        "candidate": "V19",
+        "symbol": "AUDUSD",
+        "timeframe": "H4"
+      },
+      "label": "v19",
+      "evaluations": 3
+    },
+    "91379cb02af0500b": {
+      "spec": {
+        "candidate": "V19",
+        "symbol": "EURUSD",
+        "timeframe": "H4"
+      },
+      "label": "v19",
+      "evaluations": 3
+    },
+    "a8ca64a16a2d70cf": {
+      "spec": {
+        "candidate": "V19",
+        "symbol": "GBPUSD",
+        "timeframe": "H4"
+      },
+      "label": "v19",
+      "evaluations": 3
+    },
+    "a6253ee6c24520e9": {
+      "spec": {
+        "candidate": "V19",
+        "symbol": "XAUUSD",
+        "timeframe": "H4"
+      },
+      "label": "v19",
+      "evaluations": 3
+    },
+    "5d084f24447a58a2": {
+      "spec": {
+        "candidate": "V19",
+        "symbol": "USDJPY",
+        "timeframe": "H4"
+      },
+      "label": "v19",
+      "evaluations": 2
+    },
+    "eb36779b1ceff6a8": {
+      "spec": {
+        "candidate": "V19",
+        "symbol": "GBPJPY",
+        "timeframe": "H4"
+      },
+      "label": "v19",
+      "evaluations": 2
     }
   }
 }

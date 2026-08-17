@@ -27,7 +27,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -113,8 +113,16 @@ def add_bands(df: pd.DataFrame, cfg: ReversionConfig) -> pd.DataFrame:
 def replay_v16(bars: pd.DataFrame, cfg: ReversionConfig = LOCKED_V16,
                cost: CostModel = ZERO_COST,
                starting_balance: float = 10_000.0,
-               instrument=None) -> CandidateResult:
-    """Replay the locked reversion rules. One position at a time."""
+               instrument=None,
+               entry_filter: Optional[Sequence[bool]] = None
+               ) -> CandidateResult:
+    """Replay the locked reversion rules. One position at a time.
+
+    ``entry_filter`` optionally suppresses entries on selected bars without
+    touching exits, stops or the time stop. That keeps a derived candidate an
+    entry filter on V16 rather than a different strategy -- V19 uses it to
+    trade only below-average-volume bars.
+    """
     cfg.validate()
     if instrument is None:
         instrument = Instrument("CONFIG", cfg.pip, cfg.contract_size)
@@ -124,6 +132,14 @@ def replay_v16(bars: pd.DataFrame, cfg: ReversionConfig = LOCKED_V16,
         cfg.validate()
 
     df = add_bands(bars, cfg)
+    if entry_filter is not None:
+        mask = np.asarray(list(entry_filter), dtype=bool)
+        if mask.size != len(df):
+            raise ValueError(
+                f"entry_filter has {mask.size} entries for {len(df)} bars")
+        df["entry_ok"] = mask
+    else:
+        df["entry_ok"] = True
     balance = starting_balance
     trades: List[CandidateTrade] = []
     pip_value_per_lot = cfg.pip * cfg.contract_size
@@ -178,6 +194,8 @@ def replay_v16(bars: pd.DataFrame, cfg: ReversionConfig = LOCKED_V16,
 
         # --- consider a new entry ---
         if side is None:
+            if not getattr(row, "entry_ok", True):
+                continue
             if atr / cfg.pip < cfg.min_atr_pips:
                 continue
             if not np.isfinite(row.sd) or row.sd <= 0:
