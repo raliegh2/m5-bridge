@@ -54,6 +54,12 @@ class Instrument:
     # nearer 30 of them. Applying one number to every symbol understates gold's
     # cost by ~20x and makes it look like the only profitable instrument.
     spread_tiers: tuple = (0.4, 0.9, 1.8)
+    # Commission per lot per round turn, or None to take the preset's figure.
+    # The $7/lot ECN convention is an FX arrangement. Index CFDs are priced
+    # spread-only, and charging them $7 a lot is not conservatism -- it is
+    # wrong, and badly so, because an index lot is ~1.0 where an FX lot is
+    # ~0.01. Left unset it made the "tight" tier cost more than "wide".
+    commission_per_lot: Optional[float] = None
 
     @property
     def needs_conversion(self) -> bool:
@@ -156,8 +162,17 @@ class Converter:
 
 
 def quote_currency_of(symbol: str) -> str:
-    s = str(symbol).upper()
-    return s[3:6] if len(s) >= 6 else "USD"
+    """Currency a symbol's P&L is earned in.
+
+    Slicing characters 3-6 works for FX pairs and is meaningless for anything
+    else, so the instrument tables are consulted first. "US30"[3:6] would
+    otherwise return "0", and DE40 would look USD-quoted.
+    """
+    key = str(symbol).upper()
+    inst = INSTRUMENTS.get(key) or CONVERTIBLE.get(key)
+    if inst is not None:
+        return inst.quote
+    return key[3:6] if len(key) >= 6 else "USD"
 
 
 _TIER_INDEX = {"tight": 0, "typical": 1, "wide": 2}
@@ -186,10 +201,13 @@ def cost_for(symbol: str, tier: str = "typical", base=None):
     # an FX-sized number.
     fx_reference = INSTRUMENTS["EURUSD"].spread_tiers[idx]
     scale = spread / fx_reference if fx_reference else 1.0
+    commission = (base.commission_per_lot_round_turn
+                  if inst.commission_per_lot is None
+                  else float(inst.commission_per_lot))
     return CostModel(
         spread_pips=spread,
         slippage_pips=base.slippage_pips * scale,
-        commission_per_lot_round_turn=base.commission_per_lot_round_turn,
+        commission_per_lot_round_turn=commission,
         swap_pips_per_night_long=base.swap_pips_per_night_long * scale,
         swap_pips_per_night_short=base.swap_pips_per_night_short * scale,
     )
@@ -232,6 +250,22 @@ INSTRUMENTS: dict[str, Instrument] = {
     "XAGUSD": Instrument("XAGUSD", 0.01, 5_000,
                          note="5,000 troy ounces",
                          spread_tiers=(2.0, 4.0, 8.0)),
+
+    # USD-quoted equity indices. The natural unit is one index point, not the
+    # broker's 0.01 tick, and the contract is 1 unit -- so a one-point move on
+    # one lot is one dollar. Spread tiers are the medians measured from this
+    # broker's own history (research/data/*_H4.csv spread column) rather than
+    # assumed.
+    "US30": Instrument("US30", 1.0, 1.0, note="Dow, $1 per index point",
+                       spread_tiers=(1.0, 1.5, 3.0), commission_per_lot=0.0),
+    "US500": Instrument("US500", 1.0, 1.0, note="S&P, $1 per index point",
+                        spread_tiers=(0.3, 0.5, 1.0), commission_per_lot=0.0),
+    "USTEC": Instrument("USTEC", 1.0, 1.0, note="Nasdaq, $1 per index point",
+                        spread_tiers=(0.7, 1.0, 2.0), commission_per_lot=0.0),
+    "US2000": Instrument("US2000", 1.0, 1.0,
+                         note="Russell, $1 per index point",
+                         spread_tiers=(0.15, 0.24, 0.5),
+                         commission_per_lot=0.0),
 }
 
 # Symbols priceable only when the matching converter is supplied.
@@ -244,6 +278,26 @@ CONVERTIBLE: dict[str, Instrument] = {
     "CHFJPY": Instrument("CHFJPY", 0.01, 100_000, quote="JPY"),
     "USDCHF": Instrument("USDCHF", 0.0001, 100_000, quote="CHF"),
     "USDCAD": Instrument("USDCAD", 0.0001, 100_000, quote="CAD"),
+
+    # Indices quoted in their home currency. Priceable only with the matching
+    # converter; guessing would repeat the gold mistake on a larger scale,
+    # since JPN225 carries a 100-unit contract on a ~68,000 quote.
+    "DE40": Instrument("DE40", 1.0, 1.0, quote="EUR",
+                       spread_tiers=(0.7, 1.0, 2.0)),
+    "FRA40": Instrument("FRA40", 0.1, 1.0, quote="EUR",
+                        spread_tiers=(0.8, 1.1, 2.5)),
+    "EUSTX50": Instrument("EUSTX50", 0.1, 1.0, quote="EUR",
+                          spread_tiers=(0.4, 0.6, 1.5)),
+    "UK100": Instrument("UK100", 0.1, 10.0, quote="GBP",
+                        spread_tiers=(0.7, 1.0, 2.2)),
+    "JPN225": Instrument("JPN225", 1.0, 100.0, quote="JPY",
+                         spread_tiers=(3.0, 5.0, 8.0)),
+    "AUS200": Instrument("AUS200", 0.1, 10.0, quote="AUD",
+                         spread_tiers=(0.8, 1.2, 1.9)),
+    "HK50": Instrument("HK50", 1.0, 1.0, quote="HKD",
+                       spread_tiers=(0.5, 0.7, 0.9)),
+    "SWI20": Instrument("SWI20", 1.0, 1.0, quote="CHF",
+                        spread_tiers=(2.0, 3.0, 5.0)),
 }
 
 # Which series converts each quote currency to USD.

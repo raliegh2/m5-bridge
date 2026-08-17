@@ -1,5 +1,5 @@
 {
-  "n_trials": 1385,
+  "n_trials": 1389,
   "trials": {
     "bd546bfd2a92cd62": {
       "spec": {
@@ -68,7 +68,7 @@
         "timeframe": "H4"
       },
       "label": "v16",
-      "evaluations": 1
+      "evaluations": 2
     },
     "19f96ff26c4d5b95": {
       "spec": {
@@ -77,7 +77,7 @@
         "timeframe": "H4"
       },
       "label": "v16",
-      "evaluations": 1
+      "evaluations": 2
     },
     "09c5b735a3bac7aa": {
       "spec": {
@@ -86,7 +86,7 @@
         "timeframe": "H4"
       },
       "label": "v16",
-      "evaluations": 1
+      "evaluations": 2
     },
     "164099aa3dfb658c": {
       "spec": {
@@ -95,7 +95,7 @@
         "timeframe": "H4"
       },
       "label": "v16",
-      "evaluations": 1
+      "evaluations": 2
     },
     "6b327cf27da3e6b9": {
       "spec": {
@@ -17944,6 +17944,42 @@
       },
       "label": "v19",
       "evaluations": 2
+    },
+    "134ee2b8ab3623aa": {
+      "spec": {
+        "candidate": "V16",
+        "symbol": "US2000",
+        "timeframe": "H4"
+      },
+      "label": "v16",
+      "evaluations": 1
+    },
+    "8fcf5df01da582ea": {
+      "spec": {
+        "candidate": "V16",
+        "symbol": "US30",
+        "timeframe": "H4"
+      },
+      "label": "v16",
+      "evaluations": 1
+    },
+    "fdfd703910402960": {
+      "spec": {
+        "candidate": "V16",
+        "symbol": "US500",
+        "timeframe": "H4"
+      },
+      "label": "v16",
+      "evaluations": 1
+    },
+    "ddacd163f513914c": {
+      "spec": {
+        "candidate": "V16",
+        "symbol": "USTEC",
+        "timeframe": "H4"
+      },
+      "label": "v16",
+      "evaluations": 1
     }
   }
 }
