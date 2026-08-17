@@ -1,0 +1,114 @@
+{
+  "gate_profit_factor": 1.1,
+  "best_frictionless_pf": 1.057,
+  "configs_clearing_frictionless": 0,
+  "broker_pricing_pips": {
+    "ECN raw + $7/lot": 0.8999999999999999,
+    "ECN raw + $5/lot": 0.7,
+    "tight spread account": 0.6,
+    "typical spread account": 0.9,
+    "wide / retail market maker": 1.8,
+    "institutional (indicative)": 0.15
+  },
+  "rows": [
+    {
+      "timeframe": "H4",
+      "symbol": "GBPUSD",
+      "oos_trades": 2202,
+      "gross_oos": 2684.01,
+      "gross_pf": 1.057,
+      "per_trade": 1.219,
+      "avg_lots": 0.081,
+      "max_cost_pips": 1.513,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "H4",
+      "symbol": "EURUSD",
+      "oos_trades": 2127,
+      "gross_oos": 1656.78,
+      "gross_pf": 1.037,
+      "per_trade": 0.779,
+      "avg_lots": 0.088,
+      "max_cost_pips": 0.886,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "H4",
+      "symbol": "AUDUSD",
+      "oos_trades": 2213,
+      "gross_oos": 1937.09,
+      "gross_pf": 1.041,
+      "per_trade": 0.875,
+      "avg_lots": 0.093,
+      "max_cost_pips": 0.938,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "H1",
+      "symbol": "GBPUSD",
+      "oos_trades": 10466,
+      "gross_oos": 2752.21,
+      "gross_pf": 1.012,
+      "per_trade": 0.263,
+      "avg_lots": 0.196,
+      "max_cost_pips": 0.134,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "H1",
+      "symbol": "EURUSD",
+      "oos_trades": 9858,
+      "gross_oos": 5691.01,
+      "gross_pf": 1.026,
+      "per_trade": 0.577,
+      "avg_lots": 0.225,
+      "max_cost_pips": 0.256,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "H1",
+      "symbol": "AUDUSD",
+      "oos_trades": 8896,
+      "gross_oos": 1425.27,
+      "gross_pf": 1.008,
+      "per_trade": 0.16,
+      "avg_lots": 0.132,
+      "max_cost_pips": 0.121,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "D1",
+      "symbol": "GBPUSD",
+      "oos_trades": 441,
+      "gross_oos": -667.25,
+      "gross_pf": 0.927,
+      "per_trade": -1.513,
+      "avg_lots": 0.025,
+      "max_cost_pips": -6.089,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "D1",
+      "symbol": "EURUSD",
+      "oos_trades": 332,
+      "gross_oos": 145.99,
+      "gross_pf": 1.021,
+      "per_trade": 0.44,
+      "avg_lots": 0.034,
+      "max_cost_pips": 1.311,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "D1",
+      "symbol": "AUDUSD",
+      "oos_trades": 424,
+      "gross_oos": 143.05,
+      "gross_pf": 1.017,
+      "per_trade": 0.337,
+      "avg_lots": 0.046,
+      "max_cost_pips": 0.734,
+      "clears_gate_frictionless": false
+    }
+  ]
+}
