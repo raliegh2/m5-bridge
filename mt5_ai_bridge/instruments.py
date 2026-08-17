@@ -266,6 +266,24 @@ INSTRUMENTS: dict[str, Instrument] = {
                          note="Russell, $1 per index point",
                          spread_tiers=(0.15, 0.24, 0.5),
                          commission_per_lot=0.0),
+
+    # US-listed ETFs. One lot is one share, quoted in USD, so a $0.01 move on
+    # one share is one cent. Spread tiers are in cents: liquid US ETFs quote a
+    # 1-3 cent spread, and these are all among the most heavily traded.
+    # Unlike the index CFDs above, these are FULLY TRADABLE on this account --
+    # every one of the 26 index CFDs is trade_mode=DISABLED.
+    "ONEQ": Instrument("ONEQ", 0.01, 1.0, note="Fidelity Nasdaq Composite ETF",
+                       spread_tiers=(1.0, 3.0, 8.0), commission_per_lot=0.0),
+    "IVV": Instrument("IVV", 0.01, 1.0, note="iShares S&P 500 ETF",
+                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
+    "IWM": Instrument("IWM", 0.01, 1.0, note="iShares Russell 2000 ETF",
+                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
+    "VTI": Instrument("VTI", 0.01, 1.0, note="Vanguard Total Market ETF",
+                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
+    "TQQQ": Instrument("TQQQ", 0.01, 1.0, note="3x leveraged Nasdaq 100",
+                       spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
+    "EEM": Instrument("EEM", 0.01, 1.0, note="iShares Emerging Markets ETF",
+                      spread_tiers=(1.0, 2.0, 5.0), commission_per_lot=0.0),
 }
 
 # Symbols priceable only when the matching converter is supplied.
