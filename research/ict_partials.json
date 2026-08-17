@@ -1,0 +1,80 @@
+[
+  {
+    "symbol": "EURUSD",
+    "profile": "eu_ny_relaxed",
+    "plan": "flat",
+    "trades": 571,
+    "expectancy_r": -0.08257,
+    "net_r": -47.148,
+    "profit_factor": 0.8657,
+    "win_rate": 0.387,
+    "max_drawdown_pct": 25.32,
+    "final_balance": 7821.45,
+    "return_pct": -21.79
+  },
+  {
+    "symbol": "EURUSD",
+    "profile": "eu_ny_relaxed",
+    "plan": "half@1R+BE",
+    "trades": 571,
+    "expectancy_r": -0.07252,
+    "net_r": -41.407,
+    "profit_factor": 0.8585,
+    "win_rate": 0.4904,
+    "max_drawdown_pct": 22.62,
+    "final_balance": 8072.79,
+    "return_pct": -19.27
+  },
+  {
+    "symbol": "AUDUSD",
+    "profile": "au_london_15",
+    "plan": "flat",
+    "trades": 213,
+    "expectancy_r": -0.13616,
+    "net_r": -29.003,
+    "profit_factor": 0.7928,
+    "win_rate": 0.3662,
+    "max_drawdown_pct": 16.39,
+    "final_balance": 8617.08,
+    "return_pct": -13.83
+  },
+  {
+    "symbol": "AUDUSD",
+    "profile": "au_london_15",
+    "plan": "half@1R+BE",
+    "trades": 213,
+    "expectancy_r": -0.18369,
+    "net_r": -39.127,
+    "profit_factor": 0.6871,
+    "win_rate": 0.4366,
+    "max_drawdown_pct": 20.15,
+    "final_balance": 8200.41,
+    "return_pct": -18.0
+  },
+  {
+    "symbol": "USDJPY",
+    "profile": "uj_london_15",
+    "plan": "flat",
+    "trades": 189,
+    "expectancy_r": -0.07764,
+    "net_r": -14.674,
+    "profit_factor": 0.8776,
+    "win_rate": 0.381,
+    "max_drawdown_pct": 8.35,
+    "final_balance": 9260.39,
+    "return_pct": -7.4
+  },
+  {
+    "symbol": "USDJPY",
+    "profile": "uj_london_15",
+    "plan": "half@1R+BE",
+    "trades": 189,
+    "expectancy_r": -0.12012,
+    "net_r": -22.702,
+    "profit_factor": 0.782,
+    "win_rate": 0.4603,
+    "max_drawdown_pct": 11.66,
+    "final_balance": 8905.21,
+    "return_pct": -10.95
+  }
+]

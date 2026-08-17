@@ -32,6 +32,11 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 
 __all__ = [
+    "RiskProfile",
+    "CONSERVATIVE_10PCT",
+    "BALANCED_20PCT",
+    "PROFILES",
+    "risk_profile",
     "kelly_fraction",
     "fractional_kelly",
     "edge_from_trades",
@@ -414,3 +419,82 @@ class RiskEngine:
         return RiskDecision(True, lots, risk,
                             f"sized from measured edge ({budget_reason})",
                             detail)
+
+
+# --- named risk profiles ---------------------------------------------------
+
+
+@dataclass(frozen=True)
+class RiskProfile:
+    """A complete, coherent risk configuration with a stated ceiling.
+
+    The ceiling is enforced, not hoped for: the kill switch latches at
+    ``max_drawdown`` and does not clear on a recovery, and the taper shrinks
+    exposure long before it. Reaching the ceiling requires a run of
+    maximum-size full-stop losses that the consecutive-loss cutout is sized to
+    interrupt first.
+    """
+
+    name: str
+    max_drawdown: float
+    max_risk_per_trade: float
+    kelly_fraction_used: float
+    budget: RiskBudget
+    governor: DrawdownGovernor
+    kill_switch_template: dict
+
+    def build(self) -> "RiskEngine":
+        """A fresh engine configured to this profile."""
+        return RiskEngine(
+            budget=RiskBudget(**vars(self.budget)),
+            governor=DrawdownGovernor(**{k: v for k, v in
+                                         vars(self.governor).items()
+                                         if k != "peak_equity"}),
+            kill_switch=KillSwitch(**self.kill_switch_template),
+            kelly_fraction_used=self.kelly_fraction_used,
+            max_risk_per_trade=self.max_risk_per_trade,
+        )
+
+
+# A 10% ceiling. Everything is scaled to make 10% hard to reach rather than
+# merely forbidden at the boundary: a third of the per-trade risk, an eighth
+# Kelly, tapering from 3%, and a 3-loss cutout.
+CONSERVATIVE_10PCT = RiskProfile(
+    name="conservative-10pct",
+    max_drawdown=0.10,
+    max_risk_per_trade=0.0075,
+    kelly_fraction_used=0.125,
+    budget=RiskBudget(max_total_risk_fraction=0.02,
+                      max_currency_risk_fraction=0.015,
+                      max_symbol_risk_fraction=0.0075,
+                      max_concurrent_positions=3),
+    governor=DrawdownGovernor(soft_limit=0.03, hard_limit=0.10, floor=0.20),
+    kill_switch_template=dict(max_daily_loss_fraction=0.01,
+                              max_total_drawdown_fraction=0.10,
+                              max_consecutive_losses=3,
+                              max_trades_per_day=6),
+)
+
+BALANCED_20PCT = RiskProfile(
+    name="balanced-20pct",
+    max_drawdown=0.20,
+    max_risk_per_trade=0.02,
+    kelly_fraction_used=0.25,
+    budget=RiskBudget(),
+    governor=DrawdownGovernor(),
+    kill_switch_template=dict(max_daily_loss_fraction=0.02,
+                              max_total_drawdown_fraction=0.20,
+                              max_consecutive_losses=5,
+                              max_trades_per_day=10),
+)
+
+PROFILES = {p.name: p for p in (CONSERVATIVE_10PCT, BALANCED_20PCT)}
+
+
+def risk_profile(name: str) -> RiskProfile:
+    try:
+        return PROFILES[str(name).lower()]
+    except KeyError:
+        raise ValueError(
+            f"unknown risk profile {name!r}; choose from {sorted(PROFILES)}"
+        ) from None
