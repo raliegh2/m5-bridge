@@ -35,11 +35,19 @@ from mt5_ai_bridge.instruments import (Converter, cost_for,  # noqa: E402
 from mt5_ai_bridge.risk_v18 import DrawdownGovernor, KillSwitch, RiskBudget  # noqa: E402
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "research" / "data"
+# Overridden by --balance. The live account holds ~$4,802, not the $10,000
+# these backtests originally assumed; on a small account the broker's minimum
+# lot can exceed the intended risk, so the starting figure is not cosmetic.
 START_BALANCE = 10_000.0
 
 
-def equity_curve(trades, start=START_BALANCE):
-    """Realised equity after each closed trade, in time order."""
+def equity_curve(trades, start):
+    """Realised equity after each closed trade, in time order.
+
+    ``start`` is required rather than defaulted: a default is bound at
+    definition time, so a --balance override would silently rebuild the curve
+    from the old figure while the CAGR divided by the new one.
+    """
     eq, bal = [start], start
     for t in sorted(trades, key=lambda x: x.exit_time):
         bal += t.profit
@@ -95,6 +103,7 @@ def load(symbol: str, timeframe: str, since: int):
 
 
 def main(argv=None) -> int:
+    global START_BALANCE
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--years", type=int, default=10)
@@ -104,8 +113,11 @@ def main(argv=None) -> int:
     p.add_argument("--symbols", nargs="+",
                    default=["EURUSD", "GBPUSD", "AUDUSD", "USDJPY",
                             "GBPJPY", "XAUUSD"])
+    p.add_argument("--balance", type=float, default=10_000.0,
+                   help="Starting balance (the live account holds ~4802)")
     p.add_argument("--json-out", default=None)
     args = p.parse_args(argv)
+    START_BALANCE = float(args.balance)
 
     now = datetime.now(timezone.utc)
     since = int((now.replace(year=now.year - args.years)).timestamp())
@@ -157,7 +169,7 @@ def main(argv=None) -> int:
             if not res.trades:
                 continue
 
-            eq = equity_curve(res.trades)
+            eq = equity_curve(res.trades, START_BALANCE)
             dd = drawdown_profile(eq)
             years = max(args.years, 1)
             final = eq[-1]
