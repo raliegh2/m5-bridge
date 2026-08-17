@@ -29,3 +29,11 @@ session_guard_state.json.tmp
 dashboard.html
 state/
 research/*_out/
+
+# Exported history. D1 and H4 are committed so the validation results in
+# research/V15_EDGE_INVESTIGATION.md can be reproduced. H1 is ~49 MB and
+# regenerates in seconds via tools/export_validation_history.py.
+research/data/*_H1.csv
+research/data/*_M30.csv
+research/data/*_M15.csv
+research/data/*_M5.csv

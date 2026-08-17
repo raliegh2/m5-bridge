@@ -1,0 +1,39 @@
+{
+  "candidate": "V15_TIME_SERIES_MOMENTUM",
+  "locked_on": "2026-08-16",
+  "status": "LOCKED - parameters frozen before any result on this dataset was inspected",
+  "hypothesis": "Time-series momentum persists in GBPUSD over multi-day horizons. A Donchian breakout in the direction of the higher-timeframe trend, held with an ATR-scaled stop and a shorter-channel trailing exit, should capture it. Trading infrequently on H4 keeps transaction cost small relative to risk per trade.",
+  "why_these_parameters": {
+    "timeframe_minutes": "H4. Chosen from cost arithmetic, not fitting: at a ~1.3 pip round trip, a ~60 pip ATR stop puts cost at ~2% of risk. The v14 scalps put it at ~26%, which research/v14_4_cost_stress_report.py shows is fatal.",
+    "entry_lookback": "20 - the classic Turtle/Donchian breakout length, taken as published.",
+    "exit_lookback": "10 - the classic Turtle trailing exit, half the entry length.",
+    "atr_period": "14 - the standard Wilder period, already the default in sizing.py.",
+    "atr_stop_mult": "2.0 - matches AtrConfig.sl_mult in sizing.py; not re-tuned.",
+    "trend_ema": "50 - a conventional trend filter length.",
+    "min_atr_pips": "8.0 - matches AtrConfig.min_sl_pips; skips dead volatility.",
+    "risk_percent": "0.5 - matches RiskConfig.risk_percent default."
+  },
+  "provenance": "Moskowitz, Ooi & Pedersen (2012), 'Time Series Momentum', Journal of Financial Economics. Donchian channel breakout as popularised by the Turtle traders. No parameter was selected by searching this dataset.",
+  "parameters": {
+    "timeframe_minutes": 240,
+    "entry_lookback": 20,
+    "exit_lookback": 10,
+    "atr_period": 14,
+    "atr_stop_mult": 2.0,
+    "trend_ema": 50,
+    "min_atr_pips": 8.0,
+    "risk_percent": 0.5,
+    "pip": 0.0001,
+    "contract_size": 100000.0
+  },
+  "acceptance_gates": {
+    "net_profit_after_costs": "> 0",
+    "profit_factor": ">= 1.10",
+    "out_of_sample_trades": ">= 200",
+    "positive_fold_fraction": "> 0.5",
+    "deflated_sharpe": ">= 0.95"
+  },
+  "trials_used_for_deflation": 1,
+  "note_on_trials": "This candidate is a single pre-registered specification. If any parameter is later changed in response to a result, the trial count must rise and the deflated Sharpe must be recomputed against the new count - see mt5_ai_bridge/validation.py.",
+  "honest_limitation": "The only price data committed to this repository is GBPUSD_M5.csv, roughly eight months of M5 bars (2025-10-28 to 2026-06-30). Resampled to H4 that is about 1,000 bars, which cannot produce the 200 out-of-sample trades the gates require. A verdict on this candidate needs several years of history that is not currently in the repo."
+}

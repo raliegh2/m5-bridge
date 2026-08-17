@@ -1,0 +1,80 @@
+[
+  {
+    "symbol": "ONEQ",
+    "years": 22.9,
+    "trades": 315,
+    "longs": 157,
+    "shorts": 158,
+    "long_pnl": 1029.96,
+    "short_pnl": 201.53,
+    "long_share_pct": 83.6,
+    "strategy_return_pct": 12.32,
+    "buy_hold_return_pct": 43.98,
+    "verdict": "beats nothing"
+  },
+  {
+    "symbol": "IVV",
+    "years": 22.9,
+    "trades": 305,
+    "longs": 157,
+    "shorts": 148,
+    "long_pnl": 1470.28,
+    "short_pnl": 169.78,
+    "long_share_pct": 89.6,
+    "strategy_return_pct": 16.4,
+    "buy_hold_return_pct": 666.85,
+    "verdict": "beats nothing"
+  },
+  {
+    "symbol": "IWM",
+    "years": 22.9,
+    "trades": 318,
+    "longs": 172,
+    "shorts": 146,
+    "long_pnl": 199.9,
+    "short_pnl": 684.78,
+    "long_share_pct": 22.6,
+    "strategy_return_pct": 8.85,
+    "buy_hold_return_pct": 204.24,
+    "verdict": "beats nothing"
+  },
+  {
+    "symbol": "VTI",
+    "years": 22.9,
+    "trades": 304,
+    "longs": 158,
+    "shorts": 146,
+    "long_pnl": 1128.63,
+    "short_pnl": -50.95,
+    "long_share_pct": 104.7,
+    "strategy_return_pct": 10.78,
+    "buy_hold_return_pct": 295.15,
+    "verdict": "BETA"
+  },
+  {
+    "symbol": "TQQQ",
+    "years": 16.5,
+    "trades": 236,
+    "longs": 111,
+    "shorts": 125,
+    "long_pnl": 1202.79,
+    "short_pnl": 166.96,
+    "long_share_pct": 87.8,
+    "strategy_return_pct": 13.7,
+    "buy_hold_return_pct": -7.54,
+    "verdict": "beats hold"
+  },
+  {
+    "symbol": "EEM",
+    "years": 22.9,
+    "trades": 321,
+    "longs": 165,
+    "shorts": 156,
+    "long_pnl": 75.87,
+    "short_pnl": 153.59,
+    "long_share_pct": 33.1,
+    "strategy_return_pct": 2.29,
+    "buy_hold_return_pct": -51.79,
+    "verdict": "beats hold"
+  }
+]

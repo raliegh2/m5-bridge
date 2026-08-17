@@ -1,0 +1,73 @@
+{
+  "timeframe": "H4",
+  "cost_preset": "typical",
+  "n_symbols": 4,
+  "skipped": {
+    "GBPJPY": "GBPJPY is not priceable here: quoted in JPY; P&L needs USDJPY conversion per trade. Load the conversion series and extend instruments.py rather than assuming FX-major conventions.",
+    "USDJPY": "USDJPY is not priceable here: quoted in JPY; P&L needs USDJPY conversion per trade. Load the conversion series and extend instruments.py rather than assuming FX-major conventions."
+  },
+  "best_symbol": "XAUUSD",
+  "best_metrics": {
+    "trades": 1006,
+    "net_profit": 5455.76,
+    "profit_factor": 1.207,
+    "positive_fold_fraction": 1.0,
+    "deflated_sharpe": 0.4526
+  },
+  "verdict": {
+    "passed": false,
+    "failed_gates": [
+      "deflated_sharpe"
+    ]
+  },
+  "by_symbol": {
+    "AUDUSD": {
+      "bars": 44477,
+      "trades": 1619,
+      "gross_profit": -5002.94,
+      "net_profit": -6422.52,
+      "net_profit_factor": 0.771,
+      "costs": 2373.61,
+      "oos_net": -7259.67,
+      "oos_trades": 1404,
+      "oos_profit_factor": 0.786,
+      "positive_fold_fraction": 0.2
+    },
+    "EURUSD": {
+      "bars": 50169,
+      "trades": 1784,
+      "gross_profit": 54679.97,
+      "net_profit": 30399.2,
+      "net_profit_factor": 1.129,
+      "costs": 20993.14,
+      "oos_net": -3969.27,
+      "oos_trades": 1566,
+      "oos_profit_factor": 0.894,
+      "positive_fold_fraction": 0.4
+    },
+    "GBPUSD": {
+      "bars": 44471,
+      "trades": 1609,
+      "gross_profit": -2085.55,
+      "net_profit": -3688.38,
+      "net_profit_factor": 0.89,
+      "costs": 1902.24,
+      "oos_net": -2766.19,
+      "oos_trades": 1394,
+      "oos_profit_factor": 0.918,
+      "positive_fold_fraction": 0.2
+    },
+    "XAUUSD": {
+      "bars": 33972,
+      "trades": 1179,
+      "gross_profit": 7313.66,
+      "net_profit": 7140.98,
+      "net_profit_factor": 1.192,
+      "costs": 173.87,
+      "oos_net": 5455.76,
+      "oos_trades": 1006,
+      "oos_profit_factor": 1.207,
+      "positive_fold_fraction": 1.0
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "candidate": "V19_LOW_VOLUME_REVERSION",
+  "locked_on": "2026-08-16",
+  "status": "LOCKED - parameters and a falsifiable prediction registered before any V19 result was computed",
+  "hypothesis": "Campbell, Grossman & Wang (1993): price moves accompanied by high volume are information-driven and persist, while moves on low volume are liquidity-driven and revert. V16's reversion signal should therefore be stronger when restricted to bars whose tick volume is below its own trailing average.",
+  "why_this_matters": "research/VIABILITY_VERDICT.md established that V16's FRICTIONLESS profit factor is 1.057 against a 1.10 gate. Cost reduction cannot close that, because cost only subtracts. The gross signal itself has to get stronger, and concentrating trades where reversion is measurably strongest is the only principled way to attempt it.",
+  "measured_evidence": {
+    "test": "research/volume_information_test.py, first-order return autocorrelation split by trailing-relative tick volume, H4 audited bars",
+    "rho_low_minus_rho_high_by_symbol": {
+      "AUDUSD": -0.0287,
+      "EURUSD": -0.0313,
+      "USDJPY": -0.0369,
+      "XAUUSD": -0.0473,
+      "GBPJPY": 0.018,
+      "GBPUSD": 0.0191
+    },
+    "significant_low_volume_reversion": ["AUDUSD", "EURUSD", "USDJPY"],
+    "mean_spread": -0.01785,
+    "honest_reading": "The effect is present on 3 of 6 symbols and significant on those three. It is cleanly monotonic across quintiles only on EURUSD. GBPUSD contradicts it outright - its reversion sits in the middle quintiles - and GBPUSD is V16's best performer. XAUUSD has a negative spread but its low bucket is not significant (p=0.0518) while its high bucket is. The magnitudes are small throughout: the largest single rho is -0.045."
+  },
+  "predeclared_prediction": {
+    "statement": "If the Campbell-Grossman-Wang mechanism is real here, V19 should beat V16 on AUDUSD, EURUSD and USDJPY, and should NOT beat it on GBPUSD or GBPJPY.",
+    "why_this_is_the_right_test": "A strategy that simply trades less will often look better on any subset, so 'V19 is profitable' proves nothing. The prediction is directional and symbol-specific: it can fail even if V19 makes money. If V19 improves everywhere or nowhere, the volume split is noise regardless of the P&L.",
+    "falsified_if": "V19 improves on GBPUSD, or fails to improve on EURUSD - the symbol with the cleanest measured effect."
+  },
+  "parameters": {
+    "timeframe_minutes": 240,
+    "lookback": 20,
+    "entry_z": 2.0,
+    "exit_z": 0.5,
+    "stop_z": 4.0,
+    "atr_period": 14,
+    "max_holding_bars": 60,
+    "min_atr_pips": 8.0,
+    "risk_percent": 0.5,
+    "volume_lookback": 20,
+    "max_relative_volume": 1.0,
+    "pip": 0.0001,
+    "contract_size": 100000.0
+  },
+  "inherited_unchanged_from_v16": [
+    "every signal parameter: lookback 20, entry_z 2.0, exit_z 0.5, stop_z 4.0, atr_period 14, max_holding_bars 60, min_atr_pips 8.0, risk_percent 0.5"
+  ],
+  "why_the_two_new_parameters": {
+    "volume_lookback": "20, matched to the existing price lookback rather than chosen separately. A different value would make this a two-parameter search.",
+    "max_relative_volume": "1.0 - the textbook definition of below-average volume, not a tuned threshold. The measurement used the 30th percentile, where the effect is strongest, so 1.0 is deliberately the LESS favourable unfitted choice. Tuning it toward the 30th percentile would improve the result and would be fitting."
+  },
+  "acceptance_gates": {
+    "net_profit_after_costs": "> 0",
+    "profit_factor": ">= 1.10",
+    "out_of_sample_trades": ">= 200",
+    "positive_fold_fraction": "> 0.5",
+    "deflated_sharpe": ">= 0.95"
+  },
+  "trials": "Deflated against every specification on record in research/v15_trials.json, currently 1,379 before this candidate.",
+  "predeclared_expectation": "The gates will almost certainly fail. A rho improvement from -0.007 to -0.035 is real but small, and V16's frictionless profit factor of 1.057 has to reach 1.10 - roughly an 80% increase in gross edge - from an autocorrelation shift of that size. The prediction above is the informative part of this test; the gate verdict is expected to be FAIL and the value lies in whether the symbol-by-symbol pattern holds."
+}

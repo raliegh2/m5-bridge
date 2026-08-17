@@ -1,0 +1,129 @@
+{
+  "candidate": "V16_RANGE_MEAN_REVERSION",
+  "cost": "typical",
+  "n_trials": 1389,
+  "best_symbol": "USTEC",
+  "metrics": {
+    "trades": 297,
+    "net_profit": 1511.44,
+    "profit_factor": 1.268,
+    "positive_fold_fraction": 0.8,
+    "deflated_sharpe": 0.1083
+  },
+  "verdict": {
+    "passed": false,
+    "failed_gates": [
+      "deflated_sharpe"
+    ]
+  },
+  "skipped": {
+    "AUS200": "needs a quote-currency converter",
+    "DE40": "needs a quote-currency converter",
+    "EUSTX50": "needs a quote-currency converter",
+    "FRA40": "needs a quote-currency converter",
+    "GBPJPY": "needs a quote-currency converter",
+    "HK50": "needs a quote-currency converter",
+    "JPN225": "needs a quote-currency converter",
+    "SWI20": "needs a quote-currency converter",
+    "UK100": "needs a quote-currency converter",
+    "USDJPY": "needs a quote-currency converter"
+  },
+  "by_symbol": {
+    "AUDUSD": {
+      "trusted_from": "1993-04-27",
+      "bars": 44477,
+      "trades": 2587,
+      "gross": 81.78,
+      "net": -3767.81,
+      "net_pf": 0.9,
+      "oos_net": -2070.67,
+      "oos_trades": 2213,
+      "oos_pf": 0.956,
+      "folds_positive": 0.4
+    },
+    "EURUSD": {
+      "trusted_from": "1999-01-01",
+      "bars": 43008,
+      "trades": 2482,
+      "gross": 922.58,
+      "net": -2672.96,
+      "net_pf": 0.939,
+      "oos_net": -1521.15,
+      "oos_trades": 2127,
+      "oos_pf": 0.966,
+      "folds_positive": 0.6
+    },
+    "GBPUSD": {
+      "trusted_from": "1993-05-12",
+      "bars": 44471,
+      "trades": 2581,
+      "gross": 2594.98,
+      "net": -908.49,
+      "net_pf": 0.983,
+      "oos_net": -145.48,
+      "oos_trades": 2202,
+      "oos_pf": 0.997,
+      "folds_positive": 0.2
+    },
+    "US2000": {
+      "trusted_from": "2012-08-06",
+      "bars": 16330,
+      "trades": 713,
+      "gross": 231.91,
+      "net": -2139.71,
+      "net_pf": 0.845,
+      "oos_net": -2534.87,
+      "oos_trades": 647,
+      "oos_pf": 0.824,
+      "folds_positive": 0.2
+    },
+    "US30": {
+      "trusted_from": "2012-08-06",
+      "bars": 16950,
+      "trades": 1006,
+      "gross": 1222.61,
+      "net": 682.14,
+      "net_pf": 1.032,
+      "oos_net": 141.07,
+      "oos_trades": 865,
+      "oos_pf": 1.008,
+      "folds_positive": 0.4
+    },
+    "US500": {
+      "trusted_from": "2012-08-06",
+      "bars": 16952,
+      "trades": 805,
+      "gross": 2711.63,
+      "net": 45.99,
+      "net_pf": 1.003,
+      "oos_net": -41.28,
+      "oos_trades": 712,
+      "oos_pf": 0.997,
+      "folds_positive": 0.4
+    },
+    "USTEC": {
+      "trusted_from": "2022-07-06",
+      "bars": 6104,
+      "trades": 350,
+      "gross": 2339.72,
+      "net": 2170.42,
+      "net_pf": 1.291,
+      "oos_net": 1511.44,
+      "oos_trades": 297,
+      "oos_pf": 1.268,
+      "folds_positive": 0.8
+    },
+    "XAUUSD": {
+      "trusted_from": "2004-06-11",
+      "bars": 33972,
+      "trades": 2022,
+      "gross": -3300.28,
+      "net": -3486.01,
+      "net_pf": 0.907,
+      "oos_net": -3037.73,
+      "oos_trades": 1742,
+      "oos_pf": 0.921,
+      "folds_positive": 0.4
+    }
+  }
+}

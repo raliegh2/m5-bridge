@@ -1,0 +1,125 @@
+{
+  "timeframe": "H4",
+  "cost": "tight",
+  "predicted_improve": [
+    "AUDUSD",
+    "EURUSD",
+    "USDJPY"
+  ],
+  "predicted_not_improve": [
+    "GBPUSD",
+    "GBPJPY"
+  ],
+  "prediction_hits": [
+    "EURUSD",
+    "GBPUSD",
+    "GBPJPY"
+  ],
+  "prediction_misses": [
+    "AUDUSD",
+    "USDJPY"
+  ],
+  "falsified": [],
+  "n_trials": 1385,
+  "metrics": {
+    "trades": 1444,
+    "net_profit": 392.26,
+    "profit_factor": 1.014,
+    "positive_fold_fraction": 0.4,
+    "deflated_sharpe": 0.0
+  },
+  "verdict": {
+    "passed": false,
+    "failed_gates": [
+      "profit_factor",
+      "majority_of_folds_positive",
+      "deflated_sharpe"
+    ]
+  },
+  "by_symbol": {
+    "AUDUSD": {
+      "v16_gross": 1937.09,
+      "v19_gross": -197.69,
+      "v16_gross_pf": 1.041,
+      "v19_gross_pf": 0.993,
+      "v16_trades": 2213,
+      "v19_trades": 1359,
+      "v16_net": -1780.57,
+      "v19_net": -2229.12,
+      "v19_net_pf": 0.919,
+      "v19_folds_pos": 0.4,
+      "improved_gross_pf": false,
+      "predicted_improve": true
+    },
+    "EURUSD": {
+      "v16_gross": 1656.78,
+      "v19_gross": 2201.36,
+      "v16_gross_pf": 1.037,
+      "v19_gross_pf": 1.078,
+      "v16_trades": 2127,
+      "v19_trades": 1444,
+      "v16_net": -1286.28,
+      "v19_net": 392.26,
+      "v19_net_pf": 1.014,
+      "v19_folds_pos": 0.4,
+      "improved_gross_pf": true,
+      "predicted_improve": true
+    },
+    "USDJPY": {
+      "v16_gross": -2242.64,
+      "v19_gross": -3225.3,
+      "v16_gross_pf": 0.955,
+      "v19_gross_pf": 0.888,
+      "v16_trades": 2356,
+      "v19_trades": 1406,
+      "v16_net": -5542.04,
+      "v19_net": -5116.18,
+      "v19_net_pf": 0.825,
+      "v19_folds_pos": 0.0,
+      "improved_gross_pf": false,
+      "predicted_improve": true
+    },
+    "GBPUSD": {
+      "v16_gross": 2684.01,
+      "v19_gross": 1100.33,
+      "v16_gross_pf": 1.057,
+      "v19_gross_pf": 1.038,
+      "v16_trades": 2202,
+      "v19_trades": 1425,
+      "v16_net": 25.8,
+      "v19_net": -400.02,
+      "v19_net_pf": 0.986,
+      "v19_folds_pos": 0.6,
+      "improved_gross_pf": false,
+      "predicted_improve": false
+    },
+    "GBPJPY": {
+      "v16_gross": -5304.67,
+      "v19_gross": -4265.7,
+      "v16_gross_pf": 0.887,
+      "v19_gross_pf": 0.851,
+      "v16_trades": 2274,
+      "v19_trades": 1368,
+      "v16_net": -8245.6,
+      "v19_net": -6122.16,
+      "v19_net_pf": 0.79,
+      "v19_folds_pos": 0.0,
+      "improved_gross_pf": false,
+      "predicted_improve": false
+    },
+    "XAUUSD": {
+      "v16_gross": -2937.4,
+      "v19_gross": -2635.93,
+      "v16_gross_pf": 0.923,
+      "v19_gross_pf": 0.892,
+      "v16_trades": 1742,
+      "v19_trades": 1129,
+      "v16_net": -5232.82,
+      "v19_net": -4031.8,
+      "v19_net_pf": 0.838,
+      "v19_folds_pos": 0.2,
+      "improved_gross_pf": false,
+      "predicted_improve": null
+    }
+  }
+}

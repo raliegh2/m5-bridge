@@ -1,0 +1,371 @@
+{
+  "years": 10,
+  "since": "2016-08-17",
+  "timeframe": "H4",
+  "cost": "tight",
+  "start_balance": 4802.43,
+  "risk_ceiling": {
+    "per_trade": 0.02,
+    "aggregate": 0.06,
+    "per_currency": 0.04,
+    "daily_loss_kill": 0.02,
+    "total_drawdown_kill": 0.2,
+    "consecutive_losses": 5
+  },
+  "rows": [
+    {
+      "model": "V16",
+      "symbol": "EURUSD",
+      "trades": 907,
+      "net": -229.53,
+      "cagr_pct": -0.49,
+      "max_drawdown_pct": 29.16,
+      "max_drawdown_money": 1495.1,
+      "longest_underwater_trades": 794,
+      "profit_factor": 0.972,
+      "losing_years": 4,
+      "total_years": 11,
+      "by_year": {
+        "2016": {
+          "trades": 36,
+          "profit": 62.16
+        },
+        "2017": {
+          "trades": 95,
+          "profit": 138.92
+        },
+        "2018": {
+          "trades": 87,
+          "profit": -385.85
+        },
+        "2019": {
+          "trades": 98,
+          "profit": -639.21
+        },
+        "2020": {
+          "trades": 90,
+          "profit": -267.48
+        },
+        "2021": {
+          "trades": 89,
+          "profit": 210.27
+        },
+        "2022": {
+          "trades": 86,
+          "profit": 81.83
+        },
+        "2023": {
+          "trades": 86,
+          "profit": 388.7
+        },
+        "2024": {
+          "trades": 83,
+          "profit": 179.39
+        },
+        "2025": {
+          "trades": 94,
+          "profit": -109.21
+        },
+        "2026": {
+          "trades": 63,
+          "profit": 110.93
+        }
+      }
+    },
+    {
+      "model": "V16",
+      "symbol": "GBPUSD",
+      "trades": 916,
+      "net": -276.79,
+      "cagr_pct": -0.59,
+      "max_drawdown_pct": 13.89,
+      "max_drawdown_money": 707.84,
+      "longest_underwater_trades": 684,
+      "profit_factor": 0.969,
+      "losing_years": 8,
+      "total_years": 11,
+      "by_year": {
+        "2016": {
+          "trades": 32,
+          "profit": -146.1
+        },
+        "2017": {
+          "trades": 91,
+          "profit": 358.46
+        },
+        "2018": {
+          "trades": 97,
+          "profit": -29.73
+        },
+        "2019": {
+          "trades": 88,
+          "profit": -203.67
+        },
+        "2020": {
+          "trades": 94,
+          "profit": -100.33
+        },
+        "2021": {
+          "trades": 90,
+          "profit": -60.99
+        },
+        "2022": {
+          "trades": 88,
+          "profit": -133.68
+        },
+        "2023": {
+          "trades": 88,
+          "profit": 211.48
+        },
+        "2024": {
+          "trades": 93,
+          "profit": 77.95
+        },
+        "2025": {
+          "trades": 95,
+          "profit": -224.74
+        },
+        "2026": {
+          "trades": 60,
+          "profit": -25.44
+        }
+      }
+    },
+    {
+      "model": "V16",
+      "symbol": "AUDUSD",
+      "trades": 904,
+      "net": 337.52,
+      "cagr_pct": 0.68,
+      "max_drawdown_pct": 16.83,
+      "max_drawdown_money": 814.14,
+      "longest_underwater_trades": 647,
+      "profit_factor": 1.039,
+      "losing_years": 6,
+      "total_years": 11,
+      "by_year": {
+        "2016": {
+          "trades": 28,
+          "profit": -138.12
+        },
+        "2017": {
+          "trades": 98,
+          "profit": -91.37
+        },
+        "2018": {
+          "trades": 95,
+          "profit": -41.49
+        },
+        "2019": {
+          "trades": 89,
+          "profit": -87.37
+        },
+        "2020": {
+          "trades": 95,
+          "profit": -397.63
+        },
+        "2021": {
+          "trades": 87,
+          "profit": 23.96
+        },
+        "2022": {
+          "trades": 83,
+          "profit": 465.9
+        },
+        "2023": {
+          "trades": 89,
+          "profit": 254.9
+        },
+        "2024": {
+          "trades": 92,
+          "profit": 389.71
+        },
+        "2025": {
+          "trades": 91,
+          "profit": 19.14
+        },
+        "2026": {
+          "trades": 57,
+          "profit": -60.17
+        }
+      }
+    },
+    {
+      "model": "V19",
+      "symbol": "EURUSD",
+      "trades": 613,
+      "net": 98.41,
+      "cagr_pct": 0.2,
+      "max_drawdown_pct": 16.08,
+      "max_drawdown_money": 803.2,
+      "longest_underwater_trades": 538,
+      "profit_factor": 1.017,
+      "losing_years": 4,
+      "total_years": 11,
+      "by_year": {
+        "2016": {
+          "trades": 24,
+          "profit": -89.92
+        },
+        "2017": {
+          "trades": 64,
+          "profit": 197.18
+        },
+        "2018": {
+          "trades": 57,
+          "profit": -129.4
+        },
+        "2019": {
+          "trades": 70,
+          "profit": -306.1
+        },
+        "2020": {
+          "trades": 58,
+          "profit": -178.57
+        },
+        "2021": {
+          "trades": 66,
+          "profit": 86.61
+        },
+        "2022": {
+          "trades": 60,
+          "profit": 121.01
+        },
+        "2023": {
+          "trades": 62,
+          "profit": 279.26
+        },
+        "2024": {
+          "trades": 56,
+          "profit": 35.87
+        },
+        "2025": {
+          "trades": 58,
+          "profit": 12.18
+        },
+        "2026": {
+          "trades": 38,
+          "profit": 70.29
+        }
+      }
+    },
+    {
+      "model": "V19",
+      "symbol": "GBPUSD",
+      "trades": 581,
+      "net": -115.51,
+      "cagr_pct": -0.24,
+      "max_drawdown_pct": 13.18,
+      "max_drawdown_money": 689.21,
+      "longest_underwater_trades": 425,
+      "profit_factor": 0.98,
+      "losing_years": 5,
+      "total_years": 11,
+      "by_year": {
+        "2016": {
+          "trades": 20,
+          "profit": 30.4
+        },
+        "2017": {
+          "trades": 55,
+          "profit": 216.08
+        },
+        "2018": {
+          "trades": 57,
+          "profit": 80.37
+        },
+        "2019": {
+          "trades": 63,
+          "profit": -103.0
+        },
+        "2020": {
+          "trades": 65,
+          "profit": -175.59
+        },
+        "2021": {
+          "trades": 59,
+          "profit": -141.27
+        },
+        "2022": {
+          "trades": 56,
+          "profit": -146.03
+        },
+        "2023": {
+          "trades": 55,
+          "profit": 209.26
+        },
+        "2024": {
+          "trades": 56,
+          "profit": 60.22
+        },
+        "2025": {
+          "trades": 52,
+          "profit": -179.47
+        },
+        "2026": {
+          "trades": 43,
+          "profit": 33.52
+        }
+      }
+    },
+    {
+      "model": "V19",
+      "symbol": "AUDUSD",
+      "trades": 568,
+      "net": -490.02,
+      "cagr_pct": -1.07,
+      "max_drawdown_pct": 15.04,
+      "max_drawdown_money": 722.58,
+      "longest_underwater_trades": 560,
+      "profit_factor": 0.903,
+      "losing_years": 7,
+      "total_years": 11,
+      "by_year": {
+        "2016": {
+          "trades": 16,
+          "profit": -126.69
+        },
+        "2017": {
+          "trades": 49,
+          "profit": -161.22
+        },
+        "2018": {
+          "trades": 69,
+          "profit": 24.72
+        },
+        "2019": {
+          "trades": 58,
+          "profit": -89.26
+        },
+        "2020": {
+          "trades": 61,
+          "profit": -336.24
+        },
+        "2021": {
+          "trades": 57,
+          "profit": -25.11
+        },
+        "2022": {
+          "trades": 55,
+          "profit": 193.15
+        },
+        "2023": {
+          "trades": 50,
+          "profit": 107.16
+        },
+        "2024": {
+          "trades": 59,
+          "profit": -74.26
+        },
+        "2025": {
+          "trades": 62,
+          "profit": 2.8
+        },
+        "2026": {
+          "trades": 32,
+          "profit": -5.05
+        }
+      }
+    }
+  ]
+}

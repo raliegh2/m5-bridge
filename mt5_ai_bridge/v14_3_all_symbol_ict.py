@@ -245,6 +245,13 @@ def generate_candidates(symbol: str, h1: pd.DataFrame, profile: IctProfile) -> p
             profile.target_r,
             profile.max_holding_hours,
         )
+        # The entry fills at the next bar's open, matching _simulate. Emitting
+        # entry, stop and the resulting risk distance is what makes a
+        # cost-adjusted replay possible at all: an R multiple alone cannot be
+        # converted to money, which is why every earlier ICT report was gross.
+        entry_price = (float(frame.iloc[int(index) + 1]["open"])
+                       if int(index) + 1 < len(frame) else float(row["close"]))
+        risk_price = (entry_price - stop) * side
         rows.append(
             {
                 "symbol": symbol,
@@ -255,6 +262,12 @@ def generate_candidates(symbol: str, h1: pd.DataFrame, profile: IctProfile) -> p
                 "entry_time": pd.Timestamp(row["end"]),
                 "exit_time": exit_time,
                 "r_multiple": float(result_r),
+                "signal_index": int(index),
+                "entry_price": entry_price,
+                "stop_price": float(stop),
+                "risk_price": float(risk_price),
+                "target_r": float(profile.target_r),
+                "max_holding_hours": int(profile.max_holding_hours),
                 "session_high": float(row["session_high"]),
                 "session_low": float(row["session_low"]),
                 "signal_atr": atr_value,

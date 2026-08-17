@@ -1,0 +1,88 @@
+{
+  "csv": "GBPUSD_M5.csv",
+  "bars": 50000,
+  "cost_preset": "zero",
+  "grid_size": 48,
+  "in_sample_best": {
+    "params": {
+      "threshold": 0.5,
+      "sl": 30.0,
+      "tp": 45.0
+    },
+    "net_profit": 26.41,
+    "profit_factor": 1.04,
+    "trades": 379
+  },
+  "walk_forward": {
+    "folds": 5,
+    "trades": 511,
+    "net_profit": -73.69,
+    "profit_factor": 0.895,
+    "positive_fold_fraction": 0.2,
+    "sharpe": -0.772,
+    "deflated_sharpe": 0.0109,
+    "n_trials": 48
+  },
+  "folds": [
+    {
+      "index": 0,
+      "net_profit": -13.71,
+      "trades": 78,
+      "params": {
+        "threshold": 0.6,
+        "sl": 15.0,
+        "tp": 60.0
+      }
+    },
+    {
+      "index": 1,
+      "net_profit": -44.62,
+      "trades": 137,
+      "params": {
+        "threshold": 0.4,
+        "sl": 20.0,
+        "tp": 45.0
+      }
+    },
+    {
+      "index": 2,
+      "net_profit": -1.95,
+      "trades": 110,
+      "params": {
+        "threshold": 0.7,
+        "sl": 30.0,
+        "tp": 45.0
+      }
+    },
+    {
+      "index": 3,
+      "net_profit": 0.24,
+      "trades": 56,
+      "params": {
+        "threshold": 0.5,
+        "sl": 30.0,
+        "tp": 45.0
+      }
+    },
+    {
+      "index": 4,
+      "net_profit": -13.65,
+      "trades": 130,
+      "params": {
+        "threshold": 0.7,
+        "sl": 10.0,
+        "tp": 45.0
+      }
+    }
+  ],
+  "verdict": {
+    "passed": false,
+    "failed_gates": [
+      "net_profitable",
+      "profit_factor",
+      "majority_of_folds_positive",
+      "deflated_sharpe"
+    ]
+  },
+  "selection_bias_gap": 100.1
+}

@@ -103,6 +103,41 @@ python -m mt5_ai_bridge data/GBPUSD_M30.csv --strategy reasoning --threshold 0.6
 python -m mt5_ai_bridge.dashboard --db journal.db --out dashboard.html
 ```
 
+Backtests charge realistic broker costs by default (`--cost typical`; also
+`tight` / `wide` / `zero`, or override `--spread` / `--slippage` /
+`--commission`). The summary reports `total_costs` and `gross_profit` so the
+gap between a gross and a net result is always visible.
+
+## Validating a strategy honestly
+
+A backtest number is not evidence until it survives out-of-sample testing and a
+correction for how many variants you tried.
+
+```bash
+# Walk-forward: choose parameters on train, score on the unseen slice after it,
+# then deflate the result by the number of parameter sets searched.
+python research/honest_walk_forward.py --csv GBPUSD_M5.csv
+
+# Run the pre-registered V15 candidate against its locked parameters.
+python research/v15_forward_test.py --csv GBPUSD_M5.csv
+```
+
+Both print an explicit PASS/FAIL against named gates. See
+`research/V15_EDGE_INVESTIGATION.md` for what these currently say about this
+repository, and `mt5_ai_bridge/validation.py` for the statistics.
+
+## Why isn't it trading?
+
+The session guard reports only the first gate that refused an entry. To see all
+of them against the persisted guard state:
+
+```bash
+python -m mt5_ai_bridge.entry_diagnostics --symbol GBPUSD --volume 0.1
+```
+
+While the bot runs, `guard.rejections.report()` aggregates every refusal so a
+day with no trades can be explained afterwards.
+
 ## Testing
 
 ```bash
@@ -124,6 +159,10 @@ mt5_ai_bridge/
   strategy.py / reasoning.py   # direction: trend rule / confluence + veto
   books.py / planner.py         # intraday+swing books, sizing and staggered exits
   sizing.py         # ATR stops + fixed-fractional lots
+  costs.py          # spread / slippage / commission / swap model
+  validation.py     # walk-forward splits, deflated Sharpe, PASS/FAIL gates
+  candidate_v15.py  # pre-registered momentum candidate (locked parameters)
+  entry_diagnostics.py  # every blocking entry gate + rejection ledger
   risk_engine.py    # legacy account loss/open-position limits
   exposure.py       # correlated per-currency factor-risk caps
   execution.py / trade_manager.py   # place, close and trail orders

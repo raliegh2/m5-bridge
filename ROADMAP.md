@@ -24,17 +24,32 @@
     on noise — consider DAY_STRONG_MAX=0 / SCALP_STRONG_MAX=0 unless real-data
     backtests say otherwise.
 
+- **Honest measurement (V15)** — see `research/V15_EDGE_INVESTIGATION.md`:
+  - `costs.py` — tested spread/slippage/commission/swap model, wired into
+    `backtest.py`; the CLI now defaults to realistic costs. Confirmed the
+    predicted effect: scalp books look worse, as they should.
+  - `validation.py` — walk-forward splits, deflated Sharpe, BH-FDR and explicit
+    PASS/FAIL gates. `research/honest_walk_forward.py` scores the strategy out
+    of sample and deflates by the number of parameter sets tried.
+  - `entry_diagnostics.py` — every blocking gate for an entry, not just the
+    first, plus a session-wide rejection ledger and a CLI.
+  - `candidate_v15.py` — a pre-registered time-series-momentum candidate with
+    parameters frozen in `research/v15_locked_candidate.json`.
+
 ## Next
 
-1. **News / session filter**; **per-book risk budgets**.
-2. **Spread/commission in the backtest** (scalp books will look worse).
+1. **Export multi-year history for every traded symbol.** This is now the
+   binding constraint: eight months of GBPUSD M5 is the only committed data, so
+   no edge claim in `research/` can be reproduced or tested.
+2. **News / session filter**; **per-book risk budgets**.
 3. **Auth before any non-localhost control.**
 
 ## Known follow-ups / tech debt
 
-- Backtester does not model spread/commission or the daily/total-loss halt, so
-  live results (esp. scalping) will be worse than the backtest.
+- Backtester does not model the daily/total-loss halt (costs are now modelled).
 - Localhost-only dashboard, no auth. Static stops once placed except the trail.
+- The 10-year results throughout `research/` reference data that is not
+  committed; treat them as unverified until the history is restored.
 
 ## Note on git
 

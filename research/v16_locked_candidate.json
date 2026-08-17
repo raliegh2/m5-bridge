@@ -1,0 +1,42 @@
+{
+  "candidate": "V16_RANGE_MEAN_REVERSION",
+  "locked_on": "2026-08-16",
+  "status": "LOCKED - parameters frozen before any result on this dataset was inspected",
+  "hypothesis": "FX majors mean-revert at multi-day horizons. Every variance ratio measured on audited post-inception H4 data sits at or below 1.0 (AUDUSD 0.909, GBPUSD 0.910, GBPJPY 0.896, USDJPY 0.938, EURUSD 0.962 at q=120), which is the opposite of what V15 assumed. A stretch away from a rolling mean, entered against the move and exited on reversion to that mean, should capture it if the effect is real.",
+  "why_this_follows_from_evidence": "V15 was refuted precisely because the trend persistence it required is absent. The same measurement that refuted it points weakly the other way: six of six symbols below VR 1.0 at the longest horizon tested. No individual reading is significant at 5%, so this is a hypothesis worth one honest test, not a discovery.",
+  "why_these_parameters": {
+    "timeframe_minutes": "240 (H4). Unchanged from V15 so the two are comparable, and still coarse enough that a ~2 pip round trip is small against an ATR-scaled stop.",
+    "lookback": "20 - the same window V15 used for its Donchian channel, reused deliberately rather than re-searched. Changing it would make this a second trial.",
+    "entry_z": "2.0 - two standard deviations is the conventional definition of a stretched move, not a fitted threshold.",
+    "exit_z": "0.5 - exit on reversion most of the way to the mean; taking the full round trip to 0.0 is greedier and rarely fills.",
+    "stop_z": "4.0 - twice the entry stretch. A move that doubles its extension has invalidated the premise.",
+    "atr_period": "14 - Wilder standard, same as sizing.py.",
+    "max_holding_bars": "60 - ten days at H4. Mean reversion that has not happened in ten days is not going to; without a time stop the strategy silently becomes buy-and-hold.",
+    "min_atr_pips": "8.0 - matches AtrConfig.min_sl_pips; skips dead volatility.",
+    "risk_percent": "0.5 - matches RiskConfig.risk_percent default."
+  },
+  "provenance": "Mean reversion in FX is long documented; see Jorda & Taylor (2012) on FX carry and reversal, and the broader statistical-arbitrage literature on Bollinger-style z-score entries. The z-thresholds are textbook values, not search results.",
+  "parameters": {
+    "timeframe_minutes": 240,
+    "lookback": 20,
+    "entry_z": 2.0,
+    "exit_z": 0.5,
+    "stop_z": 4.0,
+    "atr_period": 14,
+    "max_holding_bars": 60,
+    "min_atr_pips": 8.0,
+    "risk_percent": 0.5,
+    "pip": 0.0001,
+    "contract_size": 100000.0
+  },
+  "acceptance_gates": {
+    "net_profit_after_costs": "> 0",
+    "profit_factor": ">= 1.10",
+    "out_of_sample_trades": ">= 200",
+    "positive_fold_fraction": "> 0.5",
+    "deflated_sharpe": ">= 0.95"
+  },
+  "trials_used_for_deflation": "Read from research/v15_trials.json at run time. V16 is not a fresh start: it is another specification tried against the same data, and the deflation must account for every earlier one.",
+  "data_requirements": "Audited, post-inception bars only. EURUSD from 1999-01-04, USDJPY from 1988-07-11, per tools/audit_history.py. Running this on MetaQuotes' synthetic pre-1999 history would repeat the error that made EURUSD look significantly trending.",
+  "predeclared_expectation": "The variance ratios are not individually significant, so the base rate for this working is low. A FAIL is the expected outcome and will be reported as such; a PASS would need to survive deflation against every trial on record before it means anything."
+}

@@ -1,0 +1,103 @@
+{
+  "gate_profit_factor": 1.1,
+  "best_frictionless_pf": 1.294,
+  "configs_clearing_frictionless": 3,
+  "broker_pricing_pips": {
+    "ECN raw + $7/lot": 0.8999999999999999,
+    "ECN raw + $5/lot": 0.7,
+    "tight spread account": 0.6,
+    "typical spread account": 0.9,
+    "wide / retail market maker": 1.8,
+    "institutional (indicative)": 0.15
+  },
+  "rows": [
+    {
+      "timeframe": "H4",
+      "symbol": "US30",
+      "oos_trades": 865,
+      "gross_oos": 443.34,
+      "gross_pf": 1.024,
+      "per_trade": 0.513,
+      "avg_lots": 0.283,
+      "max_cost_pips": 1.808,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "H4",
+      "symbol": "US500",
+      "oos_trades": 712,
+      "gross_oos": 1790.49,
+      "gross_pf": 1.124,
+      "per_trade": 2.515,
+      "avg_lots": 1.811,
+      "max_cost_pips": 1.388,
+      "clears_gate_frictionless": true
+    },
+    {
+      "timeframe": "H4",
+      "symbol": "USTEC",
+      "oos_trades": 297,
+      "gross_oos": 1643.47,
+      "gross_pf": 1.294,
+      "per_trade": 5.534,
+      "avg_lots": 0.282,
+      "max_cost_pips": 19.617,
+      "clears_gate_frictionless": true
+    },
+    {
+      "timeframe": "H4",
+      "symbol": "US2000",
+      "oos_trades": 647,
+      "gross_oos": -409.92,
+      "gross_pf": 0.97,
+      "per_trade": -0.634,
+      "avg_lots": 1.951,
+      "max_cost_pips": -0.325,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "D1",
+      "symbol": "US30",
+      "oos_trades": 164,
+      "gross_oos": 562.48,
+      "gross_pf": 1.168,
+      "per_trade": 3.43,
+      "avg_lots": 0.131,
+      "max_cost_pips": 26.281,
+      "clears_gate_frictionless": true
+    },
+    {
+      "timeframe": "D1",
+      "symbol": "US500",
+      "oos_trades": 162,
+      "gross_oos": 281.26,
+      "gross_pf": 1.084,
+      "per_trade": 1.736,
+      "avg_lots": 1.046,
+      "max_cost_pips": 1.66,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "D1",
+      "symbol": "USTEC",
+      "oos_trades": 45,
+      "gross_oos": -294.66,
+      "gross_pf": 0.719,
+      "per_trade": -6.548,
+      "avg_lots": 0.085,
+      "max_cost_pips": -77.449,
+      "clears_gate_frictionless": false
+    },
+    {
+      "timeframe": "D1",
+      "symbol": "US2000",
+      "oos_trades": 187,
+      "gross_oos": -154.69,
+      "gross_pf": 0.961,
+      "per_trade": -0.827,
+      "avg_lots": 1.385,
+      "max_cost_pips": -0.597,
+      "clears_gate_frictionless": false
+    }
+  ]
+}
