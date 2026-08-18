@@ -90,6 +90,38 @@ winners would show a large profit on this data, and it would be almost entirely
 the same bias read backwards. A reversion result here would be the most
 flattering and least trustworthy number in the whole investigation.
 
+## The one measurement survivorship does not break
+
+Absolute returns on a survivors-only universe are unusable. A *relative* one is
+not: benchmark the ranking against holding **the same 165 names** equally
+weighted, and the bias sits on both sides of the comparison and largely
+cancels. What is left is the question that matters -- does ranking add anything
+over holding the lot?
+
+This is the second registered trial, and it is deflated as such.
+
+| | annual | volatility | Sharpe | hit rate |
+|---|---:|---:|---:|---:|
+| long top-20, net of costs | 15.58% | 22.81% | 0.756 | 63.5% |
+| equal-weight all 165 | 13.53% | 19.94% | 0.744 | 62.7% |
+| **active (the difference)** | **+1.44%** | 13.82% | **0.174** | 57.8% |
+
+The ranking beats the universe by 1.44% a year, and that number does not
+survive contact with a significance test:
+
+* **t-statistic on the active mean: 0.815** over 263 monthly periods. Two
+  decades of data and the edge cannot be distinguished from zero.
+* Sharpe barely moves -- 0.756 against 0.744 -- so the extra return is
+  essentially compensation for the extra volatility of holding 20 names
+  instead of 165.
+* Walk-forward on the active series alternates in sign: **+39.2%, -24.2%,
+  +25.8%, -24.9%, +37.4%**. Three of five folds positive is what a coin does.
+* Deflated Sharpe against two trials: **0.0000**.
+
+So the honest reading of the whole exercise: the long leg's 15.58% a year is
+the universe's 13.53% plus noise, and the universe's 13.53% is US equities
+going up for 22 years, measured on companies selected for having survived.
+
 ## What would settle it
 
 A **point-in-time universe including delisted companies** — every name that was
@@ -119,4 +151,4 @@ would need volatility-scaled share counts rather than equal weights.
 | `research/cross_sectional_test.py` | this runner |
 | `research/cross_sectional.json` | full results |
 
-914 tests pass.
+919 tests pass.

@@ -5,8 +5,9 @@ import pandas as pd
 import pytest
 
 from mt5_ai_bridge.cross_sectional import (CrossSectionalConfig, LOCKED_CS,
-                                           build_panel, locked_config,
-                                           momentum_scores,
+                                           active_returns, build_panel,
+                                           equal_weight_returns,
+                                           locked_config, momentum_scores,
                                            replay_cross_sectional)
 
 
@@ -38,6 +39,10 @@ def test_config_rejects_an_incoherent_specification():
     # Ranking the top and bottom 20 of 30 names is not a cross-section.
     with pytest.raises(ValueError):
         CrossSectionalConfig(n_positions=20, min_names=30).validate()
+    # A long-only book is benchmarked against the universe, so it needs names
+    # for one side only.
+    CrossSectionalConfig(n_positions=20, min_names=30,
+                         market_neutral=False).validate()
 
 
 def test_scores_never_see_the_bar_they_are_scored_on():
@@ -188,3 +193,66 @@ def test_a_book_that_churns_every_period_pays_every_period():
     # members persist pays once.
     assert sum(churning.cost_drag) > 10 * sum(persistent.cost_drag)
     assert len([c for c in churning.cost_drag if c > 0]) > 5
+
+
+def test_equal_weight_benchmark_holds_every_eligible_name():
+    # Six names, three rising and three falling: the benchmark is the average,
+    # which is neither the winners' return nor the losers'.
+    n = 120
+    up = [100.0 * (1.01 ** i) for i in range(n)]
+    down = [100.0 * (0.99 ** i) for i in range(n)]
+    panel = _panel({"W1": up, "W2": up, "W3": up,
+                    "L1": down, "L2": down, "L3": down})
+    cfg = _small_cfg(n_positions=1, min_names=2)
+
+    bench = equal_weight_returns(panel, cfg)
+
+    assert bench
+    # Rising and falling legs are symmetric, so the average is near zero.
+    assert all(abs(r) < 0.02 for r in bench)
+
+
+def test_the_benchmark_and_the_book_cover_the_same_periods():
+    n = 200
+    up = [100.0 * (1.01 ** i) for i in range(n)]
+    down = [100.0 * (0.99 ** i) for i in range(n)]
+    flat = [100.0] * n
+    panel = _panel({"W1": up, "W2": up, "L1": down, "L2": down,
+                    "M1": flat, "M2": flat})
+    cfg = CrossSectionalConfig(lookback_days=20, skip_days=2, holding_days=5,
+                               n_positions=2, min_names=4,
+                               market_neutral=False)
+
+    book = replay_cross_sectional(panel, cfg, None, 10_000.0)
+    bench = equal_weight_returns(panel, cfg)
+
+    assert len(book.period_returns) == len(bench)
+    assert active_returns(book.period_returns, bench)
+
+
+def test_active_returns_refuse_to_compare_mismatched_windows():
+    with pytest.raises(ValueError):
+        active_returns([0.01, 0.02], [0.01])
+
+
+def test_active_return_is_the_difference_period_by_period():
+    assert active_returns([0.05, -0.01], [0.02, 0.01]) == [
+        pytest.approx(0.03), pytest.approx(-0.02)]
+
+
+def test_a_book_holding_everything_has_no_active_return():
+    # When the book holds every name, it IS the benchmark, so the ranking can
+    # add nothing -- the check that the comparison is like-for-like.
+    n = 150
+    paths = {name: [100.0 * (1.0 + 0.01 * ((i + k) % 7 - 3)) for i in range(n)]
+             for k, name in enumerate(["A", "B", "C", "D"])}
+    panel = _panel(paths)
+    cfg = CrossSectionalConfig(lookback_days=20, skip_days=2, holding_days=5,
+                               n_positions=4, min_names=4,
+                               market_neutral=False)
+
+    book = replay_cross_sectional(panel, cfg, None, 10_000.0)
+    bench = equal_weight_returns(panel, cfg)
+
+    for a in active_returns(book.period_returns, bench):
+        assert abs(a) < 1e-9

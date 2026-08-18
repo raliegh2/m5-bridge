@@ -47,7 +47,7 @@ import pandas as pd
 
 __all__ = ["CrossSectionalConfig", "LOCKED_CS", "locked_config",
            "build_panel", "momentum_scores", "CrossSectionalResult",
-           "replay_cross_sectional"]
+           "replay_cross_sectional", "equal_weight_returns", "active_returns"]
 
 LOCK_PATH = (Path(__file__).resolve().parents[1] / "research"
              / "cross_sectional_locked.json")
@@ -71,10 +71,16 @@ class CrossSectionalConfig:
             raise ValueError("holding_days must be positive")
         if self.n_positions < 1:
             raise ValueError("n_positions must be positive")
-        if self.min_names < 2 * self.n_positions:
+        # A neutral book needs names for both sides; a long-only one, being
+        # benchmarked against the universe rather than against zero, needs
+        # only its own side.
+        needed = (2 if self.market_neutral else 1) * self.n_positions
+        if self.min_names < needed:
             raise ValueError(
-                "min_names must cover both sides of the book; ranking the top "
-                "and bottom 20 of 30 names is not a cross-section")
+                f"min_names must cover the book: {needed} names are required "
+                f"for {self.n_positions} positions "
+                f"{'a side' if self.market_neutral else 'long-only'}, and "
+                "ranking the top and bottom 20 of 30 is not a cross-section")
 
 
 LOCKED_CS = CrossSectionalConfig()
@@ -273,3 +279,50 @@ def replay_cross_sectional(panel: pd.DataFrame,
         result.names_per_period.append(len(eligible))
 
     return result
+
+
+def equal_weight_returns(panel: pd.DataFrame,
+                         cfg: CrossSectionalConfig = LOCKED_CS,
+                         start_index: Optional[int] = None,
+                         end_index: Optional[int] = None) -> List[float]:
+    """Period returns of holding every eligible name in equal weight.
+
+    This is the benchmark the ranking has to beat, and it is the one
+    measurement a survivors-only universe cannot corrupt. Absolute returns on
+    such a universe are meaningless -- every name was selected for having
+    survived. But the benchmark is drawn from *the same survivors*, so the bias
+    sits on both sides of the comparison and largely cancels. What remains is
+    the question that matters: does ranking add anything over holding the lot?
+    """
+    cfg.validate()
+    scores = momentum_scores(panel, cfg)
+    first = cfg.lookback_days + 1 if start_index is None else start_index
+    last = len(panel) - 1 if end_index is None else min(end_index,
+                                                        len(panel) - 1)
+    out: List[float] = []
+    for i in range(max(first, cfg.lookback_days + 1), last, cfg.holding_days):
+        j = min(i + cfg.holding_days, last)
+        row, entry, exit_ = scores.iloc[i], panel.iloc[i], panel.iloc[j]
+        eligible = row.index[row.notna() & entry.notna() & exit_.notna()
+                             & (entry > 0) & (exit_ > 0)]
+        if len(eligible) < cfg.min_names:
+            continue
+        gross = np.array([float(exit_[n]) / float(entry[n]) - 1.0
+                          for n in eligible], dtype=float)
+        out.append(float(gross.mean()))
+    return out
+
+
+def active_returns(strategy: Sequence[float],
+                   benchmark: Sequence[float]) -> List[float]:
+    """Strategy minus benchmark, period by period.
+
+    Both series must come from the same replay window so the periods line up;
+    a mismatch means one of them skipped a thin cross-section the other did
+    not, and subtracting them would silently compare different dates.
+    """
+    if len(strategy) != len(benchmark):
+        raise ValueError(
+            f"period mismatch: {len(strategy)} strategy periods against "
+            f"{len(benchmark)} benchmark periods")
+    return [float(s) - float(b) for s, b in zip(strategy, benchmark)]
