@@ -36,6 +36,8 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
+from .corporate_actions import detect_splits
+
 __all__ = [
     "Issue",
     "AuditResult",
@@ -294,6 +296,23 @@ def audit_bars(df: pd.DataFrame, symbol: str = "?", timeframe: str = "?",
                 result.issues.append(Issue(
                     "minor", "sparse_coverage",
                     f"only {coverage:.0%} of the expected weekday bars present"))
+
+    # --- unadjusted corporate actions --------------------------------------
+    # A split is not a price move, and a reversion rule will buy it as the
+    # largest dip in the instrument's history. Fatal rather than minor: the
+    # series cannot be used for anything until it is back-adjusted.
+    try:
+        splits = detect_splits(df)
+    except (ValueError, KeyError):
+        splits = []
+    if splits:
+        result.issues.append(Issue(
+            "fatal", "unadjusted_split",
+            "price series contains unadjusted split(s) "
+            + "; ".join(str(event) for event in splits[:3])
+            + ("; ..." if len(splits) > 3 else "")
+            + " -- back-adjust with corporate_actions.adjust_for_splits",
+            len(splits), splits[0].time))
 
     # --- return outliers ---------------------------------------------------
     with np.errstate(divide="ignore", invalid="ignore"):

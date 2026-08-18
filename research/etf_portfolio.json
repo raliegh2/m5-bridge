@@ -1,0 +1,161 @@
+{
+  "balance": 4802.43,
+  "cost_tier": "tight",
+  "symbols": [
+    "ONEQ",
+    "IVV",
+    "IWM",
+    "VTI",
+    "TQQQ",
+    "EEM"
+  ],
+  "buy_and_hold_percent": {
+    "ONEQ": 1329.52,
+    "IVV": 666.85,
+    "IWM": 508.82,
+    "VTI": 694.15,
+    "TQQQ": 17610.49,
+    "EEM": 336.47
+  },
+  "beta_scaled_risk": {
+    "trades": 1146,
+    "net_profit": -23.61,
+    "return_percent": -0.49,
+    "profit_factor": 0.997,
+    "max_drawdown_percent": 19.37,
+    "by_symbol": {
+      "EEM": {
+        "trades": 322,
+        "net_profit": 10.88,
+        "wins": 174
+      },
+      "IVV": {
+        "trades": 248,
+        "net_profit": 458.62,
+        "wins": 138
+      },
+      "VTI": {
+        "trades": 79,
+        "net_profit": 146.09,
+        "wins": 44
+      },
+      "IWM": {
+        "trades": 168,
+        "net_profit": 51.55,
+        "wins": 93
+      },
+      "ONEQ": {
+        "trades": 272,
+        "net_profit": -614.12,
+        "wins": 132
+      },
+      "TQQQ": {
+        "trades": 57,
+        "net_profit": -76.63,
+        "wins": 23
+      }
+    },
+    "rejected": {
+      "factor_risk_US_EQUITY": 646,
+      "max_positions": 458,
+      "below_min_lot": 45
+    }
+  },
+  "flat_risk": {
+    "trades": 1110,
+    "net_profit": 104.5,
+    "return_percent": 2.18,
+    "profit_factor": 1.011,
+    "max_drawdown_percent": 19.37,
+    "by_symbol": {
+      "EEM": {
+        "trades": 322,
+        "net_profit": 15.95,
+        "wins": 174
+      },
+      "IVV": {
+        "trades": 259,
+        "net_profit": 437.24,
+        "wins": 143
+      },
+      "VTI": {
+        "trades": 81,
+        "net_profit": 145.28,
+        "wins": 45
+      },
+      "IWM": {
+        "trades": 173,
+        "net_profit": 144.52,
+        "wins": 96
+      },
+      "ONEQ": {
+        "trades": 275,
+        "net_profit": -638.42,
+        "wins": 134
+      }
+    },
+    "rejected": {
+      "factor_risk_US_EQUITY": 756,
+      "max_positions": 456,
+      "below_min_lot": 14
+    }
+  },
+  "walk_forward": {
+    "folds": 5,
+    "trades": 692,
+    "net_profit": 550.93,
+    "return_percent": 11.47,
+    "final_balance": 5353.36,
+    "admission": [
+      {
+        "fold": 0,
+        "admitted": [
+          "EEM",
+          "IVV",
+          "IWM",
+          "ONEQ",
+          "TQQQ",
+          "VTI"
+        ],
+        "start": 1063152000,
+        "end": 1207612800
+      },
+      {
+        "fold": 1,
+        "admitted": [
+          "IVV",
+          "VTI"
+        ],
+        "start": 1207699200,
+        "end": 1351728000
+      },
+      {
+        "fold": 2,
+        "admitted": [
+          "IVV",
+          "VTI"
+        ],
+        "start": 1351814400,
+        "end": 1496275200
+      },
+      {
+        "fold": 3,
+        "admitted": [
+          "IVV",
+          "VTI"
+        ],
+        "start": 1496361600,
+        "end": 1640649600
+      },
+      {
+        "fold": 4,
+        "admitted": [
+          "IVV",
+          "VTI"
+        ],
+        "start": 1640736000,
+        "end": 1786665600
+      }
+    ]
+  }
+}

@@ -26,6 +26,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from mt5_ai_bridge.candidate_v16 import locked_config_v16, replay_v16  # noqa: E402
+from mt5_ai_bridge.corporate_actions import adjust_for_splits  # noqa: E402
 from mt5_ai_bridge.data import load_csv  # noqa: E402
 from mt5_ai_bridge.data_audit import audit_bars  # noqa: E402
 from mt5_ai_bridge.enums import Signal  # noqa: E402
@@ -62,10 +63,20 @@ def main(argv=None) -> int:
         path = DATA_DIR / f"{symbol}_D1.csv"
         if not path.exists():
             continue
-        audit = audit_bars(pd.read_csv(path), symbol, "D1")
+        # Back-adjust splits BEFORE auditing or replaying. An unadjusted
+        # ten-for-one split is a -90% "return" that nobody experienced: the
+        # reversion rule buys it as the largest dip on record, and it
+        # understates buy-and-hold by the split factor.
+        bars, splits = adjust_for_splits(load_csv(str(path)).reset_index(drop=True))
+        if splits:
+            print(f"  {symbol}: back-adjusted {len(splits)} split(s): "
+                  + "; ".join(str(event) for event in splits))
+        audit = audit_bars(bars, symbol, "D1")
         if not audit.usable:
+            print(f"  {symbol}: UNUSABLE -- "
+                  + "; ".join(str(i) for i in audit.fatal))
             continue
-        bars = load_csv(str(path)).reset_index(drop=True)
+        bars = bars.reset_index(drop=True)
         if audit.trusted_from:
             bars = bars[bars["time"] >= audit.trusted_from].reset_index(drop=True)
         inst = instrument_for(symbol)
