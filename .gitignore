@@ -37,3 +37,7 @@ research/data/*_H1.csv
 research/data/*_M30.csv
 research/data/*_M15.csv
 research/data/*_M5.csv
+
+# Individual equity history: ~300 symbols x 22.9 years is far too large for
+# git. tools/export_equity_universe.py rebuilds it from the terminal.
+research/data/equities/

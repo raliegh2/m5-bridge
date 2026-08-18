@@ -5,8 +5,8 @@ from pytest import approx
 
 from mt5_ai_bridge.risk_v18 import (DrawdownGovernor, KillSwitch, RiskBudget,
                                     RiskEngine, edge_from_trades,
-                                    fractional_kelly, kelly_fraction,
-                                    volatility_target_lots)
+                                    exposure_groups, fractional_kelly,
+                                    kelly_fraction, volatility_target_lots)
 
 
 # --- Kelly ------------------------------------------------------------------
@@ -387,3 +387,44 @@ def test_the_per_trade_cap_binds_however_large_the_edge():
     d = engine.size(**_kw(edge=absurd))
     assert d.approved
     assert d.risk_fraction == approx(0.02)
+
+
+# --- exposure grouping ------------------------------------------------------
+
+
+def test_currency_pairs_still_split_into_base_and_quote():
+    assert exposure_groups("EURUSD") == ("EUR", "USD")
+    assert exposure_groups("XAUUSD") == ("XAU", "USD")
+    assert exposure_groups("gbpjpy") == ("GBP", "JPY")
+
+
+def test_equity_tickers_are_not_sliced_like_currencies():
+    # AAPL would otherwise become base "AAP" and quote "L", and META would
+    # share a budget with MetLife because both slice to "MET".
+    assert exposure_groups("AAPL") == ("US_EQUITY", "AAPL")
+    assert exposure_groups("META") == ("US_EQUITY", "META")
+    assert exposure_groups("MET") == ("US_EQUITY", "MET")
+
+
+def test_two_currency_pairs_sharing_a_leg_still_compete_for_that_budget():
+    budget = RiskBudget()
+    allowed, why = budget.room_for("GBPUSD", 0.02, {"EURUSD": 0.04})
+
+    assert allowed == 0.0
+    assert "USD" in why
+
+
+def test_equities_share_the_market_factor_rather_than_a_letter_prefix():
+    budget = RiskBudget()
+    # Correlated by being US equities, not by spelling.
+    allowed, why = budget.room_for("AAPL", 0.02, {"XOM": 0.04})
+
+    assert allowed == 0.0
+    assert "US_EQUITY" in why
+
+
+def test_an_equity_does_not_consume_a_currency_budget():
+    budget = RiskBudget()
+    allowed, _ = budget.room_for("EURUSD", 0.02, {"AAPL": 0.04})
+
+    assert allowed > 0.0

@@ -33,6 +33,7 @@ from typing import Dict, List, Optional, Sequence
 
 __all__ = [
     "RiskProfile",
+    "exposure_groups",
     "CONSERVATIVE_10PCT",
     "BALANCED_20PCT",
     "PROFILES",
@@ -51,6 +52,26 @@ __all__ = [
 
 
 # --- edge measurement and Kelly --------------------------------------------
+
+
+def exposure_groups(symbol: str) -> tuple[str, ...]:
+    """The risk factors ``symbol`` loads, for the correlated-exposure cap.
+
+    Slicing a symbol into ``[:3]`` and ``[3:6]`` is right for FX and nonsense
+    for anything else. ``AAPL`` becomes base ``AAP`` and quote ``L``; ``META``
+    becomes ``MET``, which then shares a cap with MetLife. Two unrelated names
+    silently compete for one budget while two genuinely correlated ones do not.
+
+    So the split is only applied to symbols shaped like a currency pair. A
+    metal keeps its pair form (``XAUUSD`` -> XAU, USD). Anything else is an
+    equity: it loads the broad market factor, because a book of US equities is
+    one bet on US equities however many tickers it holds, plus its own name so
+    the per-symbol cap still bites.
+    """
+    name = str(symbol).upper()
+    if len(name) == 6 and name.isalpha():
+        return (name[:3], name[3:])
+    return ("US_EQUITY", name)
 
 
 def kelly_fraction(win_rate: float, win_loss_ratio: float) -> float:
@@ -314,6 +335,14 @@ class RiskBudget:
     # 20%/50% leaves room to survive an adverse move without a margin call.
     max_symbol_margin_fraction: float = 0.20
     max_total_margin_fraction: float = 0.50
+    # Apply the correlated-exposure cap to NET signed risk within a factor
+    # rather than the gross sum. Off by default, because for a directional
+    # book gross is the honest measure. A market-neutral book is the case it
+    # exists for: twenty longs and twenty shorts in US equities carry ~zero net
+    # factor risk, and a gross cap rejects the whole second half of the book --
+    # which turns a hedged strategy into a directional one without anyone
+    # choosing that. Requires the caller to supply position sides.
+    hedged: bool = False
 
     def __post_init__(self) -> None:
         if self.max_symbol_risk_fraction > self.max_total_risk_fraction:
@@ -339,10 +368,16 @@ class RiskBudget:
         return True, "within margin caps"
 
     def room_for(self, symbol: str, requested: float,
-                 open_risk: Dict[str, float]) -> tuple[float, str]:
+                 open_risk: Dict[str, float],
+                 sides: Optional[Dict[str, int]] = None,
+                 side: int = 1) -> tuple[float, str]:
         """Largest permissible risk fraction for ``symbol``, and why.
 
         ``open_risk`` maps symbol -> risk fraction currently committed.
+        ``sides`` maps symbol -> +1 long / -1 short and ``side`` is the
+        prospective position's direction; both are only consulted when
+        :attr:`hedged` is set, and a hedged budget without sides falls back to
+        the gross rule rather than assuming everything is long.
         """
         if len(open_risk) >= self.max_concurrent_positions:
             return 0.0, (f"{len(open_risk)} positions open "
@@ -362,18 +397,27 @@ class RiskBudget:
             allowed = headroom
             reason = f"limited by aggregate headroom {headroom:.2%}"
 
-        base, quote = symbol[:3].upper(), symbol[3:6].upper()
-        for ccy in (base, quote):
-            committed = sum(
-                r for s, r in open_risk.items()
-                if ccy in (s[:3].upper(), s[3:6].upper()))
-            ccy_room = self.max_currency_risk_fraction - committed
-            if ccy_room <= 0:
-                return 0.0, (f"{ccy} exposure {committed:.1%} at the "
+        net_mode = self.hedged and sides is not None
+        for group in exposure_groups(symbol):
+            in_group = [(s, r) for s, r in open_risk.items()
+                        if group in exposure_groups(s)]
+            if net_mode:
+                net = sum(r * (1 if sides.get(s, 1) >= 0 else -1)
+                          for s, r in in_group)
+                # Signed room in the direction of this trade: a short into a
+                # long-heavy book reduces net exposure and is not restricted.
+                group_room = self.max_currency_risk_fraction - side * net
+                measure = f"net {abs(net):.1%}"
+            else:
+                committed = sum(r for _, r in in_group)
+                group_room = self.max_currency_risk_fraction - committed
+                measure = f"exposure {committed:.1%}"
+            if group_room <= 0:
+                return 0.0, (f"{group} {measure} at the "
                              f"{self.max_currency_risk_fraction:.0%} cap")
-            if allowed > ccy_room:
-                allowed = ccy_room
-                reason = f"limited by {ccy} headroom {ccy_room:.2%}"
+            if allowed > group_room:
+                allowed = group_room
+                reason = f"limited by {group} headroom {group_room:.2%}"
 
         return max(0.0, allowed), reason
 
@@ -406,7 +450,8 @@ class RiskEngine:
              min_lot: float = 0.01, max_lot: float = 100.0,
              lot_step: float = 0.01, price: Optional[float] = None,
              contract_size: float = 1.0, leverage: float = 100.0,
-             open_margin: Optional[Dict[str, float]] = None
+             open_margin: Optional[Dict[str, float]] = None,
+             sides: Optional[Dict[str, int]] = None, side: int = 1
              ) -> RiskDecision:
         """Decide whether to trade and at what size.
 
@@ -441,7 +486,8 @@ class RiskEngine:
                                 "drawdown governor: hard limit reached", detail)
         risk *= multiplier
 
-        risk, budget_reason = self.budget.room_for(symbol, risk, open_risk)
+        risk, budget_reason = self.budget.room_for(symbol, risk, open_risk,
+                                                   sides, side)
         detail["budget_reason"] = budget_reason
         if risk <= 0:
             return RiskDecision(False, 0.0, 0.0,

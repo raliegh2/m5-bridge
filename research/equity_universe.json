@@ -1,0 +1,178 @@
+{
+  "selection": {
+    "top": 300,
+    "min_years": 15.0,
+    "max_spread_pct": 0.3,
+    "min_price": 5.0,
+    "max_price": 400.0
+  },
+  "survivorship_warning": "The terminal lists only symbols listed today. Companies delisted between 2003 and now are absent, so results on this universe are an upper bound rather than an estimate.",
+  "count": 15,
+  "symbols": [
+    {
+      "symbol": "NVDA",
+      "bars": 5762,
+      "price": 219.51,
+      "spread_pct": 0.0091,
+      "min_lot": 1.0,
+      "dollar_volume": 49832340.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "AAPL",
+      "bars": 5762,
+      "price": 309.9,
+      "spread_pct": 0.0194,
+      "min_lot": 1.0,
+      "dollar_volume": 20735640.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "AMZN",
+      "bars": 5760,
+      "price": 259.4,
+      "spread_pct": 0.0347,
+      "min_lot": 1.0,
+      "dollar_volume": 16707412.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "IWM",
+      "bars": 5761,
+      "price": 300.09,
+      "spread_pct": 0.0766,
+      "min_lot": 1.0,
+      "dollar_volume": 12285325.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "GLD",
+      "bars": 5460,
+      "price": 398.55,
+      "spread_pct": 0.1129,
+      "min_lot": 1.0,
+      "dollar_volume": 6253715.0,
+      "start": 1100736000,
+      "end": 1787011200,
+      "years": 21.7
+    },
+    {
+      "symbol": "TQQQ",
+      "bars": 4142,
+      "price": 72.35,
+      "spread_pct": 0.0829,
+      "min_lot": 1.0,
+      "dollar_volume": 6228436.0,
+      "start": 1265846400,
+      "end": 1786665600,
+      "years": 16.5
+    },
+    {
+      "symbol": "JPM",
+      "bars": 5762,
+      "price": 363.6,
+      "spread_pct": 0.22,
+      "min_lot": 1.0,
+      "dollar_volume": 5066543.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "INTC",
+      "bars": 5762,
+      "price": 96.28,
+      "spread_pct": 0.0519,
+      "min_lot": 1.0,
+      "dollar_volume": 3268177.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "XOM",
+      "bars": 5762,
+      "price": 166.0,
+      "spread_pct": 0.253,
+      "min_lot": 1.0,
+      "dollar_volume": 2963319.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "PG",
+      "bars": 5759,
+      "price": 143.55,
+      "spread_pct": 0.1672,
+      "min_lot": 1.0,
+      "dollar_volume": 1996875.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "VTI",
+      "bars": 5760,
+      "price": 380.2,
+      "spread_pct": 0.292,
+      "min_lot": 1.0,
+      "dollar_volume": 1858888.0,
+      "start": 1063152000,
+      "end": 1786665600,
+      "years": 22.9
+    },
+    {
+      "symbol": "KO",
+      "bars": 5762,
+      "price": 88.98,
+      "spread_pct": 0.1798,
+      "min_lot": 1.0,
+      "dollar_volume": 1651150.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "SQQQ",
+      "bars": 4142,
+      "price": 38.37,
+      "spread_pct": 0.0782,
+      "min_lot": 1.0,
+      "dollar_volume": 1294236.0,
+      "start": 1265846400,
+      "end": 1786665600,
+      "years": 16.5
+    },
+    {
+      "symbol": "T",
+      "bars": 5755,
+      "price": 24.94,
+      "spread_pct": 0.1604,
+      "min_lot": 1.0,
+      "dollar_volume": 857809.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "SH",
+      "bars": 5061,
+      "price": 32.4,
+      "spread_pct": 0.216,
+      "min_lot": 1.0,
+      "dollar_volume": 79970.0,
+      "start": 1150848000,
+      "end": 1787011200,
+      "years": 20.2
+    }
+  ]
+}
