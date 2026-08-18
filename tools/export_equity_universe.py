@@ -42,6 +42,58 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "research" / "data" / "equities"
 MANIFEST = ROOT / "research" / "equity_universe.json"
 COLUMNS = ("time", "open", "high", "low", "close", "tick_volume")
+# Scanning is resumable because the terminal reliably wedges on some symbol:
+# ``copy_rates_from_pos`` is synchronous and blocks forever, and two separate
+# runs hung on the same name. The ledger records every symbol already decided
+# and ``IN_FLIGHT`` names the one being fetched right now, so a restart both
+# skips completed work and blacklists whatever hung the previous attempt.
+LEDGER = OUT / "_scanned.jsonl"
+IN_FLIGHT = OUT / "_in_flight.txt"
+
+
+def _screen(info, rates, min_bars: int, args, dropped: dict) -> dict:
+    """Apply every screen to one symbol's bars and return its ledger record."""
+    record = {"symbol": info.name, "kept": False}
+    if rates is None or len(rates) == 0:
+        dropped["no_history"] += 1
+        record["reason"] = "no_history"
+        return record
+    if len(rates) < min_bars:
+        dropped["short_history"] += 1
+        record["reason"] = "short_history"
+        return record
+
+    frame = pd.DataFrame(rates)
+    price = float(frame["close"].tail(250).median())
+    if not args.min_price <= price <= args.max_price:
+        dropped["price"] += 1
+        record["reason"] = "price"
+        return record
+
+    # Spread as recorded on the bars themselves, in points.
+    spread_points = (float(frame["spread"].tail(500).median())
+                     if "spread" in frame.columns else 0.0)
+    spread_pct = spread_points * info.point / price * 100.0 if price else 999.0
+    if spread_pct > args.max_spread_pct:
+        dropped["spread"] += 1
+        record["reason"] = "spread"
+        return record
+
+    record.update({
+        "kept": True,
+        "bars": len(frame),
+        "price": round(price, 2),
+        "spread_pct": round(spread_pct, 4),
+        "min_lot": float(info.volume_min),
+        "dollar_volume": round(float(
+            (frame["close"] * frame["tick_volume"]).tail(500).median()), 0),
+        "start": int(frame["time"].iloc[0]),
+        "end": int(frame["time"].iloc[-1]),
+        "frame": frame,
+    })
+    record["years"] = round(
+        (record["end"] - record["start"]) / (365.25 * 86_400), 1)
+    return record
 
 
 def main(argv=None) -> int:
@@ -88,62 +140,75 @@ def main(argv=None) -> int:
     print(f"{len(candidates)} fully tradable symbols under {args.group!r} "
           f"to scan", flush=True)
 
+    args.out.mkdir(parents=True, exist_ok=True)
+    ledger_path = args.out / LEDGER.name
+    in_flight_path = args.out / IN_FLIGHT.name
+
+    done, rows = set(), []
+    if ledger_path.exists():
+        for line in ledger_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            done.add(record["symbol"])
+            if record.get("kept"):
+                rows.append(record)
+    hung = None
+    if in_flight_path.exists():
+        hung = in_flight_path.read_text(encoding="utf-8").strip() or None
+        if hung:
+            done.add(hung)
+            print(f"  previous run hung on {hung}; skipping it", flush=True)
+            with ledger_path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"symbol": hung, "kept": False,
+                                     "reason": "hung"}) + "\n")
+        in_flight_path.unlink(missing_ok=True)
+    if done:
+        print(f"  resuming: {len(done)} already scanned, "
+              f"{len(rows)} kept", flush=True)
+
     min_bars = int(args.min_years * 252)
-    rows = []
     dropped = {"no_history": 0, "short_history": 0, "price": 0, "spread": 0}
     for i, info in enumerate(candidates, 1):
-        if i % 500 == 0:
+        if info.name in done:
+            continue
+        if i % 100 == 0:
             print(f"  scanned {i}/{len(candidates)}, "
                   f"kept {len(rows)}", flush=True)
-        if not mt5.symbol_select(info.name, True):
-            dropped["no_history"] += 1
-            continue
-        rates = mt5.copy_rates_from_pos(info.name, mt5.TIMEFRAME_D1, 0,
-                                        args.bars)
-        if rates is None or len(rates) == 0:
-            dropped["no_history"] += 1
-            continue
-        if len(rates) < min_bars:
-            dropped["short_history"] += 1
-            continue
-        frame = pd.DataFrame(rates)
-        price = float(frame["close"].tail(250).median())
-        if not args.min_price <= price <= args.max_price:
-            dropped["price"] += 1
-            continue
-        # Spread as recorded on the bars themselves, in points.
-        spread_points = float(frame["spread"].tail(500).median()) \
-            if "spread" in frame.columns else 0.0
-        spread_pct = spread_points * info.point / price * 100.0 if price else 999
-        if spread_pct > args.max_spread_pct:
-            dropped["spread"] += 1
-            continue
-        dollar_volume = float(
-            (frame["close"] * frame["tick_volume"]).tail(500).median())
-        rows.append({"symbol": info.name, "bars": len(frame),
-                     "price": round(price, 2),
-                     "spread_pct": round(spread_pct, 4),
-                     "min_lot": float(info.volume_min),
-                     "dollar_volume": dollar_volume, "frame": frame})
+
+        in_flight_path.write_text(info.name, encoding="utf-8")
+        record = {"symbol": info.name, "kept": False}
+        try:
+            if not mt5.symbol_select(info.name, True):
+                dropped["no_history"] += 1
+                record["reason"] = "no_history"
+            else:
+                rates = mt5.copy_rates_from_pos(info.name, mt5.TIMEFRAME_D1, 0,
+                                                args.bars)
+                record = _screen(info, rates, min_bars, args, dropped)
+                if record.get("kept"):
+                    frame = record.pop("frame")[list(COLUMNS)]
+                    frame.to_csv(args.out / f"{info.name}_D1.csv", index=False)
+                    rows.append(record)
+        finally:
+            with ledger_path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(record) + "\n")
+            in_flight_path.unlink(missing_ok=True)
+
     print(f"{len(rows)} symbols pass every screen; dropped {dropped}")
 
-    rows.sort(key=lambda r: r["dollar_volume"], reverse=True)
+    rows.sort(key=lambda r: r.get("dollar_volume", 0.0), reverse=True)
     kept = rows[:args.top]
+    for row in rows[args.top:]:
+        stale = args.out / f"{row['symbol']}_D1.csv"
+        if stale.exists():
+            stale.unlink()
 
-    args.out.mkdir(parents=True, exist_ok=True)
     manifest = []
     for row in kept:
-        frame = row.pop("frame")
-        frame = frame[list(COLUMNS)]
-        frame.to_csv(args.out / f"{row['symbol']}_D1.csv", index=False)
-        span = pd.to_datetime(frame["time"], unit="s", utc=True)
-        row["start"] = int(frame["time"].iloc[0])
-        row["end"] = int(frame["time"].iloc[-1])
-        row["years"] = round((row["end"] - row["start"]) / (365.25 * 86_400), 1)
-        row["dollar_volume"] = round(row["dollar_volume"], 0)
+        row.pop("frame", None)
         manifest.append(row)
-        print(f"  {row['symbol']:<6} {len(frame):>5} bars "
-              f"{span.iloc[0]:%Y-%m-%d}..{span.iloc[-1]:%Y-%m-%d} "
+        print(f"  {row['symbol']:<6} {row['bars']:>5} bars "
               f"spread {row['spread_pct']:.3f}%")
 
     MANIFEST.write_text(json.dumps({
