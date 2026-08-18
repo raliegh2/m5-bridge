@@ -203,9 +203,14 @@ def replay_cross_sectional(panel: pd.DataFrame,
 
     Each rebalance ranks every name with a finite score and a tradable price at
     both ends of the holding window, takes the extremes, and holds for
-    ``holding_days``. The book is rebuilt from scratch each period, so turnover
-    is charged on both sides of every leg -- which is the honest treatment for
-    a monthly-rebalanced strategy and the thing most likely to sink it.
+    ``holding_days``.
+
+    Costs are charged on **turnover**, not on the whole book. A name the
+    ranking keeps on the same side is not sold and rebought, so charging it a
+    round trip would invent a cost that nobody pays -- and cost is the most
+    likely thing to decide this result, so inventing it either way is not
+    conservative, it is wrong. Each name entering or leaving crosses the spread
+    once, at half the quoted round trip.
     """
     cfg.validate()
     spread_pct = spread_pct or {}
@@ -217,6 +222,8 @@ def replay_cross_sectional(panel: pd.DataFrame,
 
     result = CrossSectionalResult(starting_balance=starting_balance)
     step = cfg.holding_days
+    prev_long: set = set()
+    prev_short: set = set()
     for i in range(max(first, cfg.lookback_days + 1), last, step):
         j = min(i + step, last)
         row = scores.iloc[i]
@@ -241,16 +248,21 @@ def replay_cross_sectional(panel: pd.DataFrame,
         long_r = leg_return(winners, 1.0)
         short_r = leg_return(losers, -1.0)
 
-        # Every name is opened and closed, so each leg pays its round trip.
-        traded = winners + losers
-        cost = float(np.mean([spread_pct.get(n, 0.0) / 100.0
-                              for n in traded])) if traded else 0.0
+        # Only names entering or leaving the book trade, and each crosses the
+        # spread once -- half the quoted round trip.
+        new_long, new_short = set(winners), set(losers)
         if cfg.market_neutral:
+            turned = ((new_long - prev_long) | (prev_long - new_long)
+                      | (new_short - prev_short) | (prev_short - new_short))
+            weight = 0.5 / cfg.n_positions
             gross_period = 0.5 * (long_r + short_r)
-            cost_period = cost          # both halves trade, weights sum to 1
         else:
+            turned = (new_long - prev_long) | (prev_long - new_long)
+            weight = 1.0 / cfg.n_positions
             gross_period = long_r
-            cost_period = cost
+        cost_period = sum(weight * spread_pct.get(name, 0.0) / 100.0 / 2.0
+                          for name in turned)
+        prev_long, prev_short = new_long, new_short
         net = gross_period - cost_period
 
         result.period_returns.append(net)

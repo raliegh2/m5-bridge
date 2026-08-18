@@ -138,3 +138,53 @@ def test_equity_curve_and_drawdown_follow_the_period_returns():
         compounded *= (1.0 + r)
     assert round(compounded, 2) == result.final_balance
     assert result.max_drawdown_percent >= 0.0
+
+
+def test_a_name_the_ranking_keeps_is_not_charged_again():
+    # Two names permanently at the extremes: the book turns over once, at the
+    # first rebalance, and pays nothing after that.
+    n = 200
+    rising = [100.0 * (1.01 ** i) for i in range(n)]
+    falling = [100.0 * (0.99 ** i) for i in range(n)]
+    flat = [100.0] * n
+    panel = _panel({"W1": rising, "W2": rising, "L1": falling, "L2": falling,
+                    "M1": flat, "M2": flat})
+    cfg = _small_cfg()
+
+    result = replay_cross_sectional(panel, cfg,
+                                    {s: 1.0 for s in panel.columns}, 10_000.0)
+
+    assert result.cost_drag[0] > 0
+    assert sum(result.cost_drag[1:]) == 0.0
+
+
+def test_a_book_that_churns_every_period_pays_every_period():
+    # Ranks that flip each period force a full turnover each time.
+    n = 200
+    rows = {}
+    for k, name in enumerate(["A", "B", "C", "D", "E", "F"]):
+        series, price = [], 100.0
+        for i in range(n):
+            # Alternate which names are stretched, period by period.
+            up = ((i // 10) + k) % 2 == 0
+            price *= 1.02 if up else 0.98
+            series.append(price)
+        rows[name] = series
+    panel = _panel(rows)
+    cfg = _small_cfg()
+
+    spreads = {s: 1.0 for s in panel.columns}
+    churning = replay_cross_sectional(panel, cfg, spreads, 10_000.0)
+
+    n = 200
+    steady = _panel({"W1": [100.0 * (1.01 ** i) for i in range(n)],
+                     "W2": [100.0 * (1.01 ** i) for i in range(n)],
+                     "L1": [100.0 * (0.99 ** i) for i in range(n)],
+                     "L2": [100.0 * (0.99 ** i) for i in range(n)],
+                     "M1": [100.0] * n, "M2": [100.0] * n})
+    persistent = replay_cross_sectional(steady, cfg, spreads, 10_000.0)
+
+    # A book whose members keep changing pays many times over; one whose
+    # members persist pays once.
+    assert sum(churning.cost_drag) > 10 * sum(persistent.cost_drag)
+    assert len([c for c in churning.cost_drag if c > 0]) > 5
