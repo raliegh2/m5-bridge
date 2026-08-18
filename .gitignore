@@ -29,3 +29,8 @@ session_guard_state.json.tmp
 dashboard.html
 state/
 research/*_out/
+
+# ddos_detect runtime data (database, audit log, instance secret)
+ddos_detect_data/
+# ...but the ddos_detect dashboard page is source, not a generated artifact
+!ddos_detect/static/dashboard.html

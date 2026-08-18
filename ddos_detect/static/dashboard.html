@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>DDoS Detection</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<noscript>This dashboard requires JavaScript.</noscript>
+
+<div id="login" class="login hidden">
+  <form id="login-form" class="card login-card" autocomplete="on">
+    <h1>DDoS Detection</h1>
+    <p class="muted">Local monitoring console. Sign in to continue.</p>
+    <label for="username">Username</label>
+    <input id="username" name="username" type="text" autocomplete="username" required>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit" class="primary">Sign in</button>
+    <p id="login-error" class="error" role="alert"></p>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot" id="stream-dot" title="live stream"></span>
+      <strong>DDoS Detection</strong>
+    </div>
+    <div id="posture" class="posture"></div>
+    <div class="account">
+      <span id="whoami" class="muted"></span>
+      <button id="logout" class="ghost">Sign out</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-panel="overview">Overview</button>
+    <button class="tab" data-panel="alerts">Alerts</button>
+    <button class="tab" data-panel="authorizations">Authorization</button>
+    <button class="tab" data-panel="audit">Audit</button>
+  </nav>
+
+  <main>
+    <section id="panel-overview" class="panel">
+      <div class="card">
+        <h2>Monitor a target</h2>
+        <p class="muted">
+          A target must be covered by an active authorization entry before it can be
+          monitored. Capture is header-only: payload bytes are never read.
+        </p>
+        <form id="monitor-form" class="row">
+          <div class="field">
+            <label for="target">Target IP address</label>
+            <input id="target" type="text" inputmode="numeric" placeholder="192.0.2.10" required>
+          </div>
+          <div class="field">
+            <label for="label">Label (optional)</label>
+            <input id="label" type="text" maxlength="80" placeholder="edge web server">
+          </div>
+          <fieldset class="field protocols">
+            <legend>Protocols</legend>
+            <label><input type="checkbox" value="tcp" checked> TCP</label>
+            <label><input type="checkbox" value="udp" checked> UDP</label>
+            <label><input type="checkbox" value="icmp" checked> ICMP</label>
+          </fieldset>
+          <button type="submit" class="primary">Start monitoring</button>
+        </form>
+        <details class="sim">
+          <summary>Run a simulated scenario instead</summary>
+          <p class="muted">
+            Generates traffic records in memory to exercise the detector. Nothing is
+            transmitted to any host. Results are labelled as simulated throughout.
+          </p>
+          <form id="simulate-form" class="row">
+            <div class="field">
+              <label for="scenario">Scenario</label>
+              <select id="scenario"></select>
+            </div>
+            <div class="field">
+              <label for="speed">Playback speed</label>
+              <select id="speed">
+                <option value="4">4x</option>
+                <option value="8">8x</option>
+                <option value="12">12x</option>
+              </select>
+            </div>
+            <button type="submit" class="ghost">Run simulation</button>
+          </form>
+          <p id="scenario-help" class="muted small"></p>
+        </details>
+        <p id="monitor-error" class="error" role="alert"></p>
+      </div>
+
+      <div id="monitors" class="monitors"></div>
+      <p id="monitors-empty" class="muted empty">No monitors running.</p>
+    </section>
+
+    <section id="panel-alerts" class="panel hidden">
+      <div class="card">
+        <h2>Alerts</h2>
+        <p class="muted">Newest first. An alert opens after several consecutive breaches
+          and closes after the traffic stays clear through the cooldown.</p>
+        <div id="alerts"></div>
+      </div>
+    </section>
+
+    <section id="panel-authorizations" class="panel hidden">
+      <div class="card">
+        <h2>Authorized ranges</h2>
+        <p class="muted">
+          Monitoring traffic to an address you do not operate may be unlawful. Each entry
+          records who attested to authorization, why, and when it expires.
+        </p>
+        <form id="authz-form" class="stack">
+          <div class="row">
+            <div class="field">
+              <label for="cidr">Address or CIDR range</label>
+              <input id="cidr" type="text" placeholder="192.0.2.0/24" required>
+            </div>
+            <div class="field">
+              <label for="days">Valid for (days)</label>
+              <input id="days" type="number" min="1" max="90" value="30">
+            </div>
+          </div>
+          <div class="field">
+            <label for="justification">Justification (retained with the entry)</label>
+            <input id="justification" type="text" maxlength="500" required
+                   placeholder="Lab segment for the perimeter test, ticket OPS-4821">
+          </div>
+          <label class="attest">
+            <input id="attestation" type="checkbox" required>
+            <span id="attestation-text"></span>
+          </label>
+          <button type="submit" class="primary">Record authorization</button>
+          <p id="authz-error" class="error" role="alert"></p>
+        </form>
+        <div id="authorizations"></div>
+      </div>
+    </section>
+
+    <section id="panel-audit" class="panel hidden">
+      <div class="card">
+        <h2>Audit log</h2>
+        <p class="muted">Hash-chained record of authorizations, monitors, logins, and alerts.</p>
+        <p id="chain-status"></p>
+        <div id="audit"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
