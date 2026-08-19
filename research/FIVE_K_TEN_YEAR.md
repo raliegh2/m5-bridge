@@ -8,7 +8,13 @@ with a drawdown ceiling below 10%?
 ## The book
 
 **50/50 US large-cap equity and gold, each with the 10-month moving-average
-overlay, run at 90% invested and 10% cash.**
+overlay, run at 70% invested and 30% cash.**
+
+> Configured at **0.70**, not the 0.90 that sizes exactly to the 10%
+> ceiling. Sizing to the worst drawdown ever observed leaves no room for a
+> crash worse than 2008; 0.70 holds the worst rolling ten-year drawdown to
+> **7.7%** for about 1.8 points of annual return. The 0.90 figures are kept
+> below for comparison.
 
 Two changes from the previous version, both forced by the constraint:
 
@@ -51,15 +57,27 @@ terms this repo has insisted on all along — equal risk, not equal capital.
 
 $5,000, 129 overlapping ten-year windows drawn from 2005–2026:
 
+At the configured **0.70** (6.35% a year):
+
 | | ending balance | profit | return |
 |---|---:|---:|---:|
-| worst ten years | $6,992 | $1,992 | +39.8% |
-| 25th percentile | $7,537 | $2,537 | +50.7% |
-| **median** | **$8,404** | **$3,404** | **+68.1%** |
-| 75th percentile | $9,181 | $4,181 | +83.6% |
-| best ten years | $13,778 | $8,778 | +175.6% |
+| worst ten years | $6,519 | $1,519 | +30.4% |
+| **median** | **$7,528** | **$2,528** | **+50.6%** |
 
-Worst rolling ten-year drawdown: **9.9%**.
+Worst rolling ten-year drawdown: **7.7%**.
+
+The full ladder, so the trade-off is visible rather than asserted:
+
+| fraction invested | CAGR | worst 10y DD | median $5k → | worst $5k → |
+|---:|---:|---:|---:|---:|
+| 0.90 | 8.15% | 9.9% | $8,404 | $6,992 |
+| 0.80 | 7.25% | 8.8% | $7,957 | $6,754 |
+| 0.75 | 6.80% | 8.3% | $7,740 | $6,636 |
+| **0.70** | **6.35%** | **7.7%** | **$7,528** | **$6,519** |
+| 0.65 | 5.90% | 7.2% | $7,320 | $6,403 |
+
+Roughly one point of annual return buys one point of drawdown, all the way
+down the ladder.
 
 ## The number this rests on, and what happens if it is wrong
 
@@ -80,13 +98,13 @@ on gold's next decade than on anything in the trading rules.
 
 ## What to actually hold
 
-$5,000 at 90% invested, 50/50, whole shares:
+$5,000 at 70% invested, 50/50, whole shares:
 
 | symbol | price | target | shares | value | weight |
 |---|---:|---:|---:|---:|---:|
-| **SCHX** (US large cap) | $30.25 | $2,250 | **74** | $2,238.50 | 49.7% |
-| **IAU** (gold) | $81.70 | $2,250 | **27** | $2,205.90 | 49.0% |
-| cash | | | | $555.60 | 11.1% |
+| **SCHX** (US large cap) | $30.25 | $1,750 | **57** | $1,724.25 | 50.1% |
+| **IAU** (gold) | $81.70 | $1,750 | **21** | $1,715.70 | 49.9% |
+| cash | | | | $1,560.05 | 31.2% |
 
 SCHX stands in for IVV purely for granularity — IVV at $780 a share buys only 2
 units of a $2,250 target and wrecks the weights. Their daily returns correlate
@@ -99,10 +117,9 @@ about one trade each every ten months.
 
 ## Limits worth knowing before funding it
 
-* **9.9% is the worst drawdown observed in 20.7 years, not a guarantee.** Sizing
-  to exactly 10% means a crash worse than 2008 breaches it. If the ceiling is
-  hard, run 70–75% invested instead of 90% and give up roughly 1.5 points of
-  return for real headroom.
+* **7.7% is the worst drawdown observed in 20.7 years, not a guarantee.** A
+  crash worse than 2008 breaches it. Running at 0.70 rather than the 0.90 that
+  sizes exactly to 10% is what buys the margin for that.
 * **129 windows are not 129 independent trials.** They overlap heavily; the
   sample really contains about two independent decades.
 * **The timing rule's risk-adjusted edge is not statistically significant**

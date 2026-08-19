@@ -150,7 +150,7 @@ def held_shares(client, symbol: str, magic: int = TACTICAL_MAGIC) -> int:
 
 def plan_rebalance(client, legs: Sequence[TacticalLeg],
                    cfg: TacticalConfig = LOCKED_TACTICAL,
-                   fraction_invested: float = 0.90,
+                   fraction_invested: float = 0.70,
                    magic: int = TACTICAL_MAGIC,
                    governor: Optional[DrawdownGovernor] = None,
                    kill_switch: Optional[KillSwitch] = None
