@@ -143,6 +143,12 @@ class Settings:
     # loose cap that only bites genuinely concentrated books.
     factor_caps: bool = True
     max_currency_risk: float = 2.0
+    # Tactical book: a monthly long-or-flat overlay on ETF sleeves,
+    # sized by weight rather than by stop distance. Legs come from
+    # TACTICAL_WEIGHT_<SYMBOL> entries, e.g. TACTICAL_WEIGHT_SCHX=0.5.
+    tactical_enabled: bool = False
+    tactical_legs: tuple = ()          # ((symbol, weight), ...)
+    tactical_fraction_invested: float = 0.90
 
     @property
     def has_credentials(self) -> bool:
@@ -247,6 +253,7 @@ def load_settings(dotenv: bool = True) -> Settings:
                     pass
         return tuple(sorted(out))
 
+    tactical_legs = _risk_overrides("TACTICAL_WEIGHT_")
     swing_overrides = _risk_overrides("SWING_RISK_PERCENT_")
     intraday_overrides = _risk_overrides("INTRADAY_RISK_PERCENT_")
     regime_overrides = _risk_overrides("REGIME_ER_MIN_")
@@ -297,6 +304,10 @@ def load_settings(dotenv: bool = True) -> Settings:
         risk_percent=_get_float("RISK_PERCENT", 0.5),
         intraday_risk_percent=_get_float("INTRADAY_RISK_PERCENT", 0.11),
         swing_risk_percent=_get_float("SWING_RISK_PERCENT", 1.05),
+        tactical_enabled=_get_bool("TACTICAL_ENABLED", False),
+        tactical_legs=tactical_legs,
+        tactical_fraction_invested=_get_float(
+            "TACTICAL_FRACTION_INVESTED", 0.90),
         swing_risk_overrides=swing_overrides,
         intraday_risk_overrides=intraday_overrides,
         pip_value_per_lot=_get_float("PIP_VALUE_PER_LOT", 10.0),

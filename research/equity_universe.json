@@ -6,10 +6,10 @@
     "min_price": 5.0,
     "max_price": 400.0,
     "group": "Nasdaq\\Stock",
-    "max_scan": 718
+    "max_scan": 1500
   },
   "survivorship_warning": "The terminal lists only symbols listed today. Companies delisted between 2003 and now are absent, so results on this universe are an upper bound rather than an estimate.",
-  "count": 166,
+  "count": 325,
   "symbols": [
     {
       "symbol": "AAPL",
@@ -72,6 +72,18 @@
       "years": 22.9
     },
     {
+      "symbol": "CRM",
+      "kept": true,
+      "bars": 5565,
+      "price": 197.26,
+      "spread_pct": 0.0051,
+      "min_lot": 1.0,
+      "dollar_volume": 3628601.0,
+      "start": 1087948800,
+      "end": 1787011200,
+      "years": 22.2
+    },
+    {
       "symbol": "AMAT",
       "kept": true,
       "bars": 5762,
@@ -96,6 +108,18 @@
       "years": 22.8
     },
     {
+      "symbol": "CSCO",
+      "kept": true,
+      "bars": 5762,
+      "price": 78.53,
+      "spread_pct": 0.0127,
+      "min_lot": 1.0,
+      "dollar_volume": 2214877.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AMGN",
       "kept": true,
       "bars": 5760,
@@ -118,6 +142,18 @@
       "start": 1063152000,
       "end": 1783555200,
       "years": 22.8
+    },
+    {
+      "symbol": "C",
+      "kept": true,
+      "bars": 5761,
+      "price": 115.28,
+      "spread_pct": 0.0087,
+      "min_lot": 1.0,
+      "dollar_volume": 1960555.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
     },
     {
       "symbol": "AXP",
@@ -156,6 +192,30 @@
       "years": 22.9
     },
     {
+      "symbol": "CDNS",
+      "kept": true,
+      "bars": 5222,
+      "price": 330.03,
+      "spread_pct": 0.003,
+      "min_lot": 1.0,
+      "dollar_volume": 1553634.0,
+      "start": 1130716800,
+      "end": 1787011200,
+      "years": 20.8
+    },
+    {
+      "symbol": "CME",
+      "kept": true,
+      "bars": 5760,
+      "price": 272.54,
+      "spread_pct": 0.0037,
+      "min_lot": 1.0,
+      "dollar_volume": 1473751.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "APH",
       "kept": true,
       "bars": 5762,
@@ -168,6 +228,18 @@
       "years": 22.9
     },
     {
+      "symbol": "COF",
+      "kept": true,
+      "bars": 5762,
+      "price": 210.95,
+      "spread_pct": 0.0047,
+      "min_lot": 1.0,
+      "dollar_volume": 1428137.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ABT",
       "kept": true,
       "bars": 5762,
@@ -175,6 +247,102 @@
       "spread_pct": 0.009,
       "min_lot": 1.0,
       "dollar_volume": 1407059.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "COP",
+      "kept": true,
+      "bars": 5762,
+      "price": 107.54,
+      "spread_pct": 0.0093,
+      "min_lot": 1.0,
+      "dollar_volume": 1293750.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CI",
+      "kept": true,
+      "bars": 5760,
+      "price": 281.7,
+      "spread_pct": 0.0035,
+      "min_lot": 1.0,
+      "dollar_volume": 1239530.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BX",
+      "kept": true,
+      "bars": 4809,
+      "price": 134.63,
+      "spread_pct": 0.0074,
+      "min_lot": 1.0,
+      "dollar_volume": 1219787.0,
+      "start": 1182470400,
+      "end": 1787011200,
+      "years": 19.2
+    },
+    {
+      "symbol": "CLS",
+      "kept": true,
+      "bars": 5761,
+      "price": 308.62,
+      "spread_pct": 0.0032,
+      "min_lot": 1.0,
+      "dollar_volume": 1212987.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CMG",
+      "kept": true,
+      "bars": 5162,
+      "price": 34.79,
+      "spread_pct": 0.0287,
+      "min_lot": 1.0,
+      "dollar_volume": 1084542.0,
+      "start": 1138233600,
+      "end": 1787011200,
+      "years": 20.6
+    },
+    {
+      "symbol": "CMCSA",
+      "kept": true,
+      "bars": 5762,
+      "price": 28.21,
+      "spread_pct": 0.0354,
+      "min_lot": 1.0,
+      "dollar_volume": 1066810.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BMY",
+      "kept": true,
+      "bars": 5762,
+      "price": 56.06,
+      "spread_pct": 0.0178,
+      "min_lot": 1.0,
+      "dollar_volume": 1031040.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CHTR",
+      "kept": true,
+      "bars": 5399,
+      "price": 209.4,
+      "spread_pct": 0.0048,
+      "min_lot": 1.0,
+      "dollar_volume": 1006787.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -288,6 +456,30 @@
       "years": 22.9
     },
     {
+      "symbol": "CL",
+      "kept": true,
+      "bars": 5762,
+      "price": 85.16,
+      "spread_pct": 0.0117,
+      "min_lot": 1.0,
+      "dollar_volume": 814445.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CSX",
+      "kept": true,
+      "bars": 5761,
+      "price": 39.72,
+      "spread_pct": 0.0252,
+      "min_lot": 1.0,
+      "dollar_volume": 769440.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AEM",
       "kept": true,
       "bars": 5762,
@@ -312,6 +504,54 @@
       "years": 22.9
     },
     {
+      "symbol": "CCL",
+      "kept": true,
+      "bars": 5761,
+      "price": 28.13,
+      "spread_pct": 0.0355,
+      "min_lot": 1.0,
+      "dollar_volume": 750058.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BIDU",
+      "kept": true,
+      "bars": 5281,
+      "price": 121.81,
+      "spread_pct": 0.0082,
+      "min_lot": 1.0,
+      "dollar_volume": 745135.0,
+      "start": 1123200000,
+      "end": 1787011200,
+      "years": 21.0
+    },
+    {
+      "symbol": "CCJ",
+      "kept": true,
+      "bars": 5761,
+      "price": 99.63,
+      "spread_pct": 0.01,
+      "min_lot": 1.0,
+      "dollar_volume": 689497.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BKR",
+      "kept": true,
+      "bars": 4246,
+      "price": 56.48,
+      "spread_pct": 0.0177,
+      "min_lot": 1.0,
+      "dollar_volume": 667186.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AEP",
       "kept": true,
       "bars": 5762,
@@ -322,6 +562,42 @@
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
+    },
+    {
+      "symbol": "CTAS",
+      "kept": true,
+      "bars": 5761,
+      "price": 188.16,
+      "spread_pct": 0.0053,
+      "min_lot": 1.0,
+      "dollar_volume": 644307.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BK",
+      "kept": true,
+      "bars": 5701,
+      "price": 110.12,
+      "spread_pct": 0.0,
+      "min_lot": 1.0,
+      "dollar_volume": 626773.0,
+      "start": 1063152000,
+      "end": 1779235200,
+      "years": 22.7
+    },
+    {
+      "symbol": "CNC",
+      "kept": true,
+      "bars": 5735,
+      "price": 40.5,
+      "spread_pct": 0.0247,
+      "min_lot": 1.0,
+      "dollar_volume": 578908.0,
+      "start": 1066262400,
+      "end": 1787011200,
+      "years": 22.8
     },
     {
       "symbol": "ALL",
@@ -348,6 +624,18 @@
       "years": 22.9
     },
     {
+      "symbol": "CPRT",
+      "kept": true,
+      "bars": 5762,
+      "price": 37.86,
+      "spread_pct": 0.0264,
+      "min_lot": 1.0,
+      "dollar_volume": 531306.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ALB",
       "kept": true,
       "bars": 5762,
@@ -360,6 +648,18 @@
       "years": 22.9
     },
     {
+      "symbol": "BP",
+      "kept": true,
+      "bars": 5762,
+      "price": 37.96,
+      "spread_pct": 0.0263,
+      "min_lot": 1.0,
+      "dollar_volume": 508131.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "BBY",
       "kept": true,
       "bars": 5761,
@@ -367,6 +667,42 @@
       "spread_pct": 0.0137,
       "min_lot": 1.0,
       "dollar_volume": 494146.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CCI",
+      "kept": true,
+      "bars": 5760,
+      "price": 88.63,
+      "spread_pct": 0.0113,
+      "min_lot": 1.0,
+      "dollar_volume": 481003.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BIIB",
+      "kept": true,
+      "bars": 5711,
+      "price": 182.46,
+      "spread_pct": 0.0055,
+      "min_lot": 1.0,
+      "dollar_volume": 463670.0,
+      "start": 1068681600,
+      "end": 1787011200,
+      "years": 22.8
+    },
+    {
+      "symbol": "CP",
+      "kept": true,
+      "bars": 5762,
+      "price": 79.35,
+      "spread_pct": 0.0126,
+      "min_lot": 1.0,
+      "dollar_volume": 459012.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -408,6 +744,54 @@
       "years": 22.9
     },
     {
+      "symbol": "BTI",
+      "kept": true,
+      "bars": 5762,
+      "price": 58.11,
+      "spread_pct": 0.0172,
+      "min_lot": 1.0,
+      "dollar_volume": 425990.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CBOE",
+      "kept": true,
+      "bars": 4059,
+      "price": 268.87,
+      "spread_pct": 0.0037,
+      "min_lot": 1.0,
+      "dollar_volume": 413389.0,
+      "start": 1276560000,
+      "end": 1787011200,
+      "years": 16.2
+    },
+    {
+      "symbol": "CLX",
+      "kept": true,
+      "bars": 5760,
+      "price": 105.22,
+      "spread_pct": 0.0095,
+      "min_lot": 1.0,
+      "dollar_volume": 411083.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CF",
+      "kept": true,
+      "bars": 5524,
+      "price": 96.12,
+      "spread_pct": 0.0104,
+      "min_lot": 1.0,
+      "dollar_volume": 409551.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AKAM",
       "kept": true,
       "bars": 5762,
@@ -415,6 +799,18 @@
       "spread_pct": 0.0103,
       "min_lot": 1.0,
       "dollar_volume": 407330.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CHRW",
+      "kept": true,
+      "bars": 5741,
+      "price": 167.67,
+      "spread_pct": 0.006,
+      "min_lot": 1.0,
+      "dollar_volume": 405828.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -432,6 +828,30 @@
       "years": 22.9
     },
     {
+      "symbol": "BHP",
+      "kept": true,
+      "bars": 5762,
+      "price": 70.5,
+      "spread_pct": 0.0142,
+      "min_lot": 1.0,
+      "dollar_volume": 383818.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CHKP",
+      "kept": true,
+      "bars": 5762,
+      "price": 164.47,
+      "spread_pct": 0.0061,
+      "min_lot": 1.0,
+      "dollar_volume": 367135.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "BAH",
       "kept": true,
       "bars": 3921,
@@ -444,6 +864,18 @@
       "years": 15.6
     },
     {
+      "symbol": "BRO",
+      "kept": true,
+      "bars": 5762,
+      "price": 71.79,
+      "spread_pct": 0.0139,
+      "min_lot": 1.0,
+      "dollar_volume": 360828.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AFL",
       "kept": true,
       "bars": 5762,
@@ -454,6 +886,42 @@
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
+    },
+    {
+      "symbol": "CSL",
+      "kept": true,
+      "bars": 5760,
+      "price": 342.92,
+      "spread_pct": 0.0029,
+      "min_lot": 1.0,
+      "dollar_volume": 356081.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "COO",
+      "kept": true,
+      "bars": 5762,
+      "price": 71.51,
+      "spread_pct": 0.014,
+      "min_lot": 1.0,
+      "dollar_volume": 348300.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CROX",
+      "kept": true,
+      "bars": 5154,
+      "price": 87.17,
+      "spread_pct": 0.0115,
+      "min_lot": 1.0,
+      "dollar_volume": 347554.0,
+      "start": 1139356800,
+      "end": 1787011200,
+      "years": 20.5
     },
     {
       "symbol": "AVAV",
@@ -490,6 +958,66 @@
       "start": 1208908800,
       "end": 1783382400,
       "years": 18.2
+    },
+    {
+      "symbol": "CNQ",
+      "kept": true,
+      "bars": 5762,
+      "price": 39.5,
+      "spread_pct": 0.0253,
+      "min_lot": 1.0,
+      "dollar_volume": 322101.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CNI",
+      "kept": true,
+      "bars": 5760,
+      "price": 101.53,
+      "spread_pct": 0.0098,
+      "min_lot": 1.0,
+      "dollar_volume": 318657.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CNP",
+      "kept": true,
+      "bars": 5762,
+      "price": 40.63,
+      "spread_pct": 0.0246,
+      "min_lot": 1.0,
+      "dollar_volume": 307890.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CMS",
+      "kept": true,
+      "bars": 5762,
+      "price": 73.31,
+      "spread_pct": 0.0136,
+      "min_lot": 1.0,
+      "dollar_volume": 301712.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CG",
+      "kept": true,
+      "bars": 4779,
+      "price": 52.05,
+      "spread_pct": 0.0192,
+      "min_lot": 1.0,
+      "dollar_volume": 297831.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
     },
     {
       "symbol": "B",
@@ -552,6 +1080,30 @@
       "years": 22.8
     },
     {
+      "symbol": "BUD",
+      "kept": true,
+      "bars": 5555,
+      "price": 71.62,
+      "spread_pct": 0.014,
+      "min_lot": 1.0,
+      "dollar_volume": 276842.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BG",
+      "kept": true,
+      "bars": 5761,
+      "price": 111.65,
+      "spread_pct": 0.009,
+      "min_lot": 1.0,
+      "dollar_volume": 267775.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AVB",
       "kept": true,
       "bars": 5730,
@@ -562,6 +1114,18 @@
       "start": 1063152000,
       "end": 1782950400,
       "years": 22.8
+    },
+    {
+      "symbol": "BR",
+      "kept": true,
+      "bars": 5511,
+      "price": 184.44,
+      "spread_pct": 0.0054,
+      "min_lot": 1.0,
+      "dollar_volume": 249966.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
     },
     {
       "symbol": "AEE",
@@ -576,6 +1140,30 @@
       "years": 22.9
     },
     {
+      "symbol": "CAG",
+      "kept": true,
+      "bars": 5762,
+      "price": 17.09,
+      "spread_pct": 0.0585,
+      "min_lot": 1.0,
+      "dollar_volume": 248344.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BMRN",
+      "kept": true,
+      "bars": 5758,
+      "price": 55.91,
+      "spread_pct": 0.0179,
+      "min_lot": 1.0,
+      "dollar_volume": 246653.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "BAX",
       "kept": true,
       "bars": 5762,
@@ -583,6 +1171,18 @@
       "spread_pct": 0.0504,
       "min_lot": 1.0,
       "dollar_volume": 236025.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BRKR",
+      "kept": true,
+      "bars": 5761,
+      "price": 42.46,
+      "spread_pct": 0.0236,
+      "min_lot": 1.0,
+      "dollar_volume": 232362.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -612,6 +1212,66 @@
       "years": 22.9
     },
     {
+      "symbol": "CCK",
+      "kept": true,
+      "bars": 5762,
+      "price": 101.33,
+      "spread_pct": 0.0099,
+      "min_lot": 1.0,
+      "dollar_volume": 218117.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CLF",
+      "kept": true,
+      "bars": 5761,
+      "price": 11.46,
+      "spread_pct": 0.0872,
+      "min_lot": 1.0,
+      "dollar_volume": 218044.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CE",
+      "kept": true,
+      "bars": 5534,
+      "price": 46.88,
+      "spread_pct": 0.0213,
+      "min_lot": 1.0,
+      "dollar_volume": 215548.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BOOT",
+      "kept": true,
+      "bars": 5137,
+      "price": 173.02,
+      "spread_pct": 0.0058,
+      "min_lot": 1.0,
+      "dollar_volume": 197131.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CDE",
+      "kept": true,
+      "bars": 5762,
+      "price": 18.11,
+      "spread_pct": 0.0552,
+      "min_lot": 1.0,
+      "dollar_volume": 195318.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AAON",
       "kept": true,
       "bars": 5761,
@@ -634,6 +1294,18 @@
       "start": 1063152000,
       "end": 1783382400,
       "years": 22.8
+    },
+    {
+      "symbol": "CPT",
+      "kept": true,
+      "bars": 5761,
+      "price": 107.23,
+      "spread_pct": 0.0093,
+      "min_lot": 1.0,
+      "dollar_volume": 191593.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
     },
     {
       "symbol": "BAM",
@@ -720,6 +1392,18 @@
       "years": 22.8
     },
     {
+      "symbol": "CAR",
+      "kept": true,
+      "bars": 5010,
+      "price": 147.88,
+      "spread_pct": 0.0068,
+      "min_lot": 1.0,
+      "dollar_volume": 172767.0,
+      "start": 1157414400,
+      "end": 1787011200,
+      "years": 20.0
+    },
+    {
       "symbol": "AEO",
       "kept": true,
       "bars": 5122,
@@ -732,6 +1416,18 @@
       "years": 20.7
     },
     {
+      "symbol": "CINF",
+      "kept": true,
+      "bars": 5762,
+      "price": 163.42,
+      "spread_pct": 0.0061,
+      "min_lot": 1.0,
+      "dollar_volume": 165091.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AES",
       "kept": true,
       "bars": 5762,
@@ -739,6 +1435,18 @@
       "spread_pct": 0.0694,
       "min_lot": 1.0,
       "dollar_volume": 164961.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CHDN",
+      "kept": true,
+      "bars": 5762,
+      "price": 93.32,
+      "spread_pct": 0.0107,
+      "min_lot": 1.0,
+      "dollar_volume": 164129.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -756,6 +1464,18 @@
       "years": 22.9
     },
     {
+      "symbol": "CAKE",
+      "kept": true,
+      "bars": 5761,
+      "price": 59.59,
+      "spread_pct": 0.0168,
+      "min_lot": 1.0,
+      "dollar_volume": 162510.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ALV",
       "kept": true,
       "bars": 5762,
@@ -763,6 +1483,30 @@
       "spread_pct": 0.0083,
       "min_lot": 1.0,
       "dollar_volume": 157439.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CALM",
+      "kept": true,
+      "bars": 5762,
+      "price": 83.83,
+      "spread_pct": 0.0119,
+      "min_lot": 1.0,
+      "dollar_volume": 155684.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BEN",
+      "kept": true,
+      "bars": 5762,
+      "price": 25.62,
+      "spread_pct": 0.039,
+      "min_lot": 1.0,
+      "dollar_volume": 154131.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -816,6 +1560,18 @@
       "years": 22.9
     },
     {
+      "symbol": "BNS",
+      "kept": true,
+      "bars": 5762,
+      "price": 73.7,
+      "spread_pct": 0.0136,
+      "min_lot": 1.0,
+      "dollar_volume": 146955.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AI",
       "kept": true,
       "bars": 4284,
@@ -840,6 +1596,18 @@
       "years": 18.3
     },
     {
+      "symbol": "CRUS",
+      "kept": true,
+      "bars": 5762,
+      "price": 132.21,
+      "spread_pct": 0.0076,
+      "min_lot": 1.0,
+      "dollar_volume": 143891.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ADC",
       "kept": true,
       "bars": 5762,
@@ -847,6 +1615,30 @@
       "spread_pct": 0.0134,
       "min_lot": 1.0,
       "dollar_volume": 135190.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BYD",
+      "kept": true,
+      "bars": 5761,
+      "price": 84.48,
+      "spread_pct": 0.0118,
+      "min_lot": 1.0,
+      "dollar_volume": 135148.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BPOP",
+      "kept": true,
+      "bars": 5761,
+      "price": 132.26,
+      "spread_pct": 0.0076,
+      "min_lot": 1.0,
+      "dollar_volume": 132484.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -876,6 +1668,66 @@
       "years": 22.9
     },
     {
+      "symbol": "BTU",
+      "kept": true,
+      "bars": 5516,
+      "price": 27.91,
+      "spread_pct": 0.0358,
+      "min_lot": 1.0,
+      "dollar_volume": 128830.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "COLB",
+      "kept": true,
+      "bars": 5762,
+      "price": 28.89,
+      "spread_pct": 0.0346,
+      "min_lot": 1.0,
+      "dollar_volume": 128672.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CM",
+      "kept": true,
+      "bars": 5569,
+      "price": 95.67,
+      "spread_pct": 0.0105,
+      "min_lot": 1.0,
+      "dollar_volume": 125681.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BMO",
+      "kept": true,
+      "bars": 5762,
+      "price": 138.32,
+      "spread_pct": 0.0072,
+      "min_lot": 1.0,
+      "dollar_volume": 124184.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CNX",
+      "kept": true,
+      "bars": 5760,
+      "price": 36.0,
+      "spread_pct": 0.0278,
+      "min_lot": 1.0,
+      "dollar_volume": 121567.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ARW",
       "kept": true,
       "bars": 5761,
@@ -888,6 +1740,18 @@
       "years": 22.9
     },
     {
+      "symbol": "COKE",
+      "kept": true,
+      "bars": 5761,
+      "price": 167.13,
+      "spread_pct": 0.006,
+      "min_lot": 1.0,
+      "dollar_volume": 118615.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ALKS",
       "kept": true,
       "bars": 5758,
@@ -895,6 +1759,18 @@
       "spread_pct": 0.0313,
       "min_lot": 1.0,
       "dollar_volume": 118506.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BFAM",
+      "kept": true,
+      "bars": 4589,
+      "price": 84.18,
+      "spread_pct": 0.0119,
+      "min_lot": 1.0,
+      "dollar_volume": 117114.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -924,6 +1800,18 @@
       "years": 22.9
     },
     {
+      "symbol": "CMC",
+      "kept": true,
+      "bars": 5760,
+      "price": 67.47,
+      "spread_pct": 0.0148,
+      "min_lot": 1.0,
+      "dollar_volume": 115093.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AXS",
       "kept": true,
       "bars": 5732,
@@ -934,6 +1822,42 @@
       "start": 1063152000,
       "end": 1783382400,
       "years": 22.8
+    },
+    {
+      "symbol": "CBSH",
+      "kept": true,
+      "bars": 5759,
+      "price": 53.56,
+      "spread_pct": 0.0187,
+      "min_lot": 1.0,
+      "dollar_volume": 108662.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CENX",
+      "kept": true,
+      "bars": 5762,
+      "price": 46.02,
+      "spread_pct": 0.0217,
+      "min_lot": 1.0,
+      "dollar_volume": 104787.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BOX",
+      "kept": true,
+      "bars": 4277,
+      "price": 28.85,
+      "spread_pct": 0.0347,
+      "min_lot": 1.0,
+      "dollar_volume": 104724.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
     },
     {
       "symbol": "BC",
@@ -960,6 +1884,18 @@
       "years": 22.9
     },
     {
+      "symbol": "CR",
+      "kept": true,
+      "bars": 5762,
+      "price": 188.24,
+      "spread_pct": 0.0053,
+      "min_lot": 1.0,
+      "dollar_volume": 97757.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ATR",
       "kept": true,
       "bars": 5732,
@@ -970,6 +1906,18 @@
       "start": 1063152000,
       "end": 1783382400,
       "years": 22.8
+    },
+    {
+      "symbol": "CBRL",
+      "kept": true,
+      "bars": 5761,
+      "price": 32.62,
+      "spread_pct": 0.0307,
+      "min_lot": 1.0,
+      "dollar_volume": 94843.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
     },
     {
       "symbol": "BCE",
@@ -1032,6 +1980,54 @@
       "years": 22.9
     },
     {
+      "symbol": "CRI",
+      "kept": true,
+      "bars": 5729,
+      "price": 34.8,
+      "spread_pct": 0.0287,
+      "min_lot": 1.0,
+      "dollar_volume": 83622.0,
+      "start": 1066953600,
+      "end": 1787011200,
+      "years": 22.8
+    },
+    {
+      "symbol": "BMI",
+      "kept": true,
+      "bars": 5758,
+      "price": 155.22,
+      "spread_pct": 0.0064,
+      "min_lot": 1.0,
+      "dollar_volume": 80220.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CRK",
+      "kept": true,
+      "bars": 5762,
+      "price": 18.34,
+      "spread_pct": 0.0545,
+      "min_lot": 1.0,
+      "dollar_volume": 75706.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CC",
+      "kept": true,
+      "bars": 4093,
+      "price": 16.93,
+      "spread_pct": 0.059,
+      "min_lot": 1.0,
+      "dollar_volume": 73993.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AMR",
       "kept": true,
       "bars": 3883,
@@ -1039,6 +2035,42 @@
       "spread_pct": 0.0057,
       "min_lot": 1.0,
       "dollar_volume": 72999.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CPA",
+      "kept": true,
+      "bars": 5190,
+      "price": 125.3,
+      "spread_pct": 0.008,
+      "min_lot": 1.0,
+      "dollar_volume": 72920.0,
+      "start": 1134604800,
+      "end": 1787011200,
+      "years": 20.7
+    },
+    {
+      "symbol": "CRC",
+      "kept": true,
+      "bars": 5171,
+      "price": 53.16,
+      "spread_pct": 0.0188,
+      "min_lot": 1.0,
+      "dollar_volume": 72345.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "COCO",
+      "kept": true,
+      "bars": 4079,
+      "price": 53.95,
+      "spread_pct": 0.0185,
+      "min_lot": 1.0,
+      "dollar_volume": 72039.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -1116,6 +2148,30 @@
       "years": 19.7
     },
     {
+      "symbol": "BMA",
+      "kept": true,
+      "bars": 5345,
+      "price": 82.66,
+      "spread_pct": 0.0121,
+      "min_lot": 1.0,
+      "dollar_volume": 66386.0,
+      "start": 1063584000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BKH",
+      "kept": true,
+      "bars": 5762,
+      "price": 72.03,
+      "spread_pct": 0.0139,
+      "min_lot": 1.0,
+      "dollar_volume": 65940.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ASB",
       "kept": true,
       "bars": 4124,
@@ -1164,6 +2220,18 @@
       "years": 22.9
     },
     {
+      "symbol": "CBT",
+      "kept": true,
+      "bars": 5761,
+      "price": 75.5,
+      "spread_pct": 0.0132,
+      "min_lot": 1.0,
+      "dollar_volume": 55265.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "BCO",
       "kept": true,
       "bars": 5761,
@@ -1171,6 +2239,30 @@
       "spread_pct": 0.0088,
       "min_lot": 1.0,
       "dollar_volume": 54367.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BH",
+      "kept": true,
+      "bars": 4105,
+      "price": 334.74,
+      "spread_pct": 0.0732,
+      "min_lot": 1.0,
+      "dollar_volume": 54024.0,
+      "start": 1270771200,
+      "end": 1787011200,
+      "years": 16.4
+    },
+    {
+      "symbol": "CBZ",
+      "kept": true,
+      "bars": 5041,
+      "price": 42.78,
+      "spread_pct": 0.0234,
+      "min_lot": 1.0,
+      "dollar_volume": 53866.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -1248,6 +2340,18 @@
       "years": 22.4
     },
     {
+      "symbol": "BGC",
+      "kept": true,
+      "bars": 4485,
+      "price": 9.63,
+      "spread_pct": 0.1038,
+      "min_lot": 1.0,
+      "dollar_volume": 42567.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AGO",
       "kept": true,
       "bars": 5606,
@@ -1258,6 +2362,18 @@
       "start": 1082678400,
       "end": 1787011200,
       "years": 22.3
+    },
+    {
+      "symbol": "BVN",
+      "kept": true,
+      "bars": 5762,
+      "price": 30.99,
+      "spread_pct": 0.0323,
+      "min_lot": 1.0,
+      "dollar_volume": 40430.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
     },
     {
       "symbol": "BBVA",
@@ -1284,6 +2400,18 @@
       "years": 16.8
     },
     {
+      "symbol": "CIB",
+      "kept": true,
+      "bars": 5761,
+      "price": 68.09,
+      "spread_pct": 0.0147,
+      "min_lot": 1.0,
+      "dollar_volume": 39440.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AKR",
       "kept": true,
       "bars": 5762,
@@ -1292,6 +2420,18 @@
       "min_lot": 1.0,
       "dollar_volume": 37815.0,
       "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CNO",
+      "kept": true,
+      "bars": 5759,
+      "price": 42.31,
+      "spread_pct": 0.0236,
+      "min_lot": 1.0,
+      "dollar_volume": 37482.0,
+      "start": 1063324800,
       "end": 1787011200,
       "years": 22.9
     },
@@ -1308,6 +2448,30 @@
       "years": 22.8
     },
     {
+      "symbol": "CCS",
+      "kept": true,
+      "bars": 4877,
+      "price": 62.75,
+      "spread_pct": 0.0159,
+      "min_lot": 1.0,
+      "dollar_volume": 36534.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BJRI",
+      "kept": true,
+      "bars": 5528,
+      "price": 39.2,
+      "spread_pct": 0.0255,
+      "min_lot": 1.0,
+      "dollar_volume": 35862.0,
+      "start": 1092614400,
+      "end": 1787011200,
+      "years": 22.0
+    },
+    {
       "symbol": "AZZ",
       "kept": true,
       "bars": 5701,
@@ -1315,6 +2479,18 @@
       "spread_pct": 0.0085,
       "min_lot": 1.0,
       "dollar_volume": 34364.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BEP",
+      "kept": true,
+      "bars": 4848,
+      "price": 30.97,
+      "spread_pct": 0.0323,
+      "min_lot": 1.0,
+      "dollar_volume": 33101.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -1330,6 +2506,30 @@
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
+    },
+    {
+      "symbol": "CECO",
+      "kept": true,
+      "bars": 5044,
+      "price": 62.06,
+      "spread_pct": 0.0161,
+      "min_lot": 1.0,
+      "dollar_volume": 32274.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BKD",
+      "kept": true,
+      "bars": 5206,
+      "price": 12.95,
+      "spread_pct": 0.0772,
+      "min_lot": 1.0,
+      "dollar_volume": 32208.0,
+      "start": 1132617600,
+      "end": 1787011200,
+      "years": 20.7
     },
     {
       "symbol": "ABM",
@@ -1356,6 +2556,30 @@
       "years": 22.8
     },
     {
+      "symbol": "CNS",
+      "kept": true,
+      "bars": 5528,
+      "price": 68.07,
+      "spread_pct": 0.0147,
+      "min_lot": 1.0,
+      "dollar_volume": 30950.0,
+      "start": 1092355200,
+      "end": 1787011200,
+      "years": 22.0
+    },
+    {
+      "symbol": "CASH",
+      "kept": true,
+      "bars": 5376,
+      "price": 82.45,
+      "spread_pct": 0.0121,
+      "min_lot": 1.0,
+      "dollar_volume": 29933.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ANDE",
       "kept": true,
       "bars": 5755,
@@ -1375,6 +2599,18 @@
       "spread_pct": 0.0088,
       "min_lot": 1.0,
       "dollar_volume": 28091.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CNA",
+      "kept": true,
+      "bars": 5762,
+      "price": 46.81,
+      "spread_pct": 0.0214,
+      "min_lot": 1.0,
+      "dollar_volume": 27541.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -1404,6 +2640,30 @@
       "years": 22.9
     },
     {
+      "symbol": "CAE",
+      "kept": true,
+      "bars": 5747,
+      "price": 27.05,
+      "spread_pct": 0.037,
+      "min_lot": 1.0,
+      "dollar_volume": 26855.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CSWC",
+      "kept": true,
+      "bars": 5736,
+      "price": 22.85,
+      "spread_pct": 0.0438,
+      "min_lot": 1.0,
+      "dollar_volume": 26255.0,
+      "start": 1063238400,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "BBW",
       "kept": true,
       "bars": 5476,
@@ -1416,6 +2676,30 @@
       "years": 21.8
     },
     {
+      "symbol": "CRAI",
+      "kept": true,
+      "bars": 5762,
+      "price": 176.56,
+      "spread_pct": 0.0057,
+      "min_lot": 1.0,
+      "dollar_volume": 22420.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CENTA",
+      "kept": true,
+      "bars": 4904,
+      "price": 32.66,
+      "spread_pct": 0.0306,
+      "min_lot": 1.0,
+      "dollar_volume": 22412.0,
+      "start": 1170720000,
+      "end": 1787011200,
+      "years": 19.5
+    },
+    {
       "symbol": "AEG",
       "kept": true,
       "bars": 5761,
@@ -1423,6 +2707,18 @@
       "spread_pct": 0.1279,
       "min_lot": 1.0,
       "dollar_volume": 21849.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BHE",
+      "kept": true,
+      "bars": 5762,
+      "price": 54.97,
+      "spread_pct": 0.0182,
+      "min_lot": 1.0,
+      "dollar_volume": 21700.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -1464,6 +2760,30 @@
       "years": 16.1
     },
     {
+      "symbol": "CPK",
+      "kept": true,
+      "bars": 5762,
+      "price": 127.91,
+      "spread_pct": 0.0078,
+      "min_lot": 1.0,
+      "dollar_volume": 20702.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CAL",
+      "kept": true,
+      "bars": 4590,
+      "price": 12.82,
+      "spread_pct": 0.078,
+      "min_lot": 1.0,
+      "dollar_volume": 19295.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "BCH",
       "kept": true,
       "bars": 5731,
@@ -1474,6 +2794,18 @@
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
+    },
+    {
+      "symbol": "CMP",
+      "kept": true,
+      "bars": 5696,
+      "price": 23.41,
+      "spread_pct": 0.0427,
+      "min_lot": 1.0,
+      "dollar_volume": 17086.0,
+      "start": 1071187200,
+      "end": 1787011200,
+      "years": 22.7
     },
     {
       "symbol": "APEI",
@@ -1507,6 +2839,18 @@
       "spread_pct": 0.0962,
       "min_lot": 1.0,
       "dollar_volume": 15283.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BZH",
+      "kept": true,
+      "bars": 5760,
+      "price": 23.8,
+      "spread_pct": 0.042,
+      "min_lot": 1.0,
+      "dollar_volume": 15281.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -1560,6 +2904,18 @@
       "years": 15.6
     },
     {
+      "symbol": "CHT",
+      "kept": true,
+      "bars": 5701,
+      "price": 42.9,
+      "spread_pct": 0.0233,
+      "min_lot": 1.0,
+      "dollar_volume": 11741.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AMSF",
       "kept": true,
       "bars": 5207,
@@ -1584,6 +2940,18 @@
       "years": 22.9
     },
     {
+      "symbol": "CLB",
+      "kept": true,
+      "bars": 5761,
+      "price": 14.93,
+      "spread_pct": 0.067,
+      "min_lot": 1.0,
+      "dollar_volume": 10853.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AAT",
       "kept": true,
       "bars": 3912,
@@ -1594,6 +2962,54 @@
       "start": 1294876800,
       "end": 1787011200,
       "years": 15.6
+    },
+    {
+      "symbol": "CRF",
+      "kept": true,
+      "bars": 5762,
+      "price": 7.45,
+      "spread_pct": 0.1343,
+      "min_lot": 1.0,
+      "dollar_volume": 9450.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CTO",
+      "kept": true,
+      "bars": 5759,
+      "price": 18.51,
+      "spread_pct": 0.054,
+      "min_lot": 1.0,
+      "dollar_volume": 8888.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BLX",
+      "kept": true,
+      "bars": 5762,
+      "price": 49.05,
+      "spread_pct": 0.0204,
+      "min_lot": 1.0,
+      "dollar_volume": 8697.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CMRE",
+      "kept": true,
+      "bars": 3959,
+      "price": 15.61,
+      "spread_pct": 0.0641,
+      "min_lot": 1.0,
+      "dollar_volume": 8689.0,
+      "start": 1288828800,
+      "end": 1787011200,
+      "years": 15.8
     },
     {
       "symbol": "AAN",
@@ -1608,6 +3024,42 @@
       "years": 15.5
     },
     {
+      "symbol": "CSQ",
+      "kept": true,
+      "bars": 5624,
+      "price": 19.29,
+      "spread_pct": 0.0518,
+      "min_lot": 1.0,
+      "dollar_volume": 8076.0,
+      "start": 1080259200,
+      "end": 1787011200,
+      "years": 22.4
+    },
+    {
+      "symbol": "CBL",
+      "kept": true,
+      "bars": 5511,
+      "price": 37.47,
+      "spread_pct": 0.0267,
+      "min_lot": 1.0,
+      "dollar_volume": 7912.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CRMT",
+      "kept": true,
+      "bars": 5761,
+      "price": 19.77,
+      "spread_pct": 0.0506,
+      "min_lot": 1.0,
+      "dollar_volume": 7430.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ASA",
       "kept": true,
       "bars": 5762,
@@ -1615,6 +3067,66 @@
       "spread_pct": 0.0695,
       "min_lot": 1.0,
       "dollar_volume": 7424.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CPS",
+      "kept": true,
+      "bars": 4480,
+      "price": 30.92,
+      "spread_pct": 0.0323,
+      "min_lot": 1.0,
+      "dollar_volume": 6867.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CAC",
+      "kept": true,
+      "bars": 5760,
+      "price": 46.75,
+      "spread_pct": 0.0214,
+      "min_lot": 1.0,
+      "dollar_volume": 6411.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CTBI",
+      "kept": true,
+      "bars": 5762,
+      "price": 60.97,
+      "spread_pct": 0.0164,
+      "min_lot": 1.0,
+      "dollar_volume": 6289.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CRESY",
+      "kept": true,
+      "bars": 5761,
+      "price": 11.37,
+      "spread_pct": 0.088,
+      "min_lot": 1.0,
+      "dollar_volume": 6273.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CPF",
+      "kept": true,
+      "bars": 5760,
+      "price": 32.24,
+      "spread_pct": 0.031,
+      "min_lot": 1.0,
+      "dollar_volume": 6108.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -1632,6 +3144,18 @@
       "years": 19.6
     },
     {
+      "symbol": "BW",
+      "kept": true,
+      "bars": 4675,
+      "price": 9.36,
+      "spread_pct": 0.1068,
+      "min_lot": 1.0,
+      "dollar_volume": 6008.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "BDJ",
       "kept": true,
       "bars": 5369,
@@ -1652,6 +3176,18 @@
       "min_lot": 1.0,
       "dollar_volume": 5827.0,
       "start": 1063238400,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CASS",
+      "kept": true,
+      "bars": 5592,
+      "price": 44.42,
+      "spread_pct": 0.0225,
+      "min_lot": 1.0,
+      "dollar_volume": 5694.0,
+      "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
     },
@@ -1680,6 +3216,18 @@
       "years": 16.0
     },
     {
+      "symbol": "BSBR",
+      "kept": true,
+      "bars": 4232,
+      "price": 5.76,
+      "spread_pct": 0.1736,
+      "min_lot": 1.0,
+      "dollar_volume": 5106.0,
+      "start": 1254873600,
+      "end": 1787011200,
+      "years": 16.9
+    },
+    {
       "symbol": "AWF",
       "kept": true,
       "bars": 5732,
@@ -1692,6 +3240,42 @@
       "years": 22.8
     },
     {
+      "symbol": "BME",
+      "kept": true,
+      "bars": 5373,
+      "price": 40.09,
+      "spread_pct": 0.0998,
+      "min_lot": 1.0,
+      "dollar_volume": 4429.0,
+      "start": 1112054400,
+      "end": 1787011200,
+      "years": 21.4
+    },
+    {
+      "symbol": "BTZ",
+      "kept": true,
+      "bars": 4933,
+      "price": 10.61,
+      "spread_pct": 0.0943,
+      "min_lot": 1.0,
+      "dollar_volume": 4385.0,
+      "start": 1166745600,
+      "end": 1787011200,
+      "years": 19.7
+    },
+    {
+      "symbol": "CHY",
+      "kept": true,
+      "bars": 5761,
+      "price": 11.72,
+      "spread_pct": 0.0853,
+      "min_lot": 1.0,
+      "dollar_volume": 4207.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ACP",
       "kept": true,
       "bars": 4914,
@@ -1699,6 +3283,30 @@
       "spread_pct": 0.1852,
       "min_lot": 1.0,
       "dollar_volume": 3976.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CCU",
+      "kept": true,
+      "bars": 5740,
+      "price": 12.04,
+      "spread_pct": 0.0831,
+      "min_lot": 1.0,
+      "dollar_volume": 3951.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CHI",
+      "kept": true,
+      "bars": 5762,
+      "price": 11.29,
+      "spread_pct": 0.0886,
+      "min_lot": 1.0,
+      "dollar_volume": 3873.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -1716,6 +3324,42 @@
       "years": 15.4
     },
     {
+      "symbol": "BTO",
+      "kept": true,
+      "bars": 5762,
+      "price": 36.52,
+      "spread_pct": 0.2191,
+      "min_lot": 1.0,
+      "dollar_volume": 3724.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BHK",
+      "kept": true,
+      "bars": 5761,
+      "price": 9.5,
+      "spread_pct": 0.1052,
+      "min_lot": 1.0,
+      "dollar_volume": 3651.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CLDT",
+      "kept": true,
+      "bars": 4101,
+      "price": 7.61,
+      "spread_pct": 0.1314,
+      "min_lot": 1.0,
+      "dollar_volume": 3648.0,
+      "start": 1271376000,
+      "end": 1787011200,
+      "years": 16.3
+    },
+    {
       "symbol": "AVK",
       "kept": true,
       "bars": 5732,
@@ -1728,11 +3372,35 @@
       "years": 22.8
     },
     {
+      "symbol": "BOE",
+      "kept": true,
+      "bars": 5331,
+      "price": 11.71,
+      "spread_pct": 0.0854,
+      "min_lot": 1.0,
+      "dollar_volume": 3462.0,
+      "start": 1117065600,
+      "end": 1787011200,
+      "years": 21.2
+    },
+    {
       "symbol": "BELFA",
       "kept": true,
       "bars": 4748,
       "price": 190.56,
       "spread_pct": 0.042,
+      "min_lot": 1.0,
+      "dollar_volume": 3350.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BOOM",
+      "kept": true,
+      "bars": 5734,
+      "price": 6.79,
+      "spread_pct": 0.1474,
       "min_lot": 1.0,
       "dollar_volume": 3350.0,
       "start": 1063152000,
@@ -1764,6 +3432,18 @@
       "years": 22.9
     },
     {
+      "symbol": "BFS",
+      "kept": true,
+      "bars": 5761,
+      "price": 33.41,
+      "spread_pct": 0.0299,
+      "min_lot": 1.0,
+      "dollar_volume": 3064.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ACNB",
       "kept": true,
       "bars": 3812,
@@ -1774,6 +3454,42 @@
       "start": 1292889600,
       "end": 1787011200,
       "years": 15.7
+    },
+    {
+      "symbol": "BGT",
+      "kept": true,
+      "bars": 5518,
+      "price": 11.14,
+      "spread_pct": 0.0898,
+      "min_lot": 1.0,
+      "dollar_volume": 2837.0,
+      "start": 1093478400,
+      "end": 1787011200,
+      "years": 22.0
+    },
+    {
+      "symbol": "BLW",
+      "kept": true,
+      "bars": 5762,
+      "price": 13.69,
+      "spread_pct": 0.073,
+      "min_lot": 1.0,
+      "dollar_volume": 2824.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BGR",
+      "kept": true,
+      "bars": 5437,
+      "price": 14.95,
+      "spread_pct": 0.0669,
+      "min_lot": 1.0,
+      "dollar_volume": 2687.0,
+      "start": 1103760000,
+      "end": 1787011200,
+      "years": 21.7
     },
     {
       "symbol": "AXTI",
@@ -1788,6 +3504,18 @@
       "years": 22.8
     },
     {
+      "symbol": "BGH",
+      "kept": true,
+      "bars": 4544,
+      "price": 14.62,
+      "spread_pct": 0.0684,
+      "min_lot": 1.0,
+      "dollar_volume": 2450.0,
+      "start": 1154649600,
+      "end": 1787011200,
+      "years": 20.0
+    },
+    {
       "symbol": "AGD",
       "kept": true,
       "bars": 5060,
@@ -1800,6 +3528,18 @@
       "years": 22.9
     },
     {
+      "symbol": "CHW",
+      "kept": true,
+      "bars": 4807,
+      "price": 7.79,
+      "spread_pct": 0.1285,
+      "min_lot": 1.0,
+      "dollar_volume": 2304.0,
+      "start": 1182902400,
+      "end": 1787011200,
+      "years": 19.1
+    },
+    {
       "symbol": "ALCO",
       "kept": true,
       "bars": 5750,
@@ -1807,6 +3547,18 @@
       "spread_pct": 0.0256,
       "min_lot": 1.0,
       "dollar_volume": 2225.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BGY",
+      "kept": true,
+      "bars": 5093,
+      "price": 5.76,
+      "spread_pct": 0.1736,
+      "min_lot": 1.0,
+      "dollar_volume": 2186.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
@@ -1836,6 +3588,18 @@
       "years": 18.9
     },
     {
+      "symbol": "BKT",
+      "kept": true,
+      "bars": 5761,
+      "price": 10.99,
+      "spread_pct": 0.091,
+      "min_lot": 1.0,
+      "dollar_volume": 1935.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "AFB",
       "kept": true,
       "bars": 5761,
@@ -1846,6 +3610,18 @@
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
+    },
+    {
+      "symbol": "BGX",
+      "kept": true,
+      "bars": 3902,
+      "price": 11.23,
+      "spread_pct": 0.089,
+      "min_lot": 1.0,
+      "dollar_volume": 1757.0,
+      "start": 1296086400,
+      "end": 1787011200,
+      "years": 15.6
     },
     {
       "symbol": "ACV",
@@ -1908,6 +3684,42 @@
       "years": 20.7
     },
     {
+      "symbol": "CFBK",
+      "kept": true,
+      "bars": 4494,
+      "price": 27.97,
+      "spread_pct": 0.0358,
+      "min_lot": 1.0,
+      "dollar_volume": 1403.0,
+      "start": 1132099200,
+      "end": 1787011200,
+      "years": 20.8
+    },
+    {
+      "symbol": "BSL",
+      "kept": true,
+      "bars": 4247,
+      "price": 13.24,
+      "spread_pct": 0.0755,
+      "min_lot": 1.0,
+      "dollar_volume": 1157.0,
+      "start": 1208995200,
+      "end": 1787011200,
+      "years": 18.3
+    },
+    {
+      "symbol": "CIA",
+      "kept": true,
+      "bars": 5762,
+      "price": 5.42,
+      "spread_pct": 0.1845,
+      "min_lot": 1.0,
+      "dollar_volume": 982.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ACET",
       "kept": true,
       "bars": 5395,
@@ -1920,6 +3732,90 @@
       "years": 22.9
     },
     {
+      "symbol": "CAF",
+      "kept": true,
+      "bars": 4992,
+      "price": 17.88,
+      "spread_pct": 0.1678,
+      "min_lot": 1.0,
+      "dollar_volume": 811.0,
+      "start": 1159401600,
+      "end": 1787011200,
+      "years": 19.9
+    },
+    {
+      "symbol": "BSET",
+      "kept": true,
+      "bars": 5761,
+      "price": 15.57,
+      "spread_pct": 0.0642,
+      "min_lot": 1.0,
+      "dollar_volume": 764.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "BRT",
+      "kept": true,
+      "bars": 5703,
+      "price": 14.73,
+      "spread_pct": 0.0679,
+      "min_lot": 1.0,
+      "dollar_volume": 757.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CGO",
+      "kept": true,
+      "bars": 5224,
+      "price": 12.2,
+      "spread_pct": 0.082,
+      "min_lot": 1.0,
+      "dollar_volume": 695.0,
+      "start": 1130371200,
+      "end": 1787011200,
+      "years": 20.8
+    },
+    {
+      "symbol": "CEV",
+      "kept": true,
+      "bars": 5760,
+      "price": 10.27,
+      "spread_pct": 0.0974,
+      "min_lot": 1.0,
+      "dollar_volume": 560.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CHCI",
+      "kept": true,
+      "bars": 5365,
+      "price": 15.02,
+      "spread_pct": 0.1332,
+      "min_lot": 1.0,
+      "dollar_volume": 559.0,
+      "start": 1102982400,
+      "end": 1787011200,
+      "years": 21.7
+    },
+    {
+      "symbol": "CSPI",
+      "kept": true,
+      "bars": 5450,
+      "price": 9.96,
+      "spread_pct": 0.2007,
+      "min_lot": 1.0,
+      "dollar_volume": 520.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
       "symbol": "ALOT",
       "kept": true,
       "bars": 5429,
@@ -1927,6 +3823,18 @@
       "spread_pct": 0.0998,
       "min_lot": 1.0,
       "dollar_volume": 379.0,
+      "start": 1063152000,
+      "end": 1787011200,
+      "years": 22.9
+    },
+    {
+      "symbol": "CPSS",
+      "kept": true,
+      "bars": 5744,
+      "price": 8.56,
+      "spread_pct": 0.1168,
+      "min_lot": 1.0,
+      "dollar_volume": 325.0,
       "start": 1063152000,
       "end": 1787011200,
       "years": 22.9
