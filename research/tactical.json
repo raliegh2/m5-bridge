@@ -1,0 +1,164 @@
+{
+  "IVV": {
+    "symbol": "IVV",
+    "periods": 265,
+    "time_in_market": 0.7849,
+    "switches": 25,
+    "strategy": {
+      "total_pct": 490.81,
+      "annual_pct": 8.376,
+      "volatility_pct": 11.206,
+      "sharpe": 0.78,
+      "max_drawdown_pct": 28.2
+    },
+    "buy_and_hold": {
+      "total_pct": 596.96,
+      "annual_pct": 9.19,
+      "volatility_pct": 15.425,
+      "sharpe": 0.654,
+      "max_drawdown_pct": 51.0
+    },
+    "beats_hold_on_sharpe": true,
+    "drawdown_reduction_pct": 22.8
+  },
+  "VTI": {
+    "symbol": "VTI",
+    "periods": 265,
+    "time_in_market": 0.7698,
+    "switches": 27,
+    "strategy": {
+      "total_pct": 441.61,
+      "annual_pct": 7.95,
+      "volatility_pct": 11.843,
+      "sharpe": 0.712,
+      "max_drawdown_pct": 30.83
+    },
+    "buy_and_hold": {
+      "total_pct": 617.02,
+      "annual_pct": 9.33,
+      "volatility_pct": 16.195,
+      "sharpe": 0.639,
+      "max_drawdown_pct": 50.75
+    },
+    "beats_hold_on_sharpe": true,
+    "drawdown_reduction_pct": 19.92
+  },
+  "ONEQ": {
+    "symbol": "ONEQ",
+    "periods": 264,
+    "time_in_market": 0.7576,
+    "switches": 29,
+    "strategy": {
+      "total_pct": 861.76,
+      "annual_pct": 10.837,
+      "volatility_pct": 13.076,
+      "sharpe": 0.855,
+      "max_drawdown_pct": 17.89
+    },
+    "buy_and_hold": {
+      "total_pct": 1309.29,
+      "annual_pct": 12.779,
+      "volatility_pct": 19.59,
+      "sharpe": 0.714,
+      "max_drawdown_pct": 53.38
+    },
+    "beats_hold_on_sharpe": true,
+    "drawdown_reduction_pct": 35.49
+  },
+  "IWM": {
+    "symbol": "IWM",
+    "periods": 265,
+    "time_in_market": 0.683,
+    "switches": 39,
+    "strategy": {
+      "total_pct": 98.11,
+      "annual_pct": 3.144,
+      "volatility_pct": 16.767,
+      "sharpe": 0.279,
+      "max_drawdown_pct": 44.45
+    },
+    "buy_and_hold": {
+      "total_pct": 444.28,
+      "annual_pct": 7.974,
+      "volatility_pct": 20.712,
+      "sharpe": 0.483,
+      "max_drawdown_pct": 53.53
+    },
+    "beats_hold_on_sharpe": false,
+    "drawdown_reduction_pct": 9.08
+  },
+  "TQQQ": {
+    "symbol": "TQQQ",
+    "periods": 188,
+    "time_in_market": 0.7713,
+    "switches": 23,
+    "strategy": {
+      "total_pct": 2376.27,
+      "annual_pct": 22.734,
+      "volatility_pct": 42.101,
+      "sharpe": 0.738,
+      "max_drawdown_pct": 65.19
+    },
+    "buy_and_hold": {
+      "total_pct": 9881.38,
+      "annual_pct": 34.155,
+      "volatility_pct": 53.657,
+      "sharpe": 0.847,
+      "max_drawdown_pct": 77.54
+    },
+    "beats_hold_on_sharpe": false,
+    "drawdown_reduction_pct": 12.35
+  },
+  "EEM": {
+    "symbol": "EEM",
+    "periods": 265,
+    "time_in_market": 0.6264,
+    "switches": 49,
+    "strategy": {
+      "total_pct": 160.74,
+      "annual_pct": 4.435,
+      "volatility_pct": 15.573,
+      "sharpe": 0.36,
+      "max_drawdown_pct": 46.69
+    },
+    "buy_and_hold": {
+      "total_pct": 279.69,
+      "annual_pct": 6.228,
+      "volatility_pct": 20.626,
+      "sharpe": 0.402,
+      "max_drawdown_pct": 54.84
+    },
+    "beats_hold_on_sharpe": false,
+    "drawdown_reduction_pct": 8.15
+  },
+  "XAUUSD": {
+    "symbol": "XAUUSD",
+    "periods": 262,
+    "time_in_market": 0.7099,
+    "switches": 38,
+    "strategy": {
+      "total_pct": 463.81,
+      "annual_pct": 8.244,
+      "volatility_pct": 15.496,
+      "sharpe": 0.59,
+      "max_drawdown_pct": 30.56
+    },
+    "buy_and_hold": {
+      "total_pct": 922.19,
+      "annual_pct": 11.234,
+      "volatility_pct": 17.554,
+      "sharpe": 0.697,
+      "max_drawdown_pct": 41.03
+    },
+    "beats_hold_on_sharpe": false,
+    "drawdown_reduction_pct": 10.47
+  },
+  "summary": {
+    "beats_hold_on_sharpe": 3,
+    "symbols": 7,
+    "reduces_drawdown": 7,
+    "within_10pct_ceiling": 0,
+    "mean_drawdown_reduction_pts": 16.89,
+    "mean_annual_return_given_up_pts": 3.6
+  }
+}
