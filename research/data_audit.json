@@ -1,0 +1,553 @@
+[
+  {
+    "symbol": "AUDUSD",
+    "timeframe": "D1",
+    "bars": 8659,
+    "verdict": "USABLE",
+    "trusted_from": 735868800,
+    "trusted_from_date": "1993-04-27",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.01%)",
+        "count": 1,
+        "first_time": 1735689600
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 15 sigma)",
+        "count": 4,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "AUDUSD",
+    "timeframe": "H1",
+    "bars": 172846,
+    "verdict": "USABLE",
+    "trusted_from": 735868800,
+    "trusted_from_date": "1993-04-27",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.06%)",
+        "count": 109,
+        "first_time": 916441200
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 53 sigma)",
+        "count": 184,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "AUDUSD",
+    "timeframe": "H4",
+    "bars": 44477,
+    "verdict": "USABLE",
+    "trusted_from": 735868800,
+    "trusted_from_date": "1993-04-27",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.02%)",
+        "count": 8,
+        "first_time": 977760000
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 22 sigma)",
+        "count": 25,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "EURUSD",
+    "timeframe": "D1",
+    "bars": 14341,
+    "verdict": "USABLE FROM",
+    "trusted_from": 915148800,
+    "trusted_from_date": "1999-01-01",
+    "issues": [
+      {
+        "severity": "major",
+        "code": "zero_range",
+        "message": "bars with high == low (7.04%)",
+        "count": 1010,
+        "first_time": 31795200
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 13 sigma)",
+        "count": 2,
+        "first_time": null
+      },
+      {
+        "severity": "major",
+        "code": "synthetic_prefix",
+        "message": "sustained padded bars before this point -- fabricated history",
+        "count": 0,
+        "first_time": 334800000
+      },
+      {
+        "severity": "major",
+        "code": "pre_inception",
+        "message": "bars before this symbol existed -- the euro launched 1999-01-04; earlier bars are a DEM/ECU proxy relabelled as EURUSD",
+        "count": 7161,
+        "first_time": 915148800
+      }
+    ]
+  },
+  {
+    "symbol": "EURUSD",
+    "timeframe": "H1",
+    "bars": 178616,
+    "verdict": "USABLE FROM",
+    "trusted_from": 915148800,
+    "trusted_from_date": "1999-01-01",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.60%)",
+        "count": 1076,
+        "first_time": 31795200
+      },
+      {
+        "severity": "minor",
+        "code": "sparse_coverage",
+        "message": "only 51% of the expected weekday bars present",
+        "count": 0,
+        "first_time": null
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 80 sigma)",
+        "count": 1019,
+        "first_time": null
+      },
+      {
+        "severity": "major",
+        "code": "synthetic_prefix",
+        "message": "sustained padded bars before this point -- fabricated history",
+        "count": 0,
+        "first_time": 334800000
+      },
+      {
+        "severity": "major",
+        "code": "pre_inception",
+        "message": "bars before this symbol existed -- the euro launched 1999-01-04; earlier bars are a DEM/ECU proxy relabelled as EURUSD",
+        "count": 7161,
+        "first_time": 915148800
+      }
+    ]
+  },
+  {
+    "symbol": "EURUSD",
+    "timeframe": "H4",
+    "bars": 50169,
+    "verdict": "USABLE FROM",
+    "trusted_from": 915148800,
+    "trusted_from_date": "1999-01-01",
+    "issues": [
+      {
+        "severity": "major",
+        "code": "zero_range",
+        "message": "bars with high == low (2.02%)",
+        "count": 1011,
+        "first_time": 31795200
+      },
+      {
+        "severity": "minor",
+        "code": "sparse_coverage",
+        "message": "only 58% of the expected weekday bars present",
+        "count": 0,
+        "first_time": null
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 35 sigma)",
+        "count": 77,
+        "first_time": null
+      },
+      {
+        "severity": "major",
+        "code": "synthetic_prefix",
+        "message": "sustained padded bars before this point -- fabricated history",
+        "count": 0,
+        "first_time": 334800000
+      },
+      {
+        "severity": "major",
+        "code": "pre_inception",
+        "message": "bars before this symbol existed -- the euro launched 1999-01-04; earlier bars are a DEM/ECU proxy relabelled as EURUSD",
+        "count": 7161,
+        "first_time": 915148800
+      }
+    ]
+  },
+  {
+    "symbol": "GBPJPY",
+    "timeframe": "D1",
+    "bars": 8657,
+    "verdict": "USABLE",
+    "trusted_from": 735177600,
+    "trusted_from_date": "1993-04-19",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.01%)",
+        "count": 1,
+        "first_time": 1256947200
+      },
+      {
+        "severity": "minor",
+        "code": "weekend_bars",
+        "message": "bars stamped on a Saturday (0.01%)",
+        "count": 1,
+        "first_time": null
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 21 sigma)",
+        "count": 2,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "GBPJPY",
+    "timeframe": "H1",
+    "bars": 172782,
+    "verdict": "USABLE",
+    "trusted_from": 735177600,
+    "trusted_from_date": "1993-04-19",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.05%)",
+        "count": 86,
+        "first_time": 915584400
+      },
+      {
+        "severity": "minor",
+        "code": "weekend_bars",
+        "message": "bars stamped on a Saturday (0.00%)",
+        "count": 1,
+        "first_time": null
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 92 sigma)",
+        "count": 356,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "GBPJPY",
+    "timeframe": "H4",
+    "bars": 44466,
+    "verdict": "USABLE",
+    "trusted_from": 735177600,
+    "trusted_from_date": "1993-04-19",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.01%)",
+        "count": 3,
+        "first_time": 915580800
+      },
+      {
+        "severity": "minor",
+        "code": "weekend_bars",
+        "message": "bars stamped on a Saturday (0.00%)",
+        "count": 1,
+        "first_time": null
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 60 sigma)",
+        "count": 53,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "GBPUSD",
+    "timeframe": "D1",
+    "bars": 8648,
+    "verdict": "USABLE",
+    "trusted_from": 737164800,
+    "trusted_from_date": "1993-05-12",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 19 sigma)",
+        "count": 1,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "GBPUSD",
+    "timeframe": "H1",
+    "bars": 172841,
+    "verdict": "USABLE",
+    "trusted_from": 737164800,
+    "trusted_from_date": "1993-05-12",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.05%)",
+        "count": 83,
+        "first_time": 917650800
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 81 sigma)",
+        "count": 303,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "GBPUSD",
+    "timeframe": "H4",
+    "bars": 44471,
+    "verdict": "USABLE",
+    "trusted_from": 737164800,
+    "trusted_from_date": "1993-05-12",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.01%)",
+        "count": 4,
+        "first_time": 978307200
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 54 sigma)",
+        "count": 23,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "USDJPY",
+    "timeframe": "D1",
+    "bars": 14344,
+    "verdict": "USABLE FROM",
+    "trusted_from": 584582400,
+    "trusted_from_date": "1988-07-11",
+    "issues": [
+      {
+        "severity": "major",
+        "code": "zero_range",
+        "message": "bars with high == low (28.02%)",
+        "count": 4019,
+        "first_time": 31795200
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 21 sigma)",
+        "count": 3,
+        "first_time": null
+      },
+      {
+        "severity": "major",
+        "code": "synthetic_prefix",
+        "message": "sustained padded bars before this point -- fabricated history",
+        "count": 0,
+        "first_time": 584582400
+      },
+      {
+        "severity": "major",
+        "code": "pre_inception",
+        "message": "bars before this symbol existed -- the yen floated after Bretton Woods collapsed in 1973; earlier quotes are the pegged 360 rate",
+        "count": 490,
+        "first_time": 94694400
+      }
+    ]
+  },
+  {
+    "symbol": "USDJPY",
+    "timeframe": "H1",
+    "bars": 178527,
+    "verdict": "USABLE FROM",
+    "trusted_from": 584582400,
+    "trusted_from_date": "1988-07-11",
+    "issues": [
+      {
+        "severity": "major",
+        "code": "zero_range",
+        "message": "bars with high == low (2.29%)",
+        "count": 4087,
+        "first_time": 31795200
+      },
+      {
+        "severity": "minor",
+        "code": "sparse_coverage",
+        "message": "only 51% of the expected weekday bars present",
+        "count": 0,
+        "first_time": null
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 115 sigma)",
+        "count": 910,
+        "first_time": null
+      },
+      {
+        "severity": "major",
+        "code": "synthetic_prefix",
+        "message": "sustained padded bars before this point -- fabricated history",
+        "count": 0,
+        "first_time": 584582400
+      },
+      {
+        "severity": "major",
+        "code": "pre_inception",
+        "message": "bars before this symbol existed -- the yen floated after Bretton Woods collapsed in 1973; earlier quotes are the pegged 360 rate",
+        "count": 490,
+        "first_time": 94694400
+      }
+    ]
+  },
+  {
+    "symbol": "USDJPY",
+    "timeframe": "H4",
+    "bars": 50162,
+    "verdict": "USABLE FROM",
+    "trusted_from": 584582400,
+    "trusted_from_date": "1988-07-11",
+    "issues": [
+      {
+        "severity": "major",
+        "code": "zero_range",
+        "message": "bars with high == low (8.02%)",
+        "count": 4022,
+        "first_time": 31795200
+      },
+      {
+        "severity": "minor",
+        "code": "sparse_coverage",
+        "message": "only 58% of the expected weekday bars present",
+        "count": 0,
+        "first_time": null
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 53 sigma)",
+        "count": 86,
+        "first_time": null
+      },
+      {
+        "severity": "major",
+        "code": "synthetic_prefix",
+        "message": "sustained padded bars before this point -- fabricated history",
+        "count": 0,
+        "first_time": 584582400
+      },
+      {
+        "severity": "major",
+        "code": "pre_inception",
+        "message": "bars before this symbol existed -- the yen floated after Bretton Woods collapsed in 1973; earlier quotes are the pegged 360 rate",
+        "count": 490,
+        "first_time": 94694400
+      }
+    ]
+  },
+  {
+    "symbol": "XAUUSD",
+    "timeframe": "D1",
+    "bars": 5698,
+    "verdict": "USABLE",
+    "trusted_from": 1086912000,
+    "trusted_from_date": "2004-06-11",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 13 sigma)",
+        "count": 1,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "XAUUSD",
+    "timeframe": "H1",
+    "bars": 128981,
+    "verdict": "USABLE",
+    "trusted_from": 1086937200,
+    "trusted_from_date": "2004-06-11",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.15%)",
+        "count": 193,
+        "first_time": 1086962400
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 45 sigma)",
+        "count": 208,
+        "first_time": null
+      }
+    ]
+  },
+  {
+    "symbol": "XAUUSD",
+    "timeframe": "H4",
+    "bars": 33972,
+    "verdict": "USABLE",
+    "trusted_from": 1086926400,
+    "trusted_from_date": "2004-06-11",
+    "issues": [
+      {
+        "severity": "minor",
+        "code": "zero_range",
+        "message": "bars with high == low (0.05%)",
+        "count": 17,
+        "first_time": 1089331200
+      },
+      {
+        "severity": "minor",
+        "code": "return_outliers",
+        "message": "returns beyond 12 robust sigma (max 31 sigma)",
+        "count": 28,
+        "first_time": null
+      }
+    ]
+  }
+]

@@ -8,6 +8,90 @@ serves a **read-only live dashboard** website while it runs.
 > **Use a demo account.** AUTO mode places real orders on whatever account you
 > connect. You are responsible for that account.
 
+## The tactical book — the current model
+
+Two runners live here. `bridge.py` is the original FX/gold intraday-and-swing
+bridge described below. **`tactical_bot.py` is the model to run**, and it came
+out of measuring the other one honestly.
+
+It holds two sleeves — US large-cap equity and gold — and each month holds a
+sleeve only while its price is above its **ten-month moving average**, otherwise
+that half sits in cash. Long or flat, never short. One decision per sleeve per
+month.
+
+```bash
+python tactical_bot.py --dry-run   # decide and print, never sends an order
+python tactical_bot.py             # act if the calendar month has turned
+python tactical_bot.py --force     # rebalance now, ignoring the calendar
+```
+
+```ini
+TACTICAL_ENABLED=true
+TACTICAL_WEIGHT_SCHX=0.5      # US large cap
+TACTICAL_WEIGHT_IAU=0.5       # gold
+TACTICAL_FRACTION_INVESTED=0.70
+MODE=APPROVAL
+```
+
+### What it returns, and at what risk
+
+On 20.7 years of split-adjusted daily history including 2008, costs charged on
+every switch, at the configured 70% invested:
+
+| | value |
+|---|---:|
+| annual return | 6.35% |
+| worst rolling ten-year drawdown | **7.7%** |
+| $5,000 over ten years, median | $7,528 |
+| $5,000 over ten years, worst window | $6,519 |
+
+The full sizing ladder is in [`research/FIVE_K_TEN_YEAR.md`](research/FIVE_K_TEN_YEAR.md);
+roughly one point of annual return buys one point of drawdown.
+
+### Why these two symbols
+
+**Gold is what makes the risk budget work.** IVV and VTI correlate 0.988 — one
+bet with two tickers — while gold against timed equity correlates −0.07. At a
+fixed 10% drawdown budget the difference is decisive:
+
+| book | invested | CAGR |
+|---|---:|---:|
+| timed equity + gold | 90% | 8.15% |
+| held equity + gold | 37% | 4.05% |
+| timed equity only | 35% | 3.15% |
+| held equity only | 16% | 1.61% |
+
+**SCHX rather than IVV** purely for share granularity: IVV at $780 buys two
+units of a $1,750 target. Their daily returns correlate 0.9882 over 4,211
+shared days. **IAU rather than spot XAUUSD** because gold's minimum order is
+1 oz — about $4,354 of notional against a $1,750 target, untradeable at the
+right size on a $5,000 account.
+
+### What it is not
+
+It is **beta harvested at a controlled risk level, not alpha**. The return is
+equity and gold going up; the drawdown reduction is mechanical. The rule's
+risk-adjusted improvement over buy-and-hold is **not statistically significant**
+(bootstrap p = 0.29), and its advantage is concentrated in 2008 and 2022 — the
+two bear markets in the sample. Half the book is in gold, which returned 10.74%
+a year over this window; if gold merely holds flat for a decade the median
+outcome falls from about $7,500 to about $5,500.
+
+Every strategy this repo tried that claimed more than that was measured and
+failed. See [`research/TACTICAL_RESULT.md`](research/TACTICAL_RESULT.md),
+[`research/ETF_PORTFOLIO.md`](research/ETF_PORTFOLIO.md) and
+[`research/CROSS_SECTIONAL_RESULT.md`](research/CROSS_SECTIONAL_RESULT.md).
+
+### How it uses the risk system
+
+`RiskEngine.size` derives lots from a stop distance and a measured Kelly edge.
+This book has no stop and is sized by weight, so Kelly does not apply and
+forcing it would be theatre. What does apply is wired in full: the
+**DrawdownGovernor** scales exposure down as equity falls from its peak, and the
+**KillSwitch** flattens every sleeve outright. Targets floor to whole shares,
+positions are matched on magic `20260801` so the book never touches another
+engine's trades, and exits are placed before entries.
+
 ## Requirements
 
 - Windows with the MetaTrader 5 terminal installed and logged in
@@ -103,6 +187,41 @@ python -m mt5_ai_bridge data/GBPUSD_M30.csv --strategy reasoning --threshold 0.6
 python -m mt5_ai_bridge.dashboard --db journal.db --out dashboard.html
 ```
 
+Backtests charge realistic broker costs by default (`--cost typical`; also
+`tight` / `wide` / `zero`, or override `--spread` / `--slippage` /
+`--commission`). The summary reports `total_costs` and `gross_profit` so the
+gap between a gross and a net result is always visible.
+
+## Validating a strategy honestly
+
+A backtest number is not evidence until it survives out-of-sample testing and a
+correction for how many variants you tried.
+
+```bash
+# Walk-forward: choose parameters on train, score on the unseen slice after it,
+# then deflate the result by the number of parameter sets searched.
+python research/honest_walk_forward.py --csv GBPUSD_M5.csv
+
+# Run the pre-registered V15 candidate against its locked parameters.
+python research/v15_forward_test.py --csv GBPUSD_M5.csv
+```
+
+Both print an explicit PASS/FAIL against named gates. See
+`research/V15_EDGE_INVESTIGATION.md` for what these currently say about this
+repository, and `mt5_ai_bridge/validation.py` for the statistics.
+
+## Why isn't it trading?
+
+The session guard reports only the first gate that refused an entry. To see all
+of them against the persisted guard state:
+
+```bash
+python -m mt5_ai_bridge.entry_diagnostics --symbol GBPUSD --volume 0.1
+```
+
+While the bot runs, `guard.rejections.report()` aggregates every refusal so a
+day with no trades can be explained afterwards.
+
 ## Testing
 
 ```bash
@@ -124,6 +243,10 @@ mt5_ai_bridge/
   strategy.py / reasoning.py   # direction: trend rule / confluence + veto
   books.py / planner.py         # intraday+swing books, sizing and staggered exits
   sizing.py         # ATR stops + fixed-fractional lots
+  costs.py          # spread / slippage / commission / swap model
+  validation.py     # walk-forward splits, deflated Sharpe, PASS/FAIL gates
+  candidate_v15.py  # pre-registered momentum candidate (locked parameters)
+  entry_diagnostics.py  # every blocking entry gate + rejection ledger
   risk_engine.py    # legacy account loss/open-position limits
   exposure.py       # correlated per-currency factor-risk caps
   execution.py / trade_manager.py   # place, close and trail orders

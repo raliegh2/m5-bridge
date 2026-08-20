@@ -1,0 +1,15 @@
+{
+  "candidate": "CROSS_SECTIONAL_MOMENTUM",
+  "registered": "2026-08-18",
+  "source": "Jegadeesh & Titman (1993), standard 12-1 momentum specification",
+  "rationale": "Parameters are the published ones, not searched. One trial: the account can order 11,438 equities and no cross-sectional test has ever been run against them. A market-neutral ranking book cannot earn its return from equity drift, which is what sank the ETF result.",
+  "expected_outcome": "Uncertain. Momentum is among the most replicated anomalies in the literature, but it is measured on institutional cost assumptions, and a monthly rebalance of 40 positions pays the retail spread 12 times a year on the whole book.",
+  "parameters": {
+    "lookback_days": 252,
+    "skip_days": 21,
+    "holding_days": 21,
+    "n_positions": 20,
+    "min_names": 60,
+    "market_neutral": true
+  }
+}

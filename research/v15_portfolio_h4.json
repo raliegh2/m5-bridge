@@ -1,0 +1,155 @@
+{
+  "timeframe": "H4",
+  "cost": "typical",
+  "since": null,
+  "n_trials": 6,
+  "require_persistence": false,
+  "skipped": {},
+  "diversification": {
+    "symbols": [
+      "AUDUSD",
+      "EURUSD",
+      "GBPJPY",
+      "GBPUSD",
+      "USDJPY",
+      "XAUUSD"
+    ],
+    "n_symbols": 6,
+    "mean_abs_correlation": 0.3648,
+    "max_abs_correlation": 0.6544,
+    "effective_bets": 2.6,
+    "diversification_ratio": 0.433,
+    "sharpe_multiplier": 1.612,
+    "shared_quote_currencies": {
+      "USD": 4,
+      "JPY": 2
+    },
+    "correlations": {
+      "AUDUSD": {
+        "AUDUSD": 1.0,
+        "EURUSD": 0.584,
+        "GBPJPY": 0.367,
+        "GBPUSD": 0.557,
+        "USDJPY": -0.077,
+        "XAUUSD": 0.34
+      },
+      "EURUSD": {
+        "AUDUSD": 0.584,
+        "EURUSD": 1.0,
+        "GBPJPY": 0.271,
+        "GBPUSD": 0.644,
+        "USDJPY": -0.284,
+        "XAUUSD": 0.355
+      },
+      "GBPJPY": {
+        "AUDUSD": 0.367,
+        "EURUSD": 0.271,
+        "GBPJPY": 1.0,
+        "GBPUSD": 0.637,
+        "USDJPY": 0.654,
+        "XAUUSD": 0.015
+      },
+      "GBPUSD": {
+        "AUDUSD": 0.557,
+        "EURUSD": 0.644,
+        "GBPJPY": 0.637,
+        "GBPUSD": 1.0,
+        "USDJPY": -0.163,
+        "XAUUSD": 0.274
+      },
+      "USDJPY": {
+        "AUDUSD": -0.077,
+        "EURUSD": -0.284,
+        "GBPJPY": 0.654,
+        "GBPUSD": -0.163,
+        "USDJPY": 1.0,
+        "XAUUSD": -0.249
+      },
+      "XAUUSD": {
+        "AUDUSD": 0.34,
+        "EURUSD": 0.355,
+        "GBPJPY": 0.015,
+        "GBPUSD": 0.274,
+        "USDJPY": -0.249,
+        "XAUUSD": 1.0
+      }
+    }
+  },
+  "metrics": {
+    "folds": 5,
+    "trades": 1160,
+    "net_profit": -3049.17,
+    "profit_factor": 0.874,
+    "positive_fold_fraction": 0.0,
+    "sharpe": -0.809,
+    "deflated_sharpe": 0.001,
+    "n_trials": 6
+  },
+  "verdict": {
+    "passed": false,
+    "failed_gates": [
+      "net_profitable",
+      "profit_factor",
+      "majority_of_folds_positive",
+      "deflated_sharpe"
+    ]
+  },
+  "folds": [
+    {
+      "index": 0,
+      "net_profit": -1977.36,
+      "trades": 950
+    },
+    {
+      "index": 1,
+      "net_profit": -1071.81,
+      "trades": 210
+    },
+    {
+      "index": 2,
+      "net_profit": 0.0,
+      "trades": 0
+    },
+    {
+      "index": 3,
+      "net_profit": 0.0,
+      "trades": 0
+    },
+    {
+      "index": 4,
+      "net_profit": 0.0,
+      "trades": 0
+    }
+  ],
+  "admission": {
+    "0": {
+      "symbols": [
+        "AUDUSD",
+        "EURUSD",
+        "GBPJPY",
+        "GBPUSD",
+        "USDJPY",
+        "XAUUSD"
+      ],
+      "reason": "fold 0: nothing known yet, all symbols admitted"
+    },
+    "1": {
+      "symbols": [
+        "USDJPY"
+      ],
+      "reason": "profitable across folds 0..0"
+    },
+    "2": {
+      "symbols": [],
+      "reason": "profitable across folds 0..1"
+    },
+    "3": {
+      "symbols": [],
+      "reason": "profitable across folds 0..2"
+    },
+    "4": {
+      "symbols": [],
+      "reason": "profitable across folds 0..3"
+    }
+  }
+}

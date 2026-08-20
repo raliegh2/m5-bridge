@@ -1,0 +1,93 @@
+{
+  "IVV": {
+    "sharpe_diff": 0.125,
+    "p_value": 0.2938,
+    "folds_better": 2,
+    "fold_sharpe_diffs": [
+      0.662,
+      -0.148,
+      -0.04,
+      -0.27,
+      0.454
+    ],
+    "bh_significant": false
+  },
+  "VTI": {
+    "sharpe_diff": 0.073,
+    "p_value": 0.363,
+    "folds_better": 2,
+    "fold_sharpe_diffs": [
+      0.622,
+      -0.163,
+      -0.074,
+      -0.276,
+      0.322
+    ],
+    "bh_significant": false
+  },
+  "ONEQ": {
+    "sharpe_diff": 0.148,
+    "p_value": 0.2137,
+    "folds_better": 2,
+    "fold_sharpe_diffs": [
+      0.718,
+      -0.152,
+      -0.053,
+      -0.002,
+      0.041
+    ],
+    "bh_significant": false
+  },
+  "IWM": {
+    "sharpe_diff": -0.204,
+    "p_value": 0.9247,
+    "folds_better": 2,
+    "fold_sharpe_diffs": [
+      -0.264,
+      -0.261,
+      0.213,
+      -0.344,
+      0.008
+    ],
+    "bh_significant": false
+  },
+  "TQQQ": {
+    "sharpe_diff": -0.106,
+    "p_value": 0.7585,
+    "folds_better": 1,
+    "fold_sharpe_diffs": [
+      -0.428,
+      -0.312,
+      -0.238,
+      0.584,
+      -0.321
+    ],
+    "bh_significant": false
+  },
+  "EEM": {
+    "sharpe_diff": -0.039,
+    "p_value": 0.5968,
+    "folds_better": 2,
+    "fold_sharpe_diffs": [
+      0.434,
+      -0.279,
+      -0.078,
+      -0.362,
+      0.04
+    ],
+    "bh_significant": false
+  },
+  "XAUUSD": {
+    "sharpe_diff": -0.107,
+    "p_value": 0.8207,
+    "folds_better": 1,
+    "fold_sharpe_diffs": [
+      -0.353,
+      0.337,
+      -0.303,
+      -0.143,
+      -0.104
+    ],
+    "bh_significant": false
+  }
+}

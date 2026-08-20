@@ -1,0 +1,12 @@
+{
+  "candidate": "TACTICAL_MA_TIMING",
+  "registered": "2026-08-18",
+  "source": "Faber (2007), 'A Quantitative Approach to Tactical Asset Allocation' -- 10-month simple moving average, monthly decisions, long or cash",
+  "rationale": "Every strategy tested here was beaten by holding, and the one durable source of return across 22.9 years was being long. So the target moves from absolute profit, which holding already provides, to risk-adjusted profit and drawdown -- the account's stated ceiling is 10% and buy-and-hold equity breaches it by a factor of five. Faber's published claim is drawdown reduction rather than return enhancement, so that is what is being tested, against buy-and-hold rather than against zero.",
+  "expected_outcome": "The rule should cut drawdown substantially and give up some return. It passes only if risk-adjusted performance beats buy-and-hold out of sample; matching hold's Sharpe while trading 12 times a year is a failure.",
+  "parameters": {
+    "sma_months": 10,
+    "trading_days_per_month": 21,
+    "long_only": true
+  }
+}

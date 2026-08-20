@@ -1,0 +1,102 @@
+{
+  "universe": 165,
+  "days": 5762,
+  "config": {
+    "lookback_days": 252,
+    "skip_days": 21,
+    "holding_days": 21,
+    "n_positions": 20
+  },
+  "median_spread_pct": 0.0172,
+  "gross": {
+    "periods": 263,
+    "trades": 10520,
+    "net_profit": -4237.04,
+    "return_percent": -88.23,
+    "profit_factor": 0.693,
+    "hit_rate": 0.5285,
+    "annual_return_pct": -9.3,
+    "annual_volatility_pct": 20.777,
+    "sharpe": -0.317,
+    "max_drawdown_percent": 91.83,
+    "mean_cost_drag_per_period_pct": 0.0,
+    "deflated_sharpe": 0.0266
+  },
+  "net": {
+    "periods": 263,
+    "trades": 10520,
+    "net_profit": -4250.49,
+    "return_percent": -88.51,
+    "profit_factor": 0.688,
+    "hit_rate": 0.5247,
+    "annual_return_pct": -9.4,
+    "annual_volatility_pct": 20.777,
+    "sharpe": -0.323,
+    "max_drawdown_percent": 91.99,
+    "mean_cost_drag_per_period_pct": 0.009,
+    "deflated_sharpe": 0.0242
+  },
+  "long_leg_mean_pct": 1.4442,
+  "short_leg_mean_pct": -2.5433,
+  "folds": [
+    {
+      "fold": 0,
+      "periods": 53,
+      "return_percent": 16.6,
+      "sharpe": 0.336
+    },
+    {
+      "fold": 1,
+      "periods": 53,
+      "return_percent": -47.27,
+      "sharpe": -0.605
+    },
+    {
+      "fold": 2,
+      "periods": 53,
+      "return_percent": -12.9,
+      "sharpe": -0.234
+    },
+    {
+      "fold": 3,
+      "periods": 53,
+      "return_percent": -75.42,
+      "sharpe": -0.391
+    },
+    {
+      "fold": 4,
+      "periods": 53,
+      "return_percent": -53.03,
+      "sharpe": -0.536
+    }
+  ],
+  "positive_fold_fraction": 0.2,
+  "metrics": {
+    "periods": 263,
+    "trades": 10520,
+    "net_profit": -4250.49,
+    "return_percent": -88.51,
+    "profit_factor": 0.688,
+    "hit_rate": 0.5247,
+    "annual_return_pct": -9.4,
+    "annual_volatility_pct": 20.777,
+    "sharpe": -0.323,
+    "max_drawdown_percent": 91.99,
+    "mean_cost_drag_per_period_pct": 0.009,
+    "deflated_sharpe": 0.0242,
+    "positive_fold_fraction": 0.2
+  },
+  "passed": false,
+  "failed_gates": [
+    "net_profitable",
+    "profit_factor",
+    "majority_of_folds_positive",
+    "deflated_sharpe"
+  ],
+  "deflated_sharpe_all_trials": 0.0,
+  "feasibility": {
+    "positions_required": 40,
+    "min_notional_one_share_each": 506.68,
+    "times_balance": 0.11
+  }
+}

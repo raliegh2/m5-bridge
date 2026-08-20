@@ -1,0 +1,542 @@
+{
+  "AUDUSD": {
+    "bars": 8659,
+    "hurst": 0.4933,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9558,
+        "z": -2.016,
+        "p": 0.0438,
+        "verdict": "MEAN-REVERTING"
+      },
+      "6": {
+        "ratio": 0.9149,
+        "z": -1.453,
+        "p": 0.1462,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.8921,
+        "z": -0.783,
+        "p": 0.4339,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.9539,
+        "z": -0.2,
+        "p": 0.8414,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "AUS200": {
+    "bars": 1886,
+    "hurst": 0.4771,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.6794,
+        "z": -2.361,
+        "p": 0.0182,
+        "verdict": "MEAN-REVERTING"
+      },
+      "6": {
+        "ratio": 0.6465,
+        "z": -1.139,
+        "p": 0.2545,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.6495,
+        "z": -0.609,
+        "p": 0.5427,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.3753,
+        "z": -0.844,
+        "p": 0.3987,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "DE40": {
+    "bars": 3537,
+    "hurst": 0.4668,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9313,
+        "z": -1.707,
+        "p": 0.0878,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9795,
+        "z": -0.196,
+        "p": 0.8445,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.8699,
+        "z": -0.607,
+        "p": 0.5437,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.6271,
+        "z": -1.134,
+        "p": 0.2566,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "EURUSD": {
+    "bars": 14341,
+    "hurst": 0.5287,
+    "variance_ratios": {
+      "2": {
+        "ratio": 1.0075,
+        "z": 0.696,
+        "p": 0.4864,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 1.0221,
+        "z": 0.838,
+        "p": 0.4022,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 1.1542,
+        "z": 2.437,
+        "p": 0.0148,
+        "verdict": "TRENDING"
+      },
+      "120": {
+        "ratio": 1.3003,
+        "z": 2.447,
+        "p": 0.0144,
+        "verdict": "TRENDING"
+      }
+    }
+  },
+  "EUSTX50": {
+    "bars": 1881,
+    "hurst": 0.4747,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9251,
+        "z": -1.39,
+        "p": 0.1645,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9493,
+        "z": -0.381,
+        "p": 0.7033,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.8773,
+        "z": -0.431,
+        "p": 0.6663,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.6266,
+        "z": -0.856,
+        "p": 0.3922,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "FRA40": {
+    "bars": 1887,
+    "hurst": 0.473,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9326,
+        "z": -1.101,
+        "p": 0.2707,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9578,
+        "z": -0.285,
+        "p": 0.7753,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.879,
+        "z": -0.39,
+        "p": 0.6962,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.6294,
+        "z": -0.798,
+        "p": 0.4249,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "GBPJPY": {
+    "bars": 8657,
+    "hurst": 0.4935,
+    "variance_ratios": {
+      "2": {
+        "ratio": 1.0129,
+        "z": 0.639,
+        "p": 0.523,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.991,
+        "z": -0.19,
+        "p": 0.8489,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.9533,
+        "z": -0.432,
+        "p": 0.6655,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 1.0972,
+        "z": 0.501,
+        "p": 0.6166,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "GBPUSD": {
+    "bars": 8648,
+    "hurst": 0.4738,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9999,
+        "z": -0.007,
+        "p": 0.9945,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9832,
+        "z": -0.425,
+        "p": 0.6712,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.8771,
+        "z": -1.353,
+        "p": 0.1762,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.9394,
+        "z": -0.356,
+        "p": 0.7217,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "HK50": {
+    "bars": 1671,
+    "hurst": 0.4497,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9241,
+        "z": -2.071,
+        "p": 0.0384,
+        "verdict": "MEAN-REVERTING"
+      },
+      "6": {
+        "ratio": 0.88,
+        "z": -1.287,
+        "p": 0.1981,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.7597,
+        "z": -1.189,
+        "p": 0.2346,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.5883,
+        "z": -1.182,
+        "p": 0.2372,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "JPN225": {
+    "bars": 1894,
+    "hurst": 0.4582,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.8854,
+        "z": -2.537,
+        "p": 0.0112,
+        "verdict": "MEAN-REVERTING"
+      },
+      "6": {
+        "ratio": 0.8973,
+        "z": -0.926,
+        "p": 0.3544,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.7454,
+        "z": -1.087,
+        "p": 0.277,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.6514,
+        "z": -0.947,
+        "p": 0.3438,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "SWI20": {
+    "bars": 3563,
+    "hurst": 0.4155,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9333,
+        "z": -1.299,
+        "p": 0.1941,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.938,
+        "z": -0.512,
+        "p": 0.609,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.7116,
+        "z": -1.226,
+        "p": 0.2202,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.4331,
+        "z": -1.708,
+        "p": 0.0876,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "UK100": {
+    "bars": 616,
+    "hurst": 0.4619,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9844,
+        "z": -0.777,
+        "p": 0.437,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9258,
+        "z": -1.41,
+        "p": 0.1585,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.8778,
+        "z": -0.696,
+        "p": 0.4862,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.5196,
+        "z": -1.317,
+        "p": 0.1877,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "US2000": {
+    "bars": 3587,
+    "hurst": 0.481,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9326,
+        "z": -1.806,
+        "p": 0.071,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9603,
+        "z": -0.419,
+        "p": 0.6754,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.9226,
+        "z": -0.396,
+        "p": 0.6919,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.6971,
+        "z": -0.971,
+        "p": 0.3318,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "US30": {
+    "bars": 3581,
+    "hurst": 0.4523,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9084,
+        "z": -1.715,
+        "p": 0.0863,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9085,
+        "z": -0.697,
+        "p": 0.4856,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.8047,
+        "z": -0.705,
+        "p": 0.481,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.4751,
+        "z": -1.31,
+        "p": 0.1902,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "US500": {
+    "bars": 3589,
+    "hurst": 0.449,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9049,
+        "z": -2.057,
+        "p": 0.0397,
+        "verdict": "MEAN-REVERTING"
+      },
+      "6": {
+        "ratio": 0.8737,
+        "z": -1.126,
+        "p": 0.2603,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.7746,
+        "z": -0.951,
+        "p": 0.3417,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.492,
+        "z": -1.439,
+        "p": 0.1502,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "USDJPY": {
+    "bars": 14344,
+    "hurst": 0.531,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9981,
+        "z": -0.155,
+        "p": 0.8768,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9968,
+        "z": -0.111,
+        "p": 0.9112,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 1.1349,
+        "z": 2.065,
+        "p": 0.0389,
+        "verdict": "TRENDING"
+      },
+      "120": {
+        "ratio": 1.3313,
+        "z": 2.664,
+        "p": 0.0077,
+        "verdict": "TRENDING"
+      }
+    }
+  },
+  "USTEC": {
+    "bars": 1025,
+    "hurst": 0.4623,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9359,
+        "z": -1.416,
+        "p": 0.1568,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.854,
+        "z": -1.392,
+        "p": 0.1639,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.8221,
+        "z": -0.748,
+        "p": 0.4547,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.4494,
+        "z": -1.294,
+        "p": 0.1955,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "XAUUSD": {
+    "bars": 5698,
+    "hurst": 0.4687,
+    "variance_ratios": {
+      "2": {
+        "ratio": 1.0036,
+        "z": 0.185,
+        "p": 0.8528,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9847,
+        "z": -0.321,
+        "p": 0.748,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.8732,
+        "z": -1.132,
+        "p": 0.2575,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.8464,
+        "z": -0.722,
+        "p": 0.4704,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  }
+}

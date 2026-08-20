@@ -1,0 +1,34 @@
+{
+  "candidate": "V15_TIME_SERIES_MOMENTUM",
+  "cost_preset": "typical",
+  "bars": 44471,
+  "full_sample": {
+    "trades": 1609,
+    "wins": 548,
+    "win_rate": 0.341,
+    "net_profit": -3036.86,
+    "total_costs": 1041.3,
+    "profit_factor": 0.913,
+    "final_balance": 6963.14
+  },
+  "walk_forward": {
+    "folds": 5,
+    "trades": 1394,
+    "net_profit": -1878.11,
+    "profit_factor": 0.945,
+    "positive_fold_fraction": 0.4,
+    "sharpe": -0.32,
+    "deflated_sharpe": 0.2318,
+    "n_trials": 1
+  },
+  "verdict": {
+    "passed": false,
+    "failed_gates": [
+      "net_profitable",
+      "profit_factor",
+      "majority_of_folds_positive",
+      "deflated_sharpe"
+    ]
+  },
+  "statistically_conclusive": true
+}

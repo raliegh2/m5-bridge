@@ -1,0 +1,422 @@
+{
+  "timeframe": "H4",
+  "lookback": 20,
+  "results": {
+    "AUDUSD": {
+      "pairs": 44456,
+      "rho_all": -0.01052,
+      "rho_low": -0.03578,
+      "rho_high": -0.00709,
+      "rho_spread": -0.02869,
+      "p_low": 4e-05,
+      "p_high": 0.41298,
+      "supports_cgw": true,
+      "low_verdict": "REVERTS",
+      "high_verdict": "no signal"
+    },
+    "EURUSD": {
+      "pairs": 42987,
+      "rho_all": -0.007,
+      "rho_low": -0.02748,
+      "rho_high": 0.00383,
+      "rho_spread": -0.03131,
+      "p_low": 0.0018,
+      "p_high": 0.6639,
+      "supports_cgw": true,
+      "low_verdict": "REVERTS",
+      "high_verdict": "no signal"
+    },
+    "GBPJPY": {
+      "pairs": 44445,
+      "rho_all": -0.01061,
+      "rho_low": 0.00109,
+      "rho_high": -0.01689,
+      "rho_spread": 0.01797,
+      "p_low": 0.90011,
+      "p_high": 0.05117,
+      "supports_cgw": false,
+      "low_verdict": "no signal",
+      "high_verdict": "no signal"
+    },
+    "GBPUSD": {
+      "pairs": 44450,
+      "rho_all": -0.02383,
+      "rho_low": 0.00612,
+      "rho_high": -0.01297,
+      "rho_spread": 0.01909,
+      "p_low": 0.47985,
+      "p_high": 0.13409,
+      "supports_cgw": false,
+      "low_verdict": "no signal",
+      "high_verdict": "no signal"
+    },
+    "USDJPY": {
+      "pairs": 45708,
+      "rho_all": 0.0042,
+      "rho_low": -0.02236,
+      "rho_high": 0.01454,
+      "rho_spread": -0.0369,
+      "p_low": 0.00882,
+      "p_high": 0.08872,
+      "supports_cgw": true,
+      "low_verdict": "REVERTS",
+      "high_verdict": "no signal"
+    },
+    "XAUUSD": {
+      "pairs": 33951,
+      "rho_all": 0.00853,
+      "rho_low": -0.01927,
+      "rho_high": 0.02799,
+      "rho_spread": -0.04726,
+      "p_low": 0.05178,
+      "p_high": 0.00472,
+      "supports_cgw": false,
+      "low_verdict": "no signal",
+      "high_verdict": "PERSISTS"
+    }
+  },
+  "quintile_profiles": {
+    "AUDUSD": [
+      {
+        "bucket": 1,
+        "relative_volume_range": [
+          0.0,
+          0.659
+        ],
+        "rho": -0.03735,
+        "n": 8891,
+        "p_value": 0.00043,
+        "verdict": "REVERTS"
+      },
+      {
+        "bucket": 2,
+        "relative_volume_range": [
+          0.659,
+          0.87
+        ],
+        "rho": -0.00605,
+        "n": 8891,
+        "p_value": 0.5686,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 3,
+        "relative_volume_range": [
+          0.87,
+          1.073
+        ],
+        "rho": -0.01566,
+        "n": 8891,
+        "p_value": 0.13967,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 4,
+        "relative_volume_range": [
+          1.073,
+          1.319
+        ],
+        "rho": 0.0186,
+        "n": 8891,
+        "p_value": 0.07948,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 5,
+        "relative_volume_range": [
+          1.319,
+          5.144
+        ],
+        "rho": -0.02065,
+        "n": 8891,
+        "p_value": 0.05148,
+        "verdict": "no signal"
+      }
+    ],
+    "EURUSD": [
+      {
+        "bucket": 1,
+        "relative_volume_range": [
+          0.0,
+          0.577
+        ],
+        "rho": -0.04523,
+        "n": 8597,
+        "p_value": 3e-05,
+        "verdict": "REVERTS"
+      },
+      {
+        "bucket": 2,
+        "relative_volume_range": [
+          0.577,
+          0.818
+        ],
+        "rho": -0.02429,
+        "n": 8597,
+        "p_value": 0.02428,
+        "verdict": "REVERTS"
+      },
+      {
+        "bucket": 3,
+        "relative_volume_range": [
+          0.818,
+          1.122
+        ],
+        "rho": -0.02679,
+        "n": 8598,
+        "p_value": 0.01295,
+        "verdict": "REVERTS"
+      },
+      {
+        "bucket": 4,
+        "relative_volume_range": [
+          1.122,
+          1.386
+        ],
+        "rho": -0.0003,
+        "n": 8596,
+        "p_value": 0.97796,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 5,
+        "relative_volume_range": [
+          1.386,
+          7.118
+        ],
+        "rho": 0.01066,
+        "n": 8598,
+        "p_value": 0.32286,
+        "verdict": "no signal"
+      }
+    ],
+    "GBPJPY": [
+      {
+        "bucket": 1,
+        "relative_volume_range": [
+          0.0,
+          0.639
+        ],
+        "rho": -0.01596,
+        "n": 8889,
+        "p_value": 0.13239,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 2,
+        "relative_volume_range": [
+          0.639,
+          0.855
+        ],
+        "rho": 0.00244,
+        "n": 8889,
+        "p_value": 0.81838,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 3,
+        "relative_volume_range": [
+          0.855,
+          1.097
+        ],
+        "rho": -0.00489,
+        "n": 8888,
+        "p_value": 0.64481,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 4,
+        "relative_volume_range": [
+          1.097,
+          1.339
+        ],
+        "rho": 0.03854,
+        "n": 8889,
+        "p_value": 0.00028,
+        "verdict": "PERSISTS"
+      },
+      {
+        "bucket": 5,
+        "relative_volume_range": [
+          1.339,
+          7.892
+        ],
+        "rho": -0.04992,
+        "n": 8889,
+        "p_value": 0.0,
+        "verdict": "REVERTS"
+      }
+    ],
+    "GBPUSD": [
+      {
+        "bucket": 1,
+        "relative_volume_range": [
+          0.001,
+          0.567
+        ],
+        "rho": 0.00212,
+        "n": 8890,
+        "p_value": 0.84142,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 2,
+        "relative_volume_range": [
+          0.567,
+          0.797
+        ],
+        "rho": -0.03011,
+        "n": 8890,
+        "p_value": 0.00452,
+        "verdict": "REVERTS"
+      },
+      {
+        "bucket": 3,
+        "relative_volume_range": [
+          0.797,
+          1.131
+        ],
+        "rho": -0.05089,
+        "n": 8889,
+        "p_value": 0.0,
+        "verdict": "REVERTS"
+      },
+      {
+        "bucket": 4,
+        "relative_volume_range": [
+          1.131,
+          1.406
+        ],
+        "rho": -0.01959,
+        "n": 8890,
+        "p_value": 0.0647,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 5,
+        "relative_volume_range": [
+          1.406,
+          49.428
+        ],
+        "rho": -0.01797,
+        "n": 8890,
+        "p_value": 0.09024,
+        "verdict": "no signal"
+      }
+    ],
+    "USDJPY": [
+      {
+        "bucket": 1,
+        "relative_volume_range": [
+          0.0,
+          0.68
+        ],
+        "rho": -0.02654,
+        "n": 9142,
+        "p_value": 0.01116,
+        "verdict": "REVERTS"
+      },
+      {
+        "bucket": 2,
+        "relative_volume_range": [
+          0.68,
+          0.879
+        ],
+        "rho": -0.01066,
+        "n": 9141,
+        "p_value": 0.30796,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 3,
+        "relative_volume_range": [
+          0.879,
+          1.068
+        ],
+        "rho": 0.00332,
+        "n": 9141,
+        "p_value": 0.75131,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 4,
+        "relative_volume_range": [
+          1.068,
+          1.298
+        ],
+        "rho": 0.03814,
+        "n": 9141,
+        "p_value": 0.00026,
+        "verdict": "PERSISTS"
+      },
+      {
+        "bucket": 5,
+        "relative_volume_range": [
+          1.298,
+          26.677
+        ],
+        "rho": 0.0011,
+        "n": 9142,
+        "p_value": 0.91631,
+        "verdict": "no signal"
+      }
+    ],
+    "XAUUSD": [
+      {
+        "bucket": 1,
+        "relative_volume_range": [
+          0.0,
+          0.497
+        ],
+        "rho": -0.00718,
+        "n": 6790,
+        "p_value": 0.5542,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 2,
+        "relative_volume_range": [
+          0.497,
+          0.752
+        ],
+        "rho": -0.05423,
+        "n": 6790,
+        "p_value": 1e-05,
+        "verdict": "REVERTS"
+      },
+      {
+        "bucket": 3,
+        "relative_volume_range": [
+          0.752,
+          1.062
+        ],
+        "rho": -0.01307,
+        "n": 6790,
+        "p_value": 0.28146,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 4,
+        "relative_volume_range": [
+          1.062,
+          1.467
+        ],
+        "rho": 0.00763,
+        "n": 6790,
+        "p_value": 0.52965,
+        "verdict": "no signal"
+      },
+      {
+        "bucket": 5,
+        "relative_volume_range": [
+          1.467,
+          9.791
+        ],
+        "rho": 0.0453,
+        "n": 6790,
+        "p_value": 0.00019,
+        "verdict": "PERSISTS"
+      }
+    ]
+  }
+}

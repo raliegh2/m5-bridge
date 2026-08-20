@@ -1,0 +1,76 @@
+{
+  "system": "V17_VR_GATED_REVERSION",
+  "locked_on": "2026-08-16",
+  "status": "LOCKED - every parameter derived below before any V17 result was computed",
+  "premise": "Two independent measurements agree. The Lo-MacKinlay variance ratio says these markets do not trend and several mildly mean-revert, and V16's GROSS P&L is positive on exactly the symbols whose VR is below 1.0 and negative on those above it. The reversion effect appears real. It is also smaller than the cost of harvesting it at V16's trade frequency, which is the only thing V17 changes.",
+  "evidence": {
+    "vr_q30_vs_v16_gross": {
+      "AUDUSD": {"vr": 0.926, "v16_gross": 81.78},
+      "GBPUSD": {"vr": 0.934, "v16_gross": 2594.98},
+      "EURUSD": {"vr": 0.962, "v16_gross": 922.58},
+      "GBPJPY": {"vr": 0.994, "v16_gross": -4636.71},
+      "USDJPY": {"vr": 1.011, "v16_gross": -2539.77},
+      "XAUUSD": {"vr": 1.031, "v16_gross": -3300.28}
+    },
+    "cost_problem": "Across both candidates gross was +8,272 (V15) and -6,877 (V16) against 18,438 and 18,258 of costs. Friction is roughly twice any signal present."
+  },
+  "derivation_of_entry_z": {
+    "method": "Chosen by arithmetic, not by sweeping thresholds until a backtest turned positive.",
+    "observed": "V16 on GBPUSD: gross +2,594.98 over 2,581 trades = $1.005 per trade, against $1.15 of cost per trade. Ratio 0.87 - under water.",
+    "assumption": "A trade entered at entry_z and exited at exit_z captures (entry_z - exit_z) standard deviations, so gross per trade scales roughly linearly with that gap while cost per trade stays fixed. This is an approximation and is stated as one.",
+    "table": {
+      "z=2.0": "captures 1.5 sigma, gross/trade $1.005, cost $1.15, ratio 0.87",
+      "z=2.5": "captures 2.0 sigma, gross/trade ~$1.34, cost $1.15, ratio 1.17",
+      "z=3.0": "captures 2.5 sigma, gross/trade ~$1.68, cost $1.15, ratio 1.46"
+    },
+    "rule": "Take the smallest threshold whose gross-to-cost ratio clears 1.40, leaving a 40% margin for estimation error in the linear-scaling assumption.",
+    "result": "entry_z = 3.0",
+    "known_cost_of_this_choice": "A 3-sigma event is far rarer than a 2-sigma one, so trade count falls sharply. V16 produced 2,202 out-of-sample trades on GBPUSD; V17 may produce too few to clear the 200-trade gate. That is a real risk of the design and is not hidden."
+  },
+  "derivation_of_vr_gate": {
+    "threshold": 1.0,
+    "why": "The textbook boundary between mean-reverting and trending, not the observed sign-flip point. The V16 gross figures actually flip nearer 0.97, and using 0.97 would fit the gate to data already seen. VR < 1.0 costs some precision - it admits GBPJPY at 0.994, which was gross-negative - and buys the guarantee that the gate itself is not fitted.",
+    "measurement": "Recomputed inside each walk-forward fold on the TRAINING window only, never on the test slice."
+  },
+  "parameters": {
+    "timeframe_minutes": 240,
+    "lookback": 20,
+    "entry_z": 3.0,
+    "exit_z": 0.5,
+    "stop_z": 5.0,
+    "atr_period": 14,
+    "max_holding_bars": 60,
+    "min_atr_pips": 8.0,
+    "risk_percent": 0.5,
+    "vr_horizon": 30,
+    "vr_max": 1.0,
+    "pip": 0.0001,
+    "contract_size": 100000.0
+  },
+  "inherited_unchanged_from_v16": [
+    "lookback = 20 (itself inherited unchanged from V15)",
+    "exit_z = 0.5",
+    "stop_z = entry_z + 2.0, the same 2-sigma buffer V16 used",
+    "max_holding_bars = 60",
+    "min_atr_pips = 8.0",
+    "risk_percent = 0.5"
+  ],
+  "portfolio": {
+    "risk_percent_per_trade": 0.5,
+    "max_total_risk_percent": 2.0,
+    "max_currency_risk_percent": 1.5,
+    "max_concurrent_positions": 4,
+    "volatility_target": true,
+    "why": "Unchanged from PortfolioConfig defaults. The four USD-quoted symbols give only 1.68 effective bets, so the per-currency cap is what stops this becoming a single leveraged USD position."
+  },
+  "data_requirements": "Audited, post-inception bars only, per tools/audit_history.py: EURUSD from 1999-01-04, USDJPY from 1988-07-11. Per-instrument spreads via instruments.cost_for - gold pays 30 of its own pips, not 0.9.",
+  "acceptance_gates": {
+    "net_profit_after_costs": "> 0",
+    "profit_factor": ">= 1.10",
+    "out_of_sample_trades": ">= 200",
+    "positive_fold_fraction": "> 0.5",
+    "deflated_sharpe": ">= 0.95"
+  },
+  "trials": "Deflated against every specification on record in research/v15_trials.json. V17 is the 11th-plus specification tried against this data, not a fresh start.",
+  "predeclared_expectation": "Marginal at best. The reversion effect is real but small: even if the frequency change works exactly as derived, the expected result is roughly $0.50 per trade on a few hundred trades per symbol over 22-33 years. A PASS on the profit gates is plausible; a PASS on the deflated-Sharpe gate at 11+ trials is not, because the effect is too small relative to how much has been tried. The honest prior is that this documents a real but uneconomic edge."
+}

@@ -1,0 +1,182 @@
+{
+  "AUDUSD": {
+    "bars": 42998,
+    "hurst": 0.4869,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9924,
+        "z": -0.693,
+        "p": 0.4882,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9869,
+        "z": -0.528,
+        "p": 0.5974,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.9353,
+        "z": -1.142,
+        "p": 0.2534,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.9087,
+        "z": -0.841,
+        "p": 0.4006,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "EURUSD": {
+    "bars": 43008,
+    "hurst": 0.4946,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9932,
+        "z": -0.962,
+        "p": 0.3359,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9893,
+        "z": -0.663,
+        "p": 0.5072,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.9622,
+        "z": -0.984,
+        "p": 0.325,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.9625,
+        "z": -0.494,
+        "p": 0.6215,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "GBPJPY": {
+    "bars": 42989,
+    "hurst": 0.4939,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9775,
+        "z": -1.05,
+        "p": 0.2937,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9626,
+        "z": -0.891,
+        "p": 0.3732,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.9583,
+        "z": -0.578,
+        "p": 0.5632,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.8958,
+        "z": -0.899,
+        "p": 0.3684,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "GBPUSD": {
+    "bars": 43002,
+    "hurst": 0.4972,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.9898,
+        "z": -0.574,
+        "p": 0.5662,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9795,
+        "z": -0.59,
+        "p": 0.555,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.99,
+        "z": -0.168,
+        "p": 0.8666,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.9102,
+        "z": -0.918,
+        "p": 0.3585,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "USDJPY": {
+    "bars": 42998,
+    "hurst": 0.4884,
+    "variance_ratios": {
+      "2": {
+        "ratio": 0.998,
+        "z": -0.239,
+        "p": 0.8113,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 0.9942,
+        "z": -0.292,
+        "p": 0.7701,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 0.9432,
+        "z": -1.326,
+        "p": 0.1849,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.9377,
+        "z": -0.791,
+        "p": 0.429,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  },
+  "XAUUSD": {
+    "bars": 33972,
+    "hurst": 0.4998,
+    "variance_ratios": {
+      "2": {
+        "ratio": 1.0087,
+        "z": 0.878,
+        "p": 0.3802,
+        "verdict": "RANDOM WALK"
+      },
+      "6": {
+        "ratio": 1.0436,
+        "z": 1.934,
+        "p": 0.0531,
+        "verdict": "RANDOM WALK"
+      },
+      "30": {
+        "ratio": 1.0313,
+        "z": 0.574,
+        "p": 0.5662,
+        "verdict": "RANDOM WALK"
+      },
+      "120": {
+        "ratio": 0.9632,
+        "z": -0.362,
+        "p": 0.7174,
+        "verdict": "RANDOM WALK"
+      }
+    }
+  }
+}

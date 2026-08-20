@@ -15,6 +15,21 @@ Design notes / assumptions (v1):
   stop is assumed hit first (conservative).
 - Money P&L = direction * (exit - entry) * lot_size * contract_size.
 
+Costs (``cost=``)
+-----------------
+Fills stay at the mid level and every cost component is deducted as money when
+the trade closes -- the same convention ``backtest_books.py`` already uses, and
+the one that keeps the spread from being counted twice. A round turn is charged
+the full spread, slippage on both sides, commission per lot, and swap per night
+held (see :mod:`mt5_ai_bridge.costs`). ``Trade.cost`` is therefore the complete
+amount handed to the broker, and ``Trade.gross_profit`` recovers the old
+zero-cost figure for comparison.
+
+The default is :data:`~mt5_ai_bridge.costs.ZERO_COST`, which reproduces the
+original gross replay bit-for-bit. The CLI defaults to a realistic preset
+instead, because a gross number quietly presented as a result is how this repo
+accumulated 25 profitable-looking reports and no live edge.
+
 The decision function is injectable (``strategy_fn``), so the trend strategy,
 the reasoning layer, or a test stub can all be backtested with identical
 execution semantics.
@@ -25,6 +40,7 @@ from typing import List, Optional
 
 import pandas as pd
 
+from .costs import ZERO_COST, CostModel
 from .enums import Signal
 from .indicators import add_indicators
 from .strategy import evaluate_strategy
@@ -48,7 +64,14 @@ class Trade:
     exit_price: float
     exit_reason: str          # "TP", "SL", or "EOD" (end of data)
     pips: float
-    profit: float
+    profit: float             # net, after every cost component
+    cost: float = 0.0         # dollars of spread+slippage+commission+swap
+    nights: int = 0           # nights held (drives swap)
+
+    @property
+    def gross_profit(self) -> float:
+        """P&L this trade would have shown under a zero-cost replay."""
+        return round(self.profit + self.cost, 2)
 
 
 @dataclass
@@ -100,6 +123,25 @@ class BacktestResult:
             max_dd = max(max_dd, peak - eq)
         return round(max_dd, 2)
 
+    @property
+    def total_costs(self) -> float:
+        """Dollars handed to the broker across every closed trade."""
+        return round(sum(t.cost for t in self.trades), 2)
+
+    @property
+    def gross_profit(self) -> float:
+        """Total profit before costs -- what a zero-cost replay would print."""
+        return round(self.total_profit + self.total_costs, 2)
+
+    @property
+    def gross_profit_factor(self) -> float:
+        """Profit factor before costs, for comparison against the net figure."""
+        gross_win = sum(t.gross_profit for t in self.trades if t.gross_profit > 0)
+        gross_loss = -sum(t.gross_profit for t in self.trades if t.gross_profit < 0)
+        if gross_loss == 0:
+            return float("inf") if gross_win > 0 else 0.0
+        return round(gross_win / gross_loss, 2)
+
     def summary(self) -> dict:
         return {
             "trades": self.n_trades,
@@ -112,6 +154,9 @@ class BacktestResult:
             "max_drawdown": self.max_drawdown,
             "starting_balance": round(self.starting_balance, 2),
             "final_balance": round(self.final_balance, 2),
+            "total_costs": self.total_costs,
+            "gross_profit": self.gross_profit,
+            "gross_profit_factor": self.gross_profit_factor,
         }
 
 
@@ -119,7 +164,7 @@ class Backtester:
     def __init__(self, *, pip_size: float = 0.0001, lot_size: float = 0.01,
                  stop_loss_pips: float = 30, take_profit_pips: float = 60,
                  contract_size: float = 100_000, starting_balance: float = 10_000,
-                 strategy_fn=evaluate_strategy):
+                 strategy_fn=evaluate_strategy, cost: CostModel = ZERO_COST):
         self.pip_size = pip_size
         self.lot_size = lot_size
         self.stop_loss_pips = stop_loss_pips
@@ -129,6 +174,12 @@ class Backtester:
         # Injectable so the reasoning layer (or a test) can swap the decision
         # function while keeping identical execution/SL-TP semantics.
         self.strategy_fn = strategy_fn
+        self.cost = cost
+
+    @property
+    def _pip_value_per_lot(self) -> float:
+        """$ per pip for one lot, implied by pip size and contract size."""
+        return self.pip_size * self.contract_size
 
     def _money(self, side: Signal, entry: float, exit_: float) -> float:
         direction = 1.0 if side is Signal.BUY else -1.0
@@ -137,6 +188,14 @@ class Backtester:
     def _pips(self, side: Signal, entry: float, exit_: float) -> float:
         direction = 1.0 if side is Signal.BUY else -1.0
         return round(direction * (exit_ - entry) / self.pip_size, 1)
+
+    def _trade_cost(self, side: Signal, nights: int) -> float:
+        """Dollar cost of one round turn: spread+slippage, commission, swap."""
+        pv = self._pip_value_per_lot
+        price_cost = self.cost.round_trip_pips * self.lot_size * pv
+        commission = self.cost.commission_cost(self.lot_size)
+        swap = self.cost.swap_cost(side, self.lot_size, nights, pv)
+        return price_cost + commission + swap
 
     def run(self, df: pd.DataFrame) -> BacktestResult:
         df = add_indicators(df.copy())
@@ -150,6 +209,7 @@ class Backtester:
         open_side: Optional[Signal] = None
         entry_price = sl_price = tp_price = 0.0
         entry_time = ""
+        entry_raw_time = None
 
         for _, bar in df.iterrows():
             # --- manage an open position first ---
@@ -167,14 +227,17 @@ class Backtester:
                         exit_price, exit_reason = tp_price, "TP"
 
                 if exit_price is not None:
-                    profit = self._money(open_side, entry_price, exit_price)
+                    nights = _nights_between(entry_raw_time, bar["time"])
+                    cost = self._trade_cost(open_side, nights)
+                    profit = self._money(open_side, entry_price, exit_price) - cost
                     balance += profit
                     result.trades.append(Trade(
                         entry_time=entry_time, side=open_side,
                         entry_price=entry_price, exit_time=str(bar["time"]),
                         exit_price=exit_price, exit_reason=exit_reason,
                         pips=self._pips(open_side, entry_price, exit_price),
-                        profit=round(profit, 2),
+                        profit=round(profit, 2), cost=round(cost, 2),
+                        nights=nights,
                     ))
                     open_side = None
 
@@ -192,6 +255,7 @@ class Backtester:
                     open_side = decision.signal
                     entry_price = float(bar["close"])
                     entry_time = str(bar["time"])
+                    entry_raw_time = bar["time"]
                     offset_sl = self.stop_loss_pips * self.pip_size
                     offset_tp = self.take_profit_pips * self.pip_size
                     if open_side is Signal.BUY:
@@ -204,14 +268,16 @@ class Backtester:
         # --- close any still-open position at the last close ---
         if open_side is not None:
             last = df.iloc[-1]
-            profit = self._money(open_side, entry_price, float(last["close"]))
+            nights = _nights_between(entry_raw_time, last["time"])
+            cost = self._trade_cost(open_side, nights)
+            profit = self._money(open_side, entry_price, float(last["close"])) - cost
             balance += profit
             result.trades.append(Trade(
                 entry_time=entry_time, side=open_side, entry_price=entry_price,
                 exit_time=str(last["time"]), exit_price=float(last["close"]),
                 exit_reason="EOD",
                 pips=self._pips(open_side, entry_price, float(last["close"])),
-                profit=round(profit, 2),
+                profit=round(profit, 2), cost=round(cost, 2), nights=nights,
             ))
 
         result.final_balance = round(balance, 2)
@@ -228,3 +294,24 @@ def _row_to_market(bar) -> dict:
 
 def _row_has_nan(bar) -> bool:
     return any(pd.isna(bar[k]) for k in _REQUIRED)
+
+
+# Below this, a "time" column is a synthetic bar counter (tests use range(n)),
+# not a real clock, so no swap can be attributed.
+_EPOCH_FLOOR = 100_000_000
+
+
+def _nights_between(start, end) -> int:
+    """Whole nights held between two bar timestamps, 0 if they aren't real.
+
+    Only epoch-second timestamps carry enough information to charge swap; a
+    synthetic bar index yields 0 so a cost model never invents overnight fees
+    for data that has no calendar.
+    """
+    try:
+        a, b = float(start), float(end)
+    except (TypeError, ValueError):
+        return 0
+    if a < _EPOCH_FLOOR or b < _EPOCH_FLOOR or b <= a:
+        return 0
+    return int((b - a) // 86_400)
