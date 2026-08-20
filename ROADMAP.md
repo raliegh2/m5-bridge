@@ -36,6 +36,33 @@
   - `candidate_v15.py` — a pre-registered time-series-momentum candidate with
     parameters frozen in `research/v15_locked_candidate.json`.
 
+- **The tactical book (current model)** — `tactical_bot.py`,
+  `tactical_allocation.py`, `tactical_runner.py`:
+  - Faber (2007) ten-month moving average, long-or-flat, monthly, on two
+    sleeves: SCHX (US large cap) and IAU (gold). Parameters frozen in
+    `research/tactical_locked.json` and checked against the code at load.
+  - 6.35% a year with a 7.7% worst rolling ten-year drawdown at 70% invested;
+    $5,000 -> a median $7,528 over ten years. See
+    `research/FIVE_K_TEN_YEAR.md`.
+  - Wired to the live risk system: DrawdownGovernor scales exposure, KillSwitch
+    flattens, whole-share targets, magic-scoped positions, exits before entries.
+  - Honest limits: this is beta at a controlled risk level, the Sharpe gain over
+    buy-and-hold is not significant (p = 0.29), and half the book is in gold
+    after an exceptional decade for gold.
+
+- **What was measured and rejected** — the reason the model is this modest:
+  - ETF mean reversion (`research/ETF_PORTFOLIO.md`) — beaten by buy-and-hold on
+    6 of 6 once unadjusted splits were corrected; the two best results (TQQQ PF
+    1.512, ONEQ PF 1.301) turned negative.
+  - Cross-sectional equity momentum (`research/CROSS_SECTIONAL_RESULT.md`) —
+    -88.5% over 22.9 years; benchmarked against the universe it adds +1.44% a
+    year at t = 0.815. Blocked by a survivors-only universe, not by the code.
+  - `corporate_actions.py` — split detection and back-adjustment; `data_audit`
+    now rates an unadjusted split fatal rather than a minor outlier.
+  - `risk_v18.exposure_groups` — equity tickers are no longer sliced as if they
+    were currency pairs, and a hedged book can cap net rather than gross factor
+    exposure.
+
 ## Next
 
 1. **Export multi-year history for every traded symbol.** This is now the
