@@ -54,8 +54,6 @@ def _fold_score(summary: dict) -> float:
     pf = summary["profit_factor"]
     pfv = 3.0 if pf == "inf" else min(3.0, float(pf))
     trades = int(summary["trades"])
-    # V3 explicitly values activity, but only after profitability and drawdown.
-    # Frequency reward saturates so the selector cannot win by churning alone.
     frequency_reward = 0.05 * min(trades, 30)
     return (
         float(summary["return_pct"])
