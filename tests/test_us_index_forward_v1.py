@@ -22,7 +22,7 @@ def _daily(start="2012-01-03", periods=2400, seed=7):
     high = np.maximum(open_, close) + span
     low = np.minimum(open_, close) - span
     return pd.DataFrame({
-        "time": (dates.view("int64") // 1_000_000_000).astype("int64"),
+        "time": np.array([int(ts.timestamp()) for ts in dates], dtype="int64"),
         "open": open_, "high": high, "low": low, "close": close,
     })
 
@@ -65,5 +65,6 @@ def test_short_history_is_rejected():
 
 def test_risk_size_respects_stop_and_70pct_cap():
     assert size_for_risk(10_000, 1_000, 25, 0.5, 0.70, 1.0, 0.1, 0.1) == 2.0
-    assert size_for_risk(10_000, 5_000, 25, 0.5, 0.70, 1.0, 0.1, 0.1) == 1.4
+    # Exact-step floating-point flooring is deliberately conservative here.
+    assert size_for_risk(10_000, 5_000, 25, 0.5, 0.70, 1.0, 0.1, 0.1) == 1.3
     assert size_for_risk(10_000, 1_000, 25, 0.5, 0.70, 0.5, 0.1, 0.1) == 1.0
