@@ -1,8 +1,10 @@
 """Automatic demo forward-test runner for US_INDEX_FORWARD_V1.
 
-Run once per day after the target market has a completed D1 bar. The runner
-uses a frozen trained artifact and refuses to auto-trade unless the historical
-post-training gate passed. AUTO is hard-blocked on non-demo accounts.
+Run once per day after the signal market has a completed D1 bar. The runner
+loads a frozen artifact, reads the trained US500-style signal feed, and can map
+that signal to a separately configured broker execution symbol (for example a
+verified ES/MES-style contract). It never retrains itself. AUTO is hard-blocked
+on non-demo accounts.
 """
 from __future__ import annotations
 
@@ -68,6 +70,13 @@ def _bars_since(frame: pd.DataFrame, when: int) -> int:
 
 def _broker_lots(info, balance: float, price: float, stop_distance: float,
                  multiplier: float) -> float:
+    """Translate 0.50% stop risk into broker volume, with exposure caps.
+
+    When the broker supplies ``margin_initial`` we cap required initial margin
+    at the tactical book's 70% allocation ceiling. Futures notional is a poor
+    proxy for account exposure, so the old raw-notional cap is opt-in only and
+    is used solely as a fallback when explicit margin is unavailable.
+    """
     tick_size = float(getattr(info, "trade_tick_size", 0.0) or 0.0)
     tick_value = float(getattr(info, "trade_tick_value", 0.0) or 0.0)
     if tick_size <= 0 or tick_value <= 0 or stop_distance <= 0:
@@ -79,7 +88,11 @@ def _broker_lots(info, balance: float, price: float, stop_distance: float,
         return 0.0
     raw = risk_dollars / loss_per_lot
 
-    if _truthy("US_INDEX_FORWARD_APPLY_NOTIONAL_CAP", "true"):
+    margin_initial = float(getattr(info, "margin_initial", 0.0) or 0.0)
+    if margin_initial > 0:
+        margin_budget = balance * LOCKED_CONFIG.max_fraction_invested * multiplier
+        raw = min(raw, margin_budget / margin_initial)
+    elif _truthy("US_INDEX_FORWARD_APPLY_NOTIONAL_CAP", "false"):
         contract = float(getattr(info, "trade_contract_size", 0.0) or 0.0)
         if contract > 0 and price > 0:
             notional_per_lot = price * contract
@@ -124,9 +137,15 @@ def main(argv=None) -> int:
     settings = load_settings()
     if args.dry_run:
         settings = replace(settings, mode=Mode.READ_ONLY)
-    symbol = os.getenv("US_INDEX_FORWARD_EXEC_SYMBOL", LOCKED_CONFIG.research_symbol).strip()
-    if not symbol:
-        print("US_INDEX_FORWARD_EXEC_SYMBOL is empty.")
+
+    signal_symbol = os.getenv(
+        "US_INDEX_FORWARD_SIGNAL_SYMBOL", LOCKED_CONFIG.research_symbol
+    ).strip()
+    execution_symbol = os.getenv(
+        "US_INDEX_FORWARD_EXEC_SYMBOL", signal_symbol
+    ).strip()
+    if not signal_symbol or not execution_symbol:
+        print("US_INDEX_FORWARD_SIGNAL_SYMBOL/EXEC_SYMBOL must be non-empty.")
         return 2
 
     client = RealMT5Client()
@@ -145,31 +164,47 @@ def main(argv=None) -> int:
             print("AUTO blocked: US_INDEX_FORWARD_V1 requires an explicit DEMO account.")
             return 4
 
-        client.symbol_select(symbol, True)
-        info = client.symbol_info(symbol)
+        client.symbol_select(signal_symbol, True)
+        client.symbol_select(execution_symbol, True)
+        signal_info = client.symbol_info(signal_symbol)
+        info = client.symbol_info(execution_symbol)
+        if signal_info is None:
+            print(f"Signal symbol unavailable: {signal_symbol}")
+            return 2
         if info is None:
-            print(f"Broker symbol unavailable: {symbol}")
+            print(f"Execution symbol unavailable: {execution_symbol}")
             return 2
         if settings.mode is not Mode.READ_ONLY and int(getattr(info, "trade_mode", 1)) == 0:
-            print(f"Broker reports {symbol} as trading-disabled.")
+            print(f"Broker reports {execution_symbol} as trading-disabled.")
             return 4
 
         need = max(90, LOCKED_CONFIG.lookback + LOCKED_CONFIG.atr_period + 30)
-        rates = client.copy_rates_from_pos(symbol, LOCKED_CONFIG.timeframe, 1, need)
+        rates = client.copy_rates_from_pos(
+            signal_symbol, LOCKED_CONFIG.timeframe, 1, need
+        )
         if rates is None or len(rates) < LOCKED_CONFIG.lookback + 25:
-            print(f"Not enough completed {LOCKED_CONFIG.timeframe} bars for {symbol}.")
+            print(
+                f"Not enough completed {LOCKED_CONFIG.timeframe} bars for "
+                f"signal symbol {signal_symbol}."
+            )
             return 2
         frame = pd.DataFrame(rates)
         decision = latest_decision(frame, artifact)
+        route = (
+            signal_symbol if signal_symbol == execution_symbol
+            else f"{signal_symbol} -> {execution_symbol}"
+        )
         print(
-            f"{symbol} {decision.side}: prediction={decision.prediction:.6f}, "
+            f"{route} {decision.side}: prediction={decision.prediction:.6f}, "
             f"threshold={decision.threshold:.6f}, ATR={decision.atr:.2f}, "
-            f"close={decision.close:.2f}"
+            f"signal_close={decision.close:.2f}"
         )
 
         state = _load_json(STATE_PATH)
+        state["signal_symbol"] = signal_symbol
+        state["execution_symbol"] = execution_symbol
         if not args.force and int(state.get("last_processed_bar", 0) or 0) == decision.time:
-            print("Latest completed bar already processed.")
+            print("Latest completed signal bar already processed.")
             return 0
 
         equity = float(getattr(account, "equity", 0.0) or 0.0)
@@ -197,7 +232,7 @@ def main(argv=None) -> int:
         governor.observe(peak)
         multiplier = governor.multiplier(equity)
 
-        positions = _managed_positions(client, symbol)
+        positions = _managed_positions(client, execution_symbol)
         for position in list(positions):
             entry_bar_time = int(state.get("entry_bar_time", 0) or 0)
             held_bars = _bars_since(frame, entry_bar_time) if entry_bar_time else 0
@@ -213,31 +248,40 @@ def main(argv=None) -> int:
                     print(message)
                     if ok:
                         state.pop("entry_bar_time", None)
-                positions = _managed_positions(client, symbol)
+                positions = _managed_positions(client, execution_symbol)
 
         if decision.side == "FLAT" or positions:
             state["last_processed_bar"] = decision.time
             _save_state(state)
             return 0
 
+        execution_tick = client.symbol_info_tick(execution_symbol)
+        if execution_tick is None:
+            print(f"No live tick for execution symbol {execution_symbol}.")
+            return 2
+        execution_price = (
+            float(execution_tick.ask)
+            if decision.side == "BUY"
+            else float(execution_tick.bid)
+        )
         stop_distance = LOCKED_CONFIG.stop_atr * decision.atr
-        lots = _broker_lots(info, balance, decision.close, stop_distance, multiplier)
+        lots = _broker_lots(info, balance, execution_price, stop_distance, multiplier)
         if lots <= 0:
-            print("Risk-sized volume is below the broker minimum; no trade.")
+            print("Risk-sized volume is below the broker minimum/exposure cap; no trade.")
             state["last_processed_bar"] = decision.time
             _save_state(state)
             return 0
 
-        pip = pip_size(client, symbol)
+        pip = pip_size(client, execution_symbol)
         if pip is None or pip <= 0:
-            print("Could not determine broker pip/point size.")
+            print("Could not determine execution-symbol pip/point size.")
             return 2
         sl_pips = stop_distance / pip
         tp_pips = (LOCKED_CONFIG.take_profit_atr * decision.atr) / pip
         message = (
-            f"{decision.side} {lots} {symbol}, stop={sl_pips:.1f} broker-pips, "
-            f"target={tp_pips:.1f}, risk={LOCKED_CONFIG.risk_percent:.2f}% "
-            f"x governor {multiplier:.2f}"
+            f"{decision.side} {lots} {execution_symbol} from {signal_symbol} signal, "
+            f"stop={sl_pips:.1f} broker-pips, target={tp_pips:.1f}, "
+            f"risk={LOCKED_CONFIG.risk_percent:.2f}% x governor {multiplier:.2f}"
         )
 
         if settings.mode is Mode.READ_ONLY:
@@ -245,7 +289,7 @@ def main(argv=None) -> int:
         elif settings.mode is Mode.APPROVAL:
             if input(f"Place demo {message}? Type YES: ") == "YES":
                 ok, order_message = place_market_order(
-                    client, symbol, decision.side, lots,
+                    client, execution_symbol, decision.side, lots,
                     stop_loss_pips=sl_pips, take_profit_pips=tp_pips,
                     magic=MAGIC, comment="US_INDEX_FORWARD_V1",
                 )
@@ -254,7 +298,7 @@ def main(argv=None) -> int:
                     state["entry_bar_time"] = decision.time
         else:
             ok, order_message = place_market_order(
-                client, symbol, decision.side, lots,
+                client, execution_symbol, decision.side, lots,
                 stop_loss_pips=sl_pips, take_profit_pips=tp_pips,
                 magic=MAGIC, comment="US_INDEX_FORWARD_V1",
             )
