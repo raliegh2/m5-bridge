@@ -1,0 +1,299 @@
+{
+  "version": "US_INDEX_DECADE_GROWTH_V5",
+  "candidate": {
+    "name": "monthly_momentum",
+    "fast_momentum_days": 63,
+    "slow_momentum_days": 126,
+    "fast_weight": 0.55,
+    "trend_days": 200,
+    "rebalance_days": 21,
+    "stop_atr": 1.1,
+    "gross_leverage_cap": 1.25,
+    "vol_adjust_rank": false
+  },
+  "selection_report": {
+    "weekly_growth": {
+      "folds": [
+        {
+          "year": "2009",
+          "return_pct": 8.1579,
+          "cagr_pct": 8.2103,
+          "max_drawdown_pct": 3.9888,
+          "profit_factor": 1.515,
+          "trades": 25,
+          "score": 8.1013
+        },
+        {
+          "year": "2011",
+          "return_pct": -0.6347,
+          "cagr_pct": -0.6421,
+          "max_drawdown_pct": 5.3083,
+          "profit_factor": 0.9324,
+          "trades": 17,
+          "score": -4.2913
+        },
+        {
+          "year": "2013",
+          "return_pct": 13.8983,
+          "cagr_pct": 13.9899,
+          "max_drawdown_pct": 5.8533,
+          "profit_factor": 1.7529,
+          "trades": 34,
+          "score": 13.7099
+        },
+        {
+          "year": "2015",
+          "return_pct": -7.5289,
+          "cagr_pct": -7.5736,
+          "max_drawdown_pct": 8.8038,
+          "profit_factor": 0.5234,
+          "trades": 30,
+          "score": -14.9882
+        }
+      ],
+      "positive_folds": 2,
+      "pre2016_trades": 106,
+      "median_score": 1.905,
+      "worst_score": -14.9882,
+      "robust_score": -2.3397
+    },
+    "weekly_guarded": {
+      "folds": [
+        {
+          "year": "2009",
+          "return_pct": 7.1089,
+          "cagr_pct": 7.1544,
+          "max_drawdown_pct": 4.2231,
+          "profit_factor": 1.5195,
+          "trades": 23,
+          "score": 6.8246
+        },
+        {
+          "year": "2011",
+          "return_pct": -0.7843,
+          "cagr_pct": -0.7935,
+          "max_drawdown_pct": 3.9783,
+          "profit_factor": 0.9186,
+          "trades": 22,
+          "score": -3.3236
+        },
+        {
+          "year": "2013",
+          "return_pct": 12.2478,
+          "cagr_pct": 12.3279,
+          "max_drawdown_pct": 4.1754,
+          "profit_factor": 1.7563,
+          "trades": 30,
+          "score": 13.1914
+        },
+        {
+          "year": "2015",
+          "return_pct": -8.513,
+          "cagr_pct": -8.5633,
+          "max_drawdown_pct": 9.2988,
+          "profit_factor": 0.5124,
+          "trades": 29,
+          "score": -16.4225
+        }
+      ],
+      "positive_folds": 2,
+      "pre2016_trades": 104,
+      "median_score": 1.7505,
+      "worst_score": -16.4225,
+      "robust_score": -3.1396
+    },
+    "biweekly_growth": {
+      "folds": [
+        {
+          "year": "2009",
+          "return_pct": 10.2944,
+          "cagr_pct": 10.3612,
+          "max_drawdown_pct": 3.9229,
+          "profit_factor": 2.1202,
+          "trades": 16,
+          "score": 12.393
+        },
+        {
+          "year": "2011",
+          "return_pct": -4.1697,
+          "cagr_pct": -4.2176,
+          "max_drawdown_pct": 4.2286,
+          "profit_factor": 0.3533,
+          "trades": 11,
+          "score": -9.5429
+        },
+        {
+          "year": "2013",
+          "return_pct": 0.3176,
+          "cagr_pct": 0.3195,
+          "max_drawdown_pct": 8.6004,
+          "profit_factor": 1.0254,
+          "trades": 23,
+          "score": -5.2261
+        },
+        {
+          "year": "2015",
+          "return_pct": -4.2941,
+          "cagr_pct": -4.3201,
+          "max_drawdown_pct": 7.374,
+          "profit_factor": 0.5788,
+          "trades": 18,
+          "score": -10.8794
+        }
+      ],
+      "positive_folds": 2,
+      "pre2016_trades": 68,
+      "median_score": -7.3845,
+      "worst_score": -10.8794,
+      "robust_score": -10.1002
+    },
+    "biweekly_balanced": {
+      "folds": [
+        {
+          "year": "2009",
+          "return_pct": 7.0156,
+          "cagr_pct": 7.0605,
+          "max_drawdown_pct": 3.771,
+          "profit_factor": 1.8915,
+          "trades": 14,
+          "score": 8.2433
+        },
+        {
+          "year": "2011",
+          "return_pct": -3.8722,
+          "cagr_pct": -3.9168,
+          "max_drawdown_pct": 5.01,
+          "profit_factor": 0.4744,
+          "trades": 12,
+          "score": -9.3121
+        },
+        {
+          "year": "2013",
+          "return_pct": 1.4831,
+          "cagr_pct": 1.4923,
+          "max_drawdown_pct": 8.0458,
+          "profit_factor": 1.1302,
+          "trades": 21,
+          "score": -3.2954
+        },
+        {
+          "year": "2015",
+          "return_pct": -5.156,
+          "cagr_pct": -5.187,
+          "max_drawdown_pct": 8.1714,
+          "profit_factor": 0.5607,
+          "trades": 18,
+          "score": -12.4117
+        }
+      ],
+      "positive_folds": 2,
+      "pre2016_trades": 65,
+      "median_score": -6.3037,
+      "worst_score": -12.4117,
+      "robust_score": -9.739
+    },
+    "monthly_momentum": {
+      "folds": [
+        {
+          "year": "2009",
+          "return_pct": 2.824,
+          "cagr_pct": 2.8417,
+          "max_drawdown_pct": 3.9746,
+          "profit_factor": 1.5595,
+          "trades": 8,
+          "score": 2.3611
+        },
+        {
+          "year": "2011",
+          "return_pct": 0.4103,
+          "cagr_pct": 0.4152,
+          "max_drawdown_pct": 2.2995,
+          "profit_factor": 1.1604,
+          "trades": 6,
+          "score": -0.4627
+        },
+        {
+          "year": "2013",
+          "return_pct": 10.9211,
+          "cagr_pct": 10.9922,
+          "max_drawdown_pct": 2.5456,
+          "profit_factor": 4.0936,
+          "trades": 12,
+          "score": 17.4319
+        },
+        {
+          "year": "2015",
+          "return_pct": -1.9593,
+          "cagr_pct": -1.9713,
+          "max_drawdown_pct": 4.6138,
+          "profit_factor": 0.7069,
+          "trades": 10,
+          "score": -6.2421
+        }
+      ],
+      "positive_folds": 3,
+      "pre2016_trades": 36,
+      "median_score": 0.9492,
+      "worst_score": -6.2421,
+      "robust_score": 0.7503
+    },
+    "fast_trend": {
+      "folds": [
+        {
+          "year": "2009",
+          "return_pct": 6.993,
+          "cagr_pct": 7.0377,
+          "max_drawdown_pct": 4.0902,
+          "profit_factor": 1.4058,
+          "trades": 29,
+          "score": 6.5635
+        },
+        {
+          "year": "2011",
+          "return_pct": -5.4505,
+          "cagr_pct": -5.5127,
+          "max_drawdown_pct": 7.9506,
+          "profit_factor": 0.5074,
+          "trades": 21,
+          "score": -12.6488
+        },
+        {
+          "year": "2013",
+          "return_pct": -2.8719,
+          "cagr_pct": -2.8894,
+          "max_drawdown_pct": 11.9261,
+          "profit_factor": 0.852,
+          "trades": 35,
+          "score": -11.1835
+        },
+        {
+          "year": "2015",
+          "return_pct": -9.8405,
+          "cagr_pct": -9.8982,
+          "max_drawdown_pct": 11.4206,
+          "profit_factor": 0.3818,
+          "trades": 26,
+          "score": -19.9688
+        }
+      ],
+      "positive_folds": 1,
+      "pre2016_trades": 111,
+      "median_score": -11.9162,
+      "worst_score": -19.9688,
+      "robust_score": -19.1521
+    },
+    "selected": "monthly_momentum",
+    "selection_rule": "median + 0.45*worst + 0.75*positive folds + capped activity reward; all folds pre-2016"
+  },
+  "risk_percent_ceiling": 1.0,
+  "soft_drawdown": 0.05,
+  "hard_drawdown": 0.2,
+  "drawdown_floor": 0.25,
+  "round_trip_bps": 5.0,
+  "intended_futures_mapping": {
+    "VTI": "MES",
+    "ONEQ": "MNQ",
+    "IWM": "M2K"
+  },
+  "execution_scope": "research/demo-forward-test-only"
+}
