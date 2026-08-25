@@ -67,11 +67,12 @@ def _net_of_costs(summary: dict, trade_log: list[dict], starting_balance: float,
         updated["gross_profit"] = round(float(gross), 2)
         updated["cost"] = round(float(trade_cost), 2)
         updated["profit"] = round(net, 2)
+        updated["_profit_exact"] = net
         updated["balance_after"] = round(balance, 2)
         net_trades.append(updated)
         snapshots.append({"time": int(trade["exit_time"]), "balance": round(balance, 2)})
 
-    profits = [float(t["profit"]) for t in net_trades]
+    profits = [float(t["_profit_exact"]) for t in net_trades]
     wins = [p for p in profits if p > 0]
     losses = [-p for p in profits if p < 0]
     gross_win, gross_loss = sum(wins), sum(losses)
@@ -106,7 +107,7 @@ def _annual_returns(net_trades: list[dict], starting_balance: float,
     balance = float(starting_balance)
     for year, trades in by_year.items():
         year_start = balance
-        profit = sum(float(t["profit"]) for t in trades)
+        profit = sum(float(t.get("_profit_exact", t["profit"])) for t in trades)
         balance += profit
         result.append({
             "year": int(year),
@@ -120,15 +121,19 @@ def _annual_returns(net_trades: list[dict], starting_balance: float,
     return result
 
 
+def _month_key_from_epoch(value: int) -> str:
+    return str(pd.to_datetime(int(value), unit="s", utc=True).tz_convert(None).to_period("M"))
+
+
 def _monthly_equity(net_trades: list[dict], starting_balance: float,
                     validation_start: int, validation_end: int) -> list[dict]:
-    start = pd.to_datetime(validation_start, unit="s", utc=True).to_period("M")
-    end = pd.to_datetime(validation_end, unit="s", utc=True).to_period("M")
+    start = pd.to_datetime(validation_start, unit="s", utc=True).tz_convert(None).to_period("M")
+    end = pd.to_datetime(validation_end, unit="s", utc=True).tz_convert(None).to_period("M")
     months = pd.period_range(start, end, freq="M")
     buckets: dict[str, float] = {str(m): 0.0 for m in months}
     for t in net_trades:
-        key = str(pd.to_datetime(int(t["exit_time"]), unit="s", utc=True).to_period("M"))
-        buckets[key] = buckets.get(key, 0.0) + float(t["profit"])
+        key = _month_key_from_epoch(int(t["exit_time"]))
+        buckets[key] = buckets.get(key, 0.0) + float(t.get("_profit_exact", t["profit"]))
     balance = float(starting_balance)
     output = []
     for month in months:
@@ -156,8 +161,6 @@ def _ready(summary: dict, v1: dict) -> tuple[bool, list[str]]:
         reasons.append("V2 max drawdown above 10%")
     if int(summary["trades"]) < 35:
         reasons.append("V2 has fewer than 35 post-cutoff trades")
-    # 'Stronger' is explicit: V2 must improve either net return materially or
-    # risk-adjusted return while not materially worsening drawdown.
     v2_ratio = float(summary["return_pct"]) / max(float(summary["max_drawdown_pct"]), 0.25)
     v1_ratio = float(v1["return_pct"]) / max(float(v1["max_drawdown_pct"]), 0.25)
     stronger = (
@@ -238,7 +241,12 @@ def main(argv=None) -> int:
     args.result.parent.mkdir(parents=True, exist_ok=True)
     args.result.write_text(json.dumps(result, indent=2), encoding="utf-8")
     ledger = args.result.with_name(args.result.stem + "_ledger.json")
-    ledger.write_text(json.dumps(v2_trade_log, indent=2), encoding="utf-8")
+    public_ledger = []
+    for trade in v2_trade_log:
+        row = dict(trade)
+        row.pop("_profit_exact", None)
+        public_ledger.append(row)
+    ledger.write_text(json.dumps(public_ledger, indent=2), encoding="utf-8")
 
     print(json.dumps(result, indent=2))
     print(f"artifact: {args.artifact}")
