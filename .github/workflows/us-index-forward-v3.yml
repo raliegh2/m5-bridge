@@ -10,6 +10,7 @@ on:
       - "research/data/US500_D1.csv"
       - "research/us_index_forward_v2_model.json"
       - "tests/test_us_index_forward_v3.py"
+      - "us_index_forward_v3_bot.py"
       - ".github/workflows/us-index-forward-v3.yml"
   workflow_dispatch:
 
@@ -35,8 +36,8 @@ jobs:
       - name: Install focused dependencies
         run: python -m pip install --upgrade pip numpy pandas pytest python-dotenv
 
-      - name: Compile V3
-        run: python -m py_compile mt5_ai_bridge/us_index_forward_v3.py research/train_us_index_forward_v3.py
+      - name: Compile V3 and automatic runner
+        run: python -m py_compile mt5_ai_bridge/us_index_forward_v3.py research/train_us_index_forward_v3.py us_index_forward_v3_bot.py
 
       - name: Run V3 tests
         run: python -m pytest -q tests/test_us_index_forward_v3.py
