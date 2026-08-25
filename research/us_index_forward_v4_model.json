@@ -1,0 +1,350 @@
+{
+  "version": "US_INDEX_FORWARD_V4_H4",
+  "research_symbol": "US500",
+  "trained_at_utc": "2026-08-25T01:49:15.773018+00:00",
+  "training_start": 1351468800,
+  "training_end": 1609372800,
+  "training_years": 8.1727,
+  "training_rows": 8440,
+  "feature_names": [
+    "ret_1",
+    "ret_3",
+    "ret_5",
+    "ret_10",
+    "ret_20",
+    "ret_60",
+    "z_10",
+    "z_20",
+    "z_60",
+    "vol_10",
+    "vol_20",
+    "vol_60",
+    "down_vol_20",
+    "atr_pct",
+    "range_pos_20",
+    "drawdown_60",
+    "gap_1"
+  ],
+  "feature_mean": [
+    0.00012861947246899251,
+    0.0003828809630143242,
+    0.000634734849744952,
+    0.0012469148343502347,
+    0.0024680387621475617,
+    0.007414181637951178,
+    0.20200220669726696,
+    0.2712170856329091,
+    0.4292290018770752,
+    0.0035941523480509867,
+    0.0038071349749247982,
+    0.004024541969424768,
+    0.0022730682560255875,
+    0.0056945640434270355,
+    0.6175216030968893,
+    -0.016835935665690773,
+    -3.754583877156659e-05
+  ],
+  "feature_std": [
+    0.005096706709467099,
+    0.008558670727484442,
+    0.010835495507755026,
+    0.014857281008113081,
+    0.02063590243051531,
+    0.0346527384078827,
+    1.2511139151000321,
+    1.309717861437203,
+    1.341572456497038,
+    0.00329858333791971,
+    0.003238640592259491,
+    0.0030940042420013855,
+    0.002130103691240885,
+    0.004871932322145518,
+    0.28861486925279467,
+    0.02540957040668599,
+    0.0010884584413271257
+  ],
+  "fast_coefficients": [
+    -0.00017830432724297326,
+    -0.00015892201915295728,
+    -0.00020117999402037638,
+    -0.000753689490541485,
+    0.0006084543103110978,
+    0.00010568524874894556,
+    0.00024219299403469255,
+    0.0005147956162517491,
+    -0.00016751500220389695,
+    -0.000256090859998638,
+    -0.0006247896532036307,
+    3.8043377843678886e-05,
+    0.0007915980372320391,
+    0.0006058520643959546,
+    -0.00030959804775111726,
+    0.00024324262825624237,
+    6.550405689202306e-05
+  ],
+  "fast_intercept": 0.00025642351783720425,
+  "slow_coefficients": [
+    -0.0003007750193791144,
+    -0.0001732128436541197,
+    -0.0006185968269126465,
+    -0.0010829120157402076,
+    0.0007005467890237354,
+    -0.0002601149702438302,
+    -4.231701112539337e-06,
+    0.002022202609551705,
+    8.635643866318095e-06,
+    -0.000580582238670662,
+    0.00020668481079019472,
+    0.0008181987783937711,
+    0.001408953233920854,
+    -0.00014854330716989876,
+    -0.0017644701829885785,
+    0.0012784551145218837,
+    -3.971526072120921e-05
+  ],
+  "slow_intercept": 0.000760379062477022,
+  "score_threshold": 0.00042763766538748575,
+  "candidate": {
+    "name": "h4_long_bias",
+    "ridge_alpha": 25.0,
+    "signal_quantile": 0.6,
+    "fast_weight": 0.8,
+    "stop_atr": 1.7,
+    "take_profit_atr": 2.9,
+    "max_holding_bars": 8,
+    "regime_filter": true,
+    "short_multiplier": 1.35,
+    "long_only": false
+  },
+  "selection_report": {
+    "h4_fast_open": {
+      "folds": [
+        {
+          "train_cutoff": "2017-12-31",
+          "validation_year": "2018",
+          "return_pct": -10.707,
+          "max_drawdown_pct": 13.0624,
+          "profit_factor": 0.7897,
+          "trades": 205,
+          "score": -18.0667
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 6.1855,
+          "max_drawdown_pct": 3.5969,
+          "profit_factor": 1.1871,
+          "trades": 190,
+          "score": 6.8425
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": 17.0649,
+          "max_drawdown_pct": 9.3695,
+          "profit_factor": 1.2689,
+          "trades": 236,
+          "score": 13.9674
+        }
+      ],
+      "positive_folds": 2,
+      "pre2021_trades": 631,
+      "median_fold_score": 6.8425,
+      "worst_fold_score": -18.0667,
+      "robust_selection_score": 2.1158
+    },
+    "h4_fast_guarded": {
+      "folds": [
+        {
+          "train_cutoff": "2017-12-31",
+          "validation_year": "2018",
+          "return_pct": -11.5773,
+          "max_drawdown_pct": 13.245,
+          "profit_factor": 0.7232,
+          "trades": 150,
+          "score": -19.2976
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 10.3079,
+          "max_drawdown_pct": 3.4431,
+          "profit_factor": 1.3998,
+          "trades": 128,
+          "score": 11.601
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": 24.088,
+          "max_drawdown_pct": 4.8084,
+          "profit_factor": 1.5119,
+          "trades": 170,
+          "score": 25.0338
+        }
+      ],
+      "positive_folds": 2,
+      "pre2021_trades": 448,
+      "median_fold_score": 11.601,
+      "worst_fold_score": -19.2976,
+      "robust_selection_score": 6.382
+    },
+    "h4_balanced": {
+      "folds": [
+        {
+          "train_cutoff": "2017-12-31",
+          "validation_year": "2018",
+          "return_pct": -9.8026,
+          "max_drawdown_pct": 11.8446,
+          "profit_factor": 0.7594,
+          "trades": 132,
+          "score": -16.5599
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 12.8344,
+          "max_drawdown_pct": 2.6578,
+          "profit_factor": 1.6582,
+          "trades": 102,
+          "score": 15.1136
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": 27.1804,
+          "max_drawdown_pct": 3.7652,
+          "profit_factor": 1.6072,
+          "trades": 149,
+          "score": 29.19
+        }
+      ],
+      "positive_folds": 2,
+      "pre2021_trades": 383,
+      "median_fold_score": 15.1136,
+      "worst_fold_score": -16.5599,
+      "robust_selection_score": 10.9896
+    },
+    "h4_trend": {
+      "folds": [
+        {
+          "train_cutoff": "2017-12-31",
+          "validation_year": "2018",
+          "return_pct": -8.941,
+          "max_drawdown_pct": 10.1388,
+          "profit_factor": 0.7552,
+          "trades": 113,
+          "score": -14.861
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 13.6186,
+          "max_drawdown_pct": 2.9858,
+          "profit_factor": 1.7927,
+          "trades": 81,
+          "score": 15.761
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": 16.3611,
+          "max_drawdown_pct": 4.1969,
+          "profit_factor": 1.4114,
+          "trades": 124,
+          "score": 17.0952
+        }
+      ],
+      "positive_folds": 2,
+      "pre2021_trades": 318,
+      "median_fold_score": 15.761,
+      "worst_fold_score": -14.861,
+      "robust_selection_score": 12.3166
+    },
+    "h4_open_balanced": {
+      "folds": [
+        {
+          "train_cutoff": "2017-12-31",
+          "validation_year": "2018",
+          "return_pct": -8.008,
+          "max_drawdown_pct": 11.5141,
+          "profit_factor": 0.8201,
+          "trades": 157,
+          "score": -14.1775
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 5.1922,
+          "max_drawdown_pct": 3.7913,
+          "profit_factor": 1.1689,
+          "trades": 141,
+          "score": 5.6494
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": 19.4075,
+          "max_drawdown_pct": 7.5912,
+          "profit_factor": 1.3357,
+          "trades": 186,
+          "score": 17.7886
+        }
+      ],
+      "positive_folds": 2,
+      "pre2021_trades": 484,
+      "median_fold_score": 5.6494,
+      "worst_fold_score": -14.1775,
+      "robust_selection_score": 2.4784
+    },
+    "h4_long_bias": {
+      "folds": [
+        {
+          "train_cutoff": "2017-12-31",
+          "validation_year": "2018",
+          "return_pct": -7.1245,
+          "max_drawdown_pct": 11.7734,
+          "profit_factor": 0.831,
+          "trades": 139,
+          "score": -13.4554
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 12.8385,
+          "max_drawdown_pct": 2.6275,
+          "profit_factor": 1.6804,
+          "trades": 102,
+          "score": 15.2166
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": 25.62,
+          "max_drawdown_pct": 4.2416,
+          "profit_factor": 1.5667,
+          "trades": 151,
+          "score": 27.1543
+        }
+      ],
+      "positive_folds": 2,
+      "pre2021_trades": 392,
+      "median_fold_score": 15.2166,
+      "worst_fold_score": -13.4554,
+      "robust_selection_score": 12.3344
+    },
+    "selected": "h4_long_bias",
+    "selection_rule": "median + 0.40*worst + 0.65*positive folds + capped H4 activity reward"
+  },
+  "config": {
+    "research_symbol": "US500",
+    "timeframe": "H4",
+    "fast_horizon": 2,
+    "slow_horizon": 6,
+    "atr_period": 14,
+    "risk_percent": 1.0,
+    "max_fraction_invested": 0.7,
+    "min_training_years": 5.0,
+    "training_cutoff": "2020-12-31"
+  }
+}
