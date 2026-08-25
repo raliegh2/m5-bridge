@@ -1,0 +1,1038 @@
+{
+  "test": "US_INDEX_DECADE_PROXY_IVV",
+  "proxy_symbol": "IVV",
+  "starting_balance": 5000.0,
+  "final_balance": 5530.84,
+  "net_profit": 530.84,
+  "return_pct": 10.6169,
+  "max_drawdown_pct": 7.6732,
+  "trades": 176,
+  "win_rate": 0.5625,
+  "profit_factor": 1.2115,
+  "total_cost": 187.02,
+  "holdout_start": 1451865600,
+  "holdout_end": 1786665600,
+  "holdout_years": 10.6094,
+  "cagr_pct": 0.9556,
+  "training_cutoff": "2015-12-31",
+  "training_start": 1070496000,
+  "training_end": 1451520000,
+  "training_years": 12.0742,
+  "training_rows": 3030,
+  "selected_candidate": "active_guarded",
+  "selection_report": {
+    "active_fast": {
+      "folds": [
+        {
+          "train_cutoff": "2008-12-31",
+          "validation_year": "2009",
+          "return_pct": -0.4878,
+          "max_drawdown_pct": 1.686,
+          "profit_factor": 0.8027,
+          "trades": 7,
+          "score": -2.0006
+        },
+        {
+          "train_cutoff": "2010-12-31",
+          "validation_year": "2011",
+          "return_pct": -2.9796,
+          "max_drawdown_pct": 4.4881,
+          "profit_factor": 0.6969,
+          "trades": 30,
+          "score": -6.0562
+        },
+        {
+          "train_cutoff": "2012-12-31",
+          "validation_year": "2013",
+          "return_pct": 3.7396,
+          "max_drawdown_pct": 1.9734,
+          "profit_factor": 1.7668,
+          "trades": 27,
+          "score": 5.4323
+        },
+        {
+          "train_cutoff": "2014-12-31",
+          "validation_year": "2015",
+          "return_pct": -2.6287,
+          "max_drawdown_pct": 4.4832,
+          "profit_factor": 0.8089,
+          "trades": 47,
+          "score": -4.9411
+        }
+      ],
+      "positive_folds": 1,
+      "median_score": -3.4708,
+      "worst_score": -6.0562,
+      "robust_score": -5.2933
+    },
+    "active_balanced": {
+      "folds": [
+        {
+          "train_cutoff": "2008-12-31",
+          "validation_year": "2009",
+          "return_pct": 1.7397,
+          "max_drawdown_pct": 0.7328,
+          "profit_factor": 2.4463,
+          "trades": 7,
+          "score": 5.7773
+        },
+        {
+          "train_cutoff": "2010-12-31",
+          "validation_year": "2011",
+          "return_pct": -2.4585,
+          "max_drawdown_pct": 4.7687,
+          "profit_factor": 0.7041,
+          "trades": 23,
+          "score": -5.8709
+        },
+        {
+          "train_cutoff": "2012-12-31",
+          "validation_year": "2013",
+          "return_pct": 4.6598,
+          "max_drawdown_pct": 2.3337,
+          "profit_factor": 1.904,
+          "trades": 24,
+          "score": 6.4549
+        },
+        {
+          "train_cutoff": "2014-12-31",
+          "validation_year": "2015",
+          "return_pct": -5.9321,
+          "max_drawdown_pct": 6.9571,
+          "profit_factor": 0.5371,
+          "trades": 38,
+          "score": -10.8929
+        }
+      ],
+      "positive_folds": 2,
+      "median_score": -0.0468,
+      "worst_score": -10.8929,
+      "robust_score": -3.204
+    },
+    "active_trend": {
+      "folds": [
+        {
+          "train_cutoff": "2008-12-31",
+          "validation_year": "2009",
+          "return_pct": 2.4797,
+          "max_drawdown_pct": 0.4791,
+          "profit_factor": 6.0555,
+          "trades": 6,
+          "score": 8.3183
+        },
+        {
+          "train_cutoff": "2010-12-31",
+          "validation_year": "2011",
+          "return_pct": -6.6852,
+          "max_drawdown_pct": 7.7578,
+          "profit_factor": 0.2212,
+          "trades": 20,
+          "score": -13.5642
+        },
+        {
+          "train_cutoff": "2012-12-31",
+          "validation_year": "2013",
+          "return_pct": 8.2333,
+          "max_drawdown_pct": 0.4663,
+          "profit_factor": 13.7965,
+          "trades": 18,
+          "score": 14.3802
+        },
+        {
+          "train_cutoff": "2014-12-31",
+          "validation_year": "2015",
+          "return_pct": -2.523,
+          "max_drawdown_pct": 3.64,
+          "profit_factor": 0.7371,
+          "trades": 33,
+          "score": -4.8527
+        }
+      ],
+      "positive_folds": 2,
+      "median_score": 1.7328,
+      "worst_score": -13.5642,
+      "robust_score": -2.4929
+    },
+    "active_guarded": {
+      "folds": [
+        {
+          "train_cutoff": "2008-12-31",
+          "validation_year": "2009",
+          "return_pct": 2.4797,
+          "max_drawdown_pct": 0.4791,
+          "profit_factor": 6.0555,
+          "trades": 6,
+          "score": 8.3183
+        },
+        {
+          "train_cutoff": "2010-12-31",
+          "validation_year": "2011",
+          "return_pct": -5.2799,
+          "max_drawdown_pct": 6.3686,
+          "profit_factor": 0.3981,
+          "trades": 20,
+          "score": -10.7252
+        },
+        {
+          "train_cutoff": "2012-12-31",
+          "validation_year": "2013",
+          "return_pct": 6.6152,
+          "max_drawdown_pct": 1.311,
+          "profit_factor": 5.4803,
+          "trades": 17,
+          "score": 12.1881
+        },
+        {
+          "train_cutoff": "2014-12-31",
+          "validation_year": "2015",
+          "return_pct": -2.3833,
+          "max_drawdown_pct": 3.8878,
+          "profit_factor": 0.7535,
+          "trades": 33,
+          "score": -4.8249
+        }
+      ],
+      "positive_folds": 2,
+      "median_score": 1.7467,
+      "worst_score": -10.7252,
+      "robust_score": -1.3434
+    },
+    "active_open": {
+      "folds": [
+        {
+          "train_cutoff": "2008-12-31",
+          "validation_year": "2009",
+          "return_pct": -4.1407,
+          "max_drawdown_pct": 5.1157,
+          "profit_factor": 0.7332,
+          "trades": 48,
+          "score": -7.0663
+        },
+        {
+          "train_cutoff": "2010-12-31",
+          "validation_year": "2011",
+          "return_pct": 1.0326,
+          "max_drawdown_pct": 4.1771,
+          "profit_factor": 1.1034,
+          "trades": 34,
+          "score": -0.5223
+        },
+        {
+          "train_cutoff": "2012-12-31",
+          "validation_year": "2013",
+          "return_pct": 4.8068,
+          "max_drawdown_pct": 3.7329,
+          "profit_factor": 1.8402,
+          "trades": 30,
+          "score": 5.651
+        },
+        {
+          "train_cutoff": "2014-12-31",
+          "validation_year": "2015",
+          "return_pct": -5.1481,
+          "max_drawdown_pct": 6.8079,
+          "profit_factor": 0.6408,
+          "trades": 42,
+          "score": -9.6008
+        }
+      ],
+      "positive_folds": 2,
+      "median_score": -3.7943,
+      "worst_score": -9.6008,
+      "robust_score": -6.4346
+    },
+    "active_long_bias": {
+      "folds": [
+        {
+          "train_cutoff": "2008-12-31",
+          "validation_year": "2009",
+          "return_pct": 1.7397,
+          "max_drawdown_pct": 0.7328,
+          "profit_factor": 2.4463,
+          "trades": 7,
+          "score": 5.7773
+        },
+        {
+          "train_cutoff": "2010-12-31",
+          "validation_year": "2011",
+          "return_pct": -1.516,
+          "max_drawdown_pct": 3.8447,
+          "profit_factor": 0.8176,
+          "trades": 23,
+          "score": -3.9873
+        },
+        {
+          "train_cutoff": "2012-12-31",
+          "validation_year": "2013",
+          "return_pct": 4.8263,
+          "max_drawdown_pct": 2.2902,
+          "profit_factor": 2.086,
+          "trades": 23,
+          "score": 7.1707
+        },
+        {
+          "train_cutoff": "2014-12-31",
+          "validation_year": "2015",
+          "return_pct": -5.1441,
+          "max_drawdown_pct": 6.2473,
+          "profit_factor": 0.6117,
+          "trades": 40,
+          "score": -9.3697
+        }
+      ],
+      "positive_folds": 2,
+      "median_score": 0.895,
+      "worst_score": -9.3697,
+      "robust_score": -1.6529
+    },
+    "selected": "active_guarded",
+    "selection_rule": "median + 0.40*worst + 0.60*positive folds; all folds end before 2016"
+  },
+  "risk_percent_ceiling": 1.0,
+  "cost_assumption": "5.0 bps round trip on IVV entry notional",
+  "annual_returns": [
+    {
+      "year": 2016,
+      "start_balance": 5000.0,
+      "profit": 164.67,
+      "end_balance": 5164.67,
+      "return_pct": 3.293,
+      "trades": 18,
+      "period": "full_year"
+    },
+    {
+      "year": 2017,
+      "start_balance": 5164.67,
+      "profit": 202.03,
+      "end_balance": 5366.7,
+      "return_pct": 3.912,
+      "trades": 14,
+      "period": "full_year"
+    },
+    {
+      "year": 2018,
+      "start_balance": 5366.7,
+      "profit": -142.12,
+      "end_balance": 5224.58,
+      "return_pct": -2.648,
+      "trades": 20,
+      "period": "full_year"
+    },
+    {
+      "year": 2019,
+      "start_balance": 5224.58,
+      "profit": 306.6,
+      "end_balance": 5531.18,
+      "return_pct": 5.868,
+      "trades": 17,
+      "period": "full_year"
+    },
+    {
+      "year": 2020,
+      "start_balance": 5531.18,
+      "profit": -105.88,
+      "end_balance": 5425.3,
+      "return_pct": -1.914,
+      "trades": 12,
+      "period": "full_year"
+    },
+    {
+      "year": 2021,
+      "start_balance": 5425.3,
+      "profit": 294.15,
+      "end_balance": 5719.45,
+      "return_pct": 5.422,
+      "trades": 14,
+      "period": "full_year"
+    },
+    {
+      "year": 2022,
+      "start_balance": 5719.45,
+      "profit": -385.22,
+      "end_balance": 5334.23,
+      "return_pct": -6.735,
+      "trades": 19,
+      "period": "full_year"
+    },
+    {
+      "year": 2023,
+      "start_balance": 5334.23,
+      "profit": 181.61,
+      "end_balance": 5515.84,
+      "return_pct": 3.405,
+      "trades": 17,
+      "period": "full_year"
+    },
+    {
+      "year": 2024,
+      "start_balance": 5515.84,
+      "profit": 150.35,
+      "end_balance": 5666.19,
+      "return_pct": 2.726,
+      "trades": 13,
+      "period": "full_year"
+    },
+    {
+      "year": 2025,
+      "start_balance": 5666.19,
+      "profit": -1.78,
+      "end_balance": 5664.41,
+      "return_pct": -0.031,
+      "trades": 22,
+      "period": "full_year"
+    },
+    {
+      "year": 2026,
+      "start_balance": 5664.41,
+      "profit": -133.57,
+      "end_balance": 5530.84,
+      "return_pct": -2.358,
+      "trades": 10,
+      "period": "YTD"
+    }
+  ],
+  "monthly_equity": [
+    {
+      "month": "2016-01",
+      "balance": 4933.37,
+      "cumulative_profit": -66.63
+    },
+    {
+      "month": "2016-02",
+      "balance": 4933.37,
+      "cumulative_profit": -66.63
+    },
+    {
+      "month": "2016-03",
+      "balance": 4971.74,
+      "cumulative_profit": -28.26
+    },
+    {
+      "month": "2016-04",
+      "balance": 4988.76,
+      "cumulative_profit": -11.24
+    },
+    {
+      "month": "2016-05",
+      "balance": 4972.51,
+      "cumulative_profit": -27.49
+    },
+    {
+      "month": "2016-06",
+      "balance": 4922.69,
+      "cumulative_profit": -77.31
+    },
+    {
+      "month": "2016-07",
+      "balance": 5049.59,
+      "cumulative_profit": 49.59
+    },
+    {
+      "month": "2016-08",
+      "balance": 5043.07,
+      "cumulative_profit": 43.07
+    },
+    {
+      "month": "2016-09",
+      "balance": 5054.1,
+      "cumulative_profit": 54.1
+    },
+    {
+      "month": "2016-10",
+      "balance": 5054.72,
+      "cumulative_profit": 54.72
+    },
+    {
+      "month": "2016-11",
+      "balance": 5126.04,
+      "cumulative_profit": 126.04
+    },
+    {
+      "month": "2016-12",
+      "balance": 5164.67,
+      "cumulative_profit": 164.67
+    },
+    {
+      "month": "2017-01",
+      "balance": 5164.67,
+      "cumulative_profit": 164.67
+    },
+    {
+      "month": "2017-02",
+      "balance": 5164.67,
+      "cumulative_profit": 164.67
+    },
+    {
+      "month": "2017-03",
+      "balance": 5196.19,
+      "cumulative_profit": 196.19
+    },
+    {
+      "month": "2017-04",
+      "balance": 5196.19,
+      "cumulative_profit": 196.19
+    },
+    {
+      "month": "2017-05",
+      "balance": 5218.65,
+      "cumulative_profit": 218.65
+    },
+    {
+      "month": "2017-06",
+      "balance": 5256.73,
+      "cumulative_profit": 256.73
+    },
+    {
+      "month": "2017-07",
+      "balance": 5238.55,
+      "cumulative_profit": 238.55
+    },
+    {
+      "month": "2017-08",
+      "balance": 5250.59,
+      "cumulative_profit": 250.59
+    },
+    {
+      "month": "2017-09",
+      "balance": 5283.07,
+      "cumulative_profit": 283.07
+    },
+    {
+      "month": "2017-10",
+      "balance": 5324.87,
+      "cumulative_profit": 324.87
+    },
+    {
+      "month": "2017-11",
+      "balance": 5375.84,
+      "cumulative_profit": 375.84
+    },
+    {
+      "month": "2017-12",
+      "balance": 5366.7,
+      "cumulative_profit": 366.7
+    },
+    {
+      "month": "2018-01",
+      "balance": 5408.22,
+      "cumulative_profit": 408.22
+    },
+    {
+      "month": "2018-02",
+      "balance": 5344.22,
+      "cumulative_profit": 344.22
+    },
+    {
+      "month": "2018-03",
+      "balance": 5326.03,
+      "cumulative_profit": 326.03
+    },
+    {
+      "month": "2018-04",
+      "balance": 5330.46,
+      "cumulative_profit": 330.46
+    },
+    {
+      "month": "2018-05",
+      "balance": 5330.46,
+      "cumulative_profit": 330.46
+    },
+    {
+      "month": "2018-06",
+      "balance": 5320.01,
+      "cumulative_profit": 320.01
+    },
+    {
+      "month": "2018-07",
+      "balance": 5320.01,
+      "cumulative_profit": 320.01
+    },
+    {
+      "month": "2018-08",
+      "balance": 5347.28,
+      "cumulative_profit": 347.28
+    },
+    {
+      "month": "2018-09",
+      "balance": 5346.37,
+      "cumulative_profit": 346.37
+    },
+    {
+      "month": "2018-10",
+      "balance": 5262.0,
+      "cumulative_profit": 262.0
+    },
+    {
+      "month": "2018-11",
+      "balance": 5226.76,
+      "cumulative_profit": 226.76
+    },
+    {
+      "month": "2018-12",
+      "balance": 5224.58,
+      "cumulative_profit": 224.58
+    },
+    {
+      "month": "2019-01",
+      "balance": 5249.83,
+      "cumulative_profit": 249.83
+    },
+    {
+      "month": "2019-02",
+      "balance": 5249.83,
+      "cumulative_profit": 249.83
+    },
+    {
+      "month": "2019-03",
+      "balance": 5297.43,
+      "cumulative_profit": 297.43
+    },
+    {
+      "month": "2019-04",
+      "balance": 5297.43,
+      "cumulative_profit": 297.43
+    },
+    {
+      "month": "2019-05",
+      "balance": 5246.42,
+      "cumulative_profit": 246.42
+    },
+    {
+      "month": "2019-06",
+      "balance": 5348.68,
+      "cumulative_profit": 348.68
+    },
+    {
+      "month": "2019-07",
+      "balance": 5385.5,
+      "cumulative_profit": 385.5
+    },
+    {
+      "month": "2019-08",
+      "balance": 5448.28,
+      "cumulative_profit": 448.28
+    },
+    {
+      "month": "2019-09",
+      "balance": 5458.9,
+      "cumulative_profit": 458.9
+    },
+    {
+      "month": "2019-10",
+      "balance": 5469.21,
+      "cumulative_profit": 469.21
+    },
+    {
+      "month": "2019-11",
+      "balance": 5469.21,
+      "cumulative_profit": 469.21
+    },
+    {
+      "month": "2019-12",
+      "balance": 5531.18,
+      "cumulative_profit": 531.18
+    },
+    {
+      "month": "2020-01",
+      "balance": 5531.18,
+      "cumulative_profit": 531.18
+    },
+    {
+      "month": "2020-02",
+      "balance": 5418.87,
+      "cumulative_profit": 418.87
+    },
+    {
+      "month": "2020-03",
+      "balance": 5371.84,
+      "cumulative_profit": 371.84
+    },
+    {
+      "month": "2020-04",
+      "balance": 5371.84,
+      "cumulative_profit": 371.84
+    },
+    {
+      "month": "2020-05",
+      "balance": 5371.84,
+      "cumulative_profit": 371.84
+    },
+    {
+      "month": "2020-06",
+      "balance": 5403.78,
+      "cumulative_profit": 403.78
+    },
+    {
+      "month": "2020-07",
+      "balance": 5403.78,
+      "cumulative_profit": 403.78
+    },
+    {
+      "month": "2020-08",
+      "balance": 5403.78,
+      "cumulative_profit": 403.78
+    },
+    {
+      "month": "2020-09",
+      "balance": 5359.77,
+      "cumulative_profit": 359.77
+    },
+    {
+      "month": "2020-10",
+      "balance": 5343.44,
+      "cumulative_profit": 343.44
+    },
+    {
+      "month": "2020-11",
+      "balance": 5413.74,
+      "cumulative_profit": 413.74
+    },
+    {
+      "month": "2020-12",
+      "balance": 5425.3,
+      "cumulative_profit": 425.3
+    },
+    {
+      "month": "2021-01",
+      "balance": 5425.3,
+      "cumulative_profit": 425.3
+    },
+    {
+      "month": "2021-02",
+      "balance": 5451.81,
+      "cumulative_profit": 451.81
+    },
+    {
+      "month": "2021-03",
+      "balance": 5553.35,
+      "cumulative_profit": 553.35
+    },
+    {
+      "month": "2021-04",
+      "balance": 5553.35,
+      "cumulative_profit": 553.35
+    },
+    {
+      "month": "2021-05",
+      "balance": 5571.68,
+      "cumulative_profit": 571.68
+    },
+    {
+      "month": "2021-06",
+      "balance": 5571.68,
+      "cumulative_profit": 571.68
+    },
+    {
+      "month": "2021-07",
+      "balance": 5691.65,
+      "cumulative_profit": 691.65
+    },
+    {
+      "month": "2021-08",
+      "balance": 5773.26,
+      "cumulative_profit": 773.26
+    },
+    {
+      "month": "2021-09",
+      "balance": 5715.79,
+      "cumulative_profit": 715.79
+    },
+    {
+      "month": "2021-10",
+      "balance": 5706.4,
+      "cumulative_profit": 706.4
+    },
+    {
+      "month": "2021-11",
+      "balance": 5706.4,
+      "cumulative_profit": 706.4
+    },
+    {
+      "month": "2021-12",
+      "balance": 5719.45,
+      "cumulative_profit": 719.45
+    },
+    {
+      "month": "2022-01",
+      "balance": 5709.94,
+      "cumulative_profit": 709.94
+    },
+    {
+      "month": "2022-02",
+      "balance": 5639.58,
+      "cumulative_profit": 639.58
+    },
+    {
+      "month": "2022-03",
+      "balance": 5616.11,
+      "cumulative_profit": 616.11
+    },
+    {
+      "month": "2022-04",
+      "balance": 5540.97,
+      "cumulative_profit": 540.97
+    },
+    {
+      "month": "2022-05",
+      "balance": 5506.89,
+      "cumulative_profit": 506.89
+    },
+    {
+      "month": "2022-06",
+      "balance": 5506.89,
+      "cumulative_profit": 506.89
+    },
+    {
+      "month": "2022-07",
+      "balance": 5506.89,
+      "cumulative_profit": 506.89
+    },
+    {
+      "month": "2022-08",
+      "balance": 5458.89,
+      "cumulative_profit": 458.89
+    },
+    {
+      "month": "2022-09",
+      "balance": 5397.52,
+      "cumulative_profit": 397.52
+    },
+    {
+      "month": "2022-10",
+      "balance": 5397.52,
+      "cumulative_profit": 397.52
+    },
+    {
+      "month": "2022-11",
+      "balance": 5407.18,
+      "cumulative_profit": 407.18
+    },
+    {
+      "month": "2022-12",
+      "balance": 5334.23,
+      "cumulative_profit": 334.23
+    },
+    {
+      "month": "2023-01",
+      "balance": 5376.66,
+      "cumulative_profit": 376.66
+    },
+    {
+      "month": "2023-02",
+      "balance": 5372.53,
+      "cumulative_profit": 372.53
+    },
+    {
+      "month": "2023-03",
+      "balance": 5392.67,
+      "cumulative_profit": 392.67
+    },
+    {
+      "month": "2023-04",
+      "balance": 5392.67,
+      "cumulative_profit": 392.67
+    },
+    {
+      "month": "2023-05",
+      "balance": 5504.05,
+      "cumulative_profit": 504.05
+    },
+    {
+      "month": "2023-06",
+      "balance": 5504.05,
+      "cumulative_profit": 504.05
+    },
+    {
+      "month": "2023-07",
+      "balance": 5572.28,
+      "cumulative_profit": 572.28
+    },
+    {
+      "month": "2023-08",
+      "balance": 5557.07,
+      "cumulative_profit": 557.07
+    },
+    {
+      "month": "2023-09",
+      "balance": 5520.94,
+      "cumulative_profit": 520.94
+    },
+    {
+      "month": "2023-10",
+      "balance": 5436.46,
+      "cumulative_profit": 436.46
+    },
+    {
+      "month": "2023-11",
+      "balance": 5436.46,
+      "cumulative_profit": 436.46
+    },
+    {
+      "month": "2023-12",
+      "balance": 5515.84,
+      "cumulative_profit": 515.84
+    },
+    {
+      "month": "2024-01",
+      "balance": 5564.05,
+      "cumulative_profit": 564.05
+    },
+    {
+      "month": "2024-02",
+      "balance": 5564.05,
+      "cumulative_profit": 564.05
+    },
+    {
+      "month": "2024-03",
+      "balance": 5583.5,
+      "cumulative_profit": 583.5
+    },
+    {
+      "month": "2024-04",
+      "balance": 5591.78,
+      "cumulative_profit": 591.78
+    },
+    {
+      "month": "2024-05",
+      "balance": 5591.78,
+      "cumulative_profit": 591.78
+    },
+    {
+      "month": "2024-06",
+      "balance": 5651.22,
+      "cumulative_profit": 651.22
+    },
+    {
+      "month": "2024-07",
+      "balance": 5592.07,
+      "cumulative_profit": 592.07
+    },
+    {
+      "month": "2024-08",
+      "balance": 5634.46,
+      "cumulative_profit": 634.46
+    },
+    {
+      "month": "2024-09",
+      "balance": 5632.38,
+      "cumulative_profit": 632.38
+    },
+    {
+      "month": "2024-10",
+      "balance": 5651.68,
+      "cumulative_profit": 651.68
+    },
+    {
+      "month": "2024-11",
+      "balance": 5623.12,
+      "cumulative_profit": 623.12
+    },
+    {
+      "month": "2024-12",
+      "balance": 5666.19,
+      "cumulative_profit": 666.19
+    },
+    {
+      "month": "2025-01",
+      "balance": 5661.67,
+      "cumulative_profit": 661.67
+    },
+    {
+      "month": "2025-02",
+      "balance": 5667.93,
+      "cumulative_profit": 667.93
+    },
+    {
+      "month": "2025-03",
+      "balance": 5561.55,
+      "cumulative_profit": 561.55
+    },
+    {
+      "month": "2025-04",
+      "balance": 5513.19,
+      "cumulative_profit": 513.19
+    },
+    {
+      "month": "2025-05",
+      "balance": 5525.69,
+      "cumulative_profit": 525.69
+    },
+    {
+      "month": "2025-06",
+      "balance": 5562.39,
+      "cumulative_profit": 562.39
+    },
+    {
+      "month": "2025-07",
+      "balance": 5562.39,
+      "cumulative_profit": 562.39
+    },
+    {
+      "month": "2025-08",
+      "balance": 5579.84,
+      "cumulative_profit": 579.84
+    },
+    {
+      "month": "2025-09",
+      "balance": 5613.23,
+      "cumulative_profit": 613.23
+    },
+    {
+      "month": "2025-10",
+      "balance": 5627.34,
+      "cumulative_profit": 627.34
+    },
+    {
+      "month": "2025-11",
+      "balance": 5669.0,
+      "cumulative_profit": 669.0
+    },
+    {
+      "month": "2025-12",
+      "balance": 5664.41,
+      "cumulative_profit": 664.41
+    },
+    {
+      "month": "2026-01",
+      "balance": 5627.5,
+      "cumulative_profit": 627.5
+    },
+    {
+      "month": "2026-02",
+      "balance": 5570.65,
+      "cumulative_profit": 570.65
+    },
+    {
+      "month": "2026-03",
+      "balance": 5523.45,
+      "cumulative_profit": 523.45
+    },
+    {
+      "month": "2026-04",
+      "balance": 5603.5,
+      "cumulative_profit": 603.5
+    },
+    {
+      "month": "2026-05",
+      "balance": 5603.5,
+      "cumulative_profit": 603.5
+    },
+    {
+      "month": "2026-06",
+      "balance": 5554.18,
+      "cumulative_profit": 554.18
+    },
+    {
+      "month": "2026-07",
+      "balance": 5528.42,
+      "cumulative_profit": 528.42
+    },
+    {
+      "month": "2026-08",
+      "balance": 5530.84,
+      "cumulative_profit": 530.84
+    }
+  ],
+  "decade_requirement_gt_10pct": true,
+  "notes": "Candidate selection and fitting use only pre-2016 IVV data. 2016+ is a sealed proxy holdout. This validates architecture robustness over a decade but does not equate ETF execution costs or returns with futures/CFD execution."
+}
