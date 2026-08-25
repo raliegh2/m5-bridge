@@ -1,7 +1,7 @@
 {
   "version": "US_INDEX_FORWARD_V2",
   "research_symbol": "US500",
-  "trained_at_utc": "2026-08-25T01:16:35.477691+00:00",
+  "trained_at_utc": "2026-08-25T01:18:12.072771+00:00",
   "training_start": 1351468800,
   "training_end": 1609372800,
   "training_years": 8.1727,

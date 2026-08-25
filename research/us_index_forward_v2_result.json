@@ -7,7 +7,7 @@
   "max_drawdown_pct": 2.2651,
   "trades": 67,
   "win_rate": 0.597,
-  "profit_factor": 1.3767,
+  "profit_factor": 1.3764,
   "gross_final_balance_before_costs": 5163.49,
   "gross_return_pct_before_costs": 3.2697,
   "gross_profit_factor_before_costs": 1.4518,
@@ -184,53 +184,53 @@
     {
       "year": 2021,
       "start_balance": 5000.0,
-      "profit": 86.71,
-      "end_balance": 5086.71,
+      "profit": 86.68,
+      "end_balance": 5086.68,
       "return_pct": 1.734,
       "trades": 13,
       "period": "full_year"
     },
     {
       "year": 2022,
-      "start_balance": 5086.71,
-      "profit": -112.04,
-      "end_balance": 4974.67,
+      "start_balance": 5086.68,
+      "profit": -112.05,
+      "end_balance": 4974.63,
       "return_pct": -2.203,
       "trades": 16,
       "period": "full_year"
     },
     {
       "year": 2023,
-      "start_balance": 4974.67,
-      "profit": 40.02,
-      "end_balance": 5014.69,
+      "start_balance": 4974.63,
+      "profit": 40.01,
+      "end_balance": 5014.63,
       "return_pct": 0.804,
       "trades": 16,
       "period": "full_year"
     },
     {
       "year": 2024,
-      "start_balance": 5014.69,
-      "profit": 28.55,
-      "end_balance": 5043.24,
+      "start_balance": 5014.63,
+      "profit": 28.53,
+      "end_balance": 5043.17,
       "return_pct": 0.569,
       "trades": 6,
       "period": "full_year"
     },
     {
       "year": 2025,
-      "start_balance": 5043.24,
-      "profit": 31.8,
-      "end_balance": 5075.04,
-      "return_pct": 0.631,
+      "start_balance": 5043.17,
+      "profit": 31.78,
+      "end_balance": 5074.95,
+      "return_pct": 0.63,
       "trades": 11,
       "period": "full_year"
     },
     {
       "year": 2026,
-      "start_balance": 5075.04,
+      "start_balance": 5074.95,
       "profit": 64.29,
-      "end_balance": 5139.33,
+      "end_balance": 5139.24,
       "return_pct": 1.267,
       "trades": 5,
       "period": "YTD"
@@ -259,323 +259,323 @@
     },
     {
       "month": "2021-05",
-      "balance": 5028.92,
-      "cumulative_profit": 28.92
+      "balance": 5028.91,
+      "cumulative_profit": 28.91
     },
     {
       "month": "2021-06",
-      "balance": 5057.4,
-      "cumulative_profit": 57.4
+      "balance": 5057.38,
+      "cumulative_profit": 57.38
     },
     {
       "month": "2021-07",
-      "balance": 5057.64,
-      "cumulative_profit": 57.64
+      "balance": 5057.62,
+      "cumulative_profit": 57.62
     },
     {
       "month": "2021-08",
-      "balance": 5057.64,
-      "cumulative_profit": 57.64
+      "balance": 5057.62,
+      "cumulative_profit": 57.62
     },
     {
       "month": "2021-09",
-      "balance": 5037.47,
-      "cumulative_profit": 37.47
+      "balance": 5037.45,
+      "cumulative_profit": 37.45
     },
     {
       "month": "2021-10",
-      "balance": 5053.05,
-      "cumulative_profit": 53.05
+      "balance": 5053.03,
+      "cumulative_profit": 53.03
     },
     {
       "month": "2021-11",
-      "balance": 5053.05,
-      "cumulative_profit": 53.05
+      "balance": 5053.03,
+      "cumulative_profit": 53.03
     },
     {
       "month": "2021-12",
-      "balance": 5086.71,
-      "cumulative_profit": 86.71
+      "balance": 5086.68,
+      "cumulative_profit": 86.68
     },
     {
       "month": "2022-01",
-      "balance": 5072.61,
-      "cumulative_profit": 72.61
+      "balance": 5072.58,
+      "cumulative_profit": 72.58
     },
     {
       "month": "2022-02",
-      "balance": 5063.55,
-      "cumulative_profit": 63.55
+      "balance": 5063.52,
+      "cumulative_profit": 63.52
     },
     {
       "month": "2022-03",
-      "balance": 5063.55,
-      "cumulative_profit": 63.55
+      "balance": 5063.52,
+      "cumulative_profit": 63.52
     },
     {
       "month": "2022-04",
-      "balance": 5040.14,
-      "cumulative_profit": 40.14
+      "balance": 5040.11,
+      "cumulative_profit": 40.11
     },
     {
       "month": "2022-05",
-      "balance": 5019.0,
-      "cumulative_profit": 19.0
+      "balance": 5018.97,
+      "cumulative_profit": 18.97
     },
     {
       "month": "2022-06",
-      "balance": 4993.7,
-      "cumulative_profit": -6.3
+      "balance": 4993.67,
+      "cumulative_profit": -6.33
     },
     {
       "month": "2022-07",
-      "balance": 5012.21,
-      "cumulative_profit": 12.21
+      "balance": 5012.18,
+      "cumulative_profit": 12.18
     },
     {
       "month": "2022-08",
-      "balance": 5006.39,
-      "cumulative_profit": 6.39
+      "balance": 5006.36,
+      "cumulative_profit": 6.36
     },
     {
       "month": "2022-09",
-      "balance": 4999.24,
-      "cumulative_profit": -0.76
+      "balance": 4999.21,
+      "cumulative_profit": -0.79
     },
     {
       "month": "2022-10",
-      "balance": 4999.24,
-      "cumulative_profit": -0.76
+      "balance": 4999.21,
+      "cumulative_profit": -0.79
     },
     {
       "month": "2022-11",
-      "balance": 4999.22,
-      "cumulative_profit": -0.78
+      "balance": 4999.18,
+      "cumulative_profit": -0.82
     },
     {
       "month": "2022-12",
-      "balance": 4974.67,
-      "cumulative_profit": -25.33
+      "balance": 4974.63,
+      "cumulative_profit": -25.37
     },
     {
       "month": "2023-01",
-      "balance": 4995.09,
-      "cumulative_profit": -4.91
+      "balance": 4995.05,
+      "cumulative_profit": -4.95
     },
     {
       "month": "2023-02",
-      "balance": 4986.09,
-      "cumulative_profit": -13.91
+      "balance": 4986.05,
+      "cumulative_profit": -13.95
     },
     {
       "month": "2023-03",
-      "balance": 4984.87,
-      "cumulative_profit": -15.13
+      "balance": 4984.83,
+      "cumulative_profit": -15.17
     },
     {
       "month": "2023-04",
-      "balance": 4996.49,
-      "cumulative_profit": -3.51
+      "balance": 4996.45,
+      "cumulative_profit": -3.55
     },
     {
       "month": "2023-05",
-      "balance": 5016.85,
-      "cumulative_profit": 16.85
+      "balance": 5016.81,
+      "cumulative_profit": 16.81
     },
     {
       "month": "2023-06",
-      "balance": 5016.85,
-      "cumulative_profit": 16.85
+      "balance": 5016.81,
+      "cumulative_profit": 16.81
     },
     {
       "month": "2023-07",
-      "balance": 5016.85,
-      "cumulative_profit": 16.85
+      "balance": 5016.81,
+      "cumulative_profit": 16.81
     },
     {
       "month": "2023-08",
-      "balance": 5003.85,
-      "cumulative_profit": 3.85
+      "balance": 5003.81,
+      "cumulative_profit": 3.81
     },
     {
       "month": "2023-09",
-      "balance": 5003.85,
-      "cumulative_profit": 3.85
+      "balance": 5003.81,
+      "cumulative_profit": 3.81
     },
     {
       "month": "2023-10",
-      "balance": 5002.04,
-      "cumulative_profit": 2.04
+      "balance": 5001.99,
+      "cumulative_profit": 1.99
     },
     {
       "month": "2023-11",
-      "balance": 5014.69,
-      "cumulative_profit": 14.69
+      "balance": 5014.63,
+      "cumulative_profit": 14.63
     },
     {
       "month": "2023-12",
-      "balance": 5014.69,
-      "cumulative_profit": 14.69
+      "balance": 5014.63,
+      "cumulative_profit": 14.63
     },
     {
       "month": "2024-01",
-      "balance": 5014.69,
-      "cumulative_profit": 14.69
+      "balance": 5014.63,
+      "cumulative_profit": 14.63
     },
     {
       "month": "2024-02",
-      "balance": 5014.69,
-      "cumulative_profit": 14.69
+      "balance": 5014.63,
+      "cumulative_profit": 14.63
     },
     {
       "month": "2024-03",
-      "balance": 5014.69,
-      "cumulative_profit": 14.69
+      "balance": 5014.63,
+      "cumulative_profit": 14.63
     },
     {
       "month": "2024-04",
-      "balance": 5002.81,
-      "cumulative_profit": 2.81
+      "balance": 5002.75,
+      "cumulative_profit": 2.75
     },
     {
       "month": "2024-05",
-      "balance": 5022.1,
-      "cumulative_profit": 22.1
+      "balance": 5022.03,
+      "cumulative_profit": 22.03
     },
     {
       "month": "2024-06",
-      "balance": 5022.1,
-      "cumulative_profit": 22.1
+      "balance": 5022.03,
+      "cumulative_profit": 22.03
     },
     {
       "month": "2024-07",
-      "balance": 5022.1,
-      "cumulative_profit": 22.1
+      "balance": 5022.03,
+      "cumulative_profit": 22.03
     },
     {
       "month": "2024-08",
-      "balance": 5005.66,
-      "cumulative_profit": 5.66
+      "balance": 5005.59,
+      "cumulative_profit": 5.59
     },
     {
       "month": "2024-09",
-      "balance": 5005.66,
-      "cumulative_profit": 5.66
+      "balance": 5005.59,
+      "cumulative_profit": 5.59
     },
     {
       "month": "2024-10",
-      "balance": 5006.6,
-      "cumulative_profit": 6.6
+      "balance": 5006.53,
+      "cumulative_profit": 6.53
     },
     {
       "month": "2024-11",
-      "balance": 5043.24,
-      "cumulative_profit": 43.24
+      "balance": 5043.17,
+      "cumulative_profit": 43.17
     },
     {
       "month": "2024-12",
-      "balance": 5043.24,
-      "cumulative_profit": 43.24
+      "balance": 5043.17,
+      "cumulative_profit": 43.17
     },
     {
       "month": "2025-01",
-      "balance": 5068.94,
-      "cumulative_profit": 68.94
+      "balance": 5068.87,
+      "cumulative_profit": 68.87
     },
     {
       "month": "2025-02",
-      "balance": 5053.96,
-      "cumulative_profit": 53.96
+      "balance": 5053.88,
+      "cumulative_profit": 53.88
     },
     {
       "month": "2025-03",
-      "balance": 5053.96,
-      "cumulative_profit": 53.96
+      "balance": 5053.88,
+      "cumulative_profit": 53.88
     },
     {
       "month": "2025-04",
-      "balance": 5029.4,
-      "cumulative_profit": 29.4
+      "balance": 5029.32,
+      "cumulative_profit": 29.32
     },
     {
       "month": "2025-05",
-      "balance": 5028.19,
-      "cumulative_profit": 28.19
+      "balance": 5028.1,
+      "cumulative_profit": 28.1
     },
     {
       "month": "2025-06",
-      "balance": 5026.11,
-      "cumulative_profit": 26.11
+      "balance": 5026.02,
+      "cumulative_profit": 26.02
     },
     {
       "month": "2025-07",
-      "balance": 5056.05,
-      "cumulative_profit": 56.05
+      "balance": 5055.96,
+      "cumulative_profit": 55.96
     },
     {
       "month": "2025-08",
-      "balance": 5056.05,
-      "cumulative_profit": 56.05
+      "balance": 5055.96,
+      "cumulative_profit": 55.96
     },
     {
       "month": "2025-09",
-      "balance": 5056.05,
-      "cumulative_profit": 56.05
+      "balance": 5055.96,
+      "cumulative_profit": 55.96
     },
     {
       "month": "2025-10",
-      "balance": 5068.86,
-      "cumulative_profit": 68.86
+      "balance": 5068.77,
+      "cumulative_profit": 68.77
     },
     {
       "month": "2025-11",
-      "balance": 5082.24,
-      "cumulative_profit": 82.24
+      "balance": 5082.15,
+      "cumulative_profit": 82.15
     },
     {
       "month": "2025-12",
-      "balance": 5075.04,
-      "cumulative_profit": 75.04
+      "balance": 5074.95,
+      "cumulative_profit": 74.95
     },
     {
       "month": "2026-01",
-      "balance": 5093.34,
-      "cumulative_profit": 93.34
+      "balance": 5093.24,
+      "cumulative_profit": 93.24
     },
     {
       "month": "2026-02",
-      "balance": 5085.23,
-      "cumulative_profit": 85.23
+      "balance": 5085.13,
+      "cumulative_profit": 85.13
     },
     {
       "month": "2026-03",
-      "balance": 5085.23,
-      "cumulative_profit": 85.23
+      "balance": 5085.13,
+      "cumulative_profit": 85.13
     },
     {
       "month": "2026-04",
-      "balance": 5085.23,
-      "cumulative_profit": 85.23
+      "balance": 5085.13,
+      "cumulative_profit": 85.13
     },
     {
       "month": "2026-05",
-      "balance": 5085.23,
-      "cumulative_profit": 85.23
+      "balance": 5085.13,
+      "cumulative_profit": 85.13
     },
     {
       "month": "2026-06",
-      "balance": 5106.42,
-      "cumulative_profit": 106.42
+      "balance": 5106.32,
+      "cumulative_profit": 106.32
     },
     {
       "month": "2026-07",
-      "balance": 5106.42,
-      "cumulative_profit": 106.42
+      "balance": 5106.32,
+      "cumulative_profit": 106.32
     },
     {
       "month": "2026-08",
-      "balance": 5139.33,
-      "cumulative_profit": 139.33
+      "balance": 5139.24,
+      "cumulative_profit": 139.24
     }
   ],
   "comparison_v1_5000": {
@@ -585,7 +585,7 @@
     "max_drawdown_pct": 2.2643,
     "trades": 106,
     "win_rate": 0.5566,
-    "profit_factor": 1.1316
+    "profit_factor": 1.1317
   },
   "forward_test_ready": true,
   "forward_test_blockers": [],
