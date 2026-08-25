@@ -18,8 +18,9 @@ def _bars() -> pd.DataFrame:
     open_ = close * (1.0 + 0.0015 * np.sin(x / 3.0))
     high = np.maximum(open_, close) * 1.006
     low = np.minimum(open_, close) * 0.994
+    epoch_seconds = np.asarray([int(ts.timestamp()) for ts in dates], dtype=np.int64)
     return pd.DataFrame({
-        "time": (dates.astype("int64") // 1_000_000_000).astype(int),
+        "time": epoch_seconds,
         "open": open_,
         "high": high,
         "low": low,
@@ -52,7 +53,6 @@ def test_v3_post_cutoff_mutation_cannot_change_selection_or_fit():
     mutated = bars.copy()
     cutoff = int(pd.Timestamp("2020-12-31", tz="UTC").timestamp())
     mask = mutated["time"] > cutoff
-    # Corrupt the entire sealed holdout aggressively. A proper fit must remain identical.
     factor = np.linspace(0.35, 2.40, int(mask.sum()))
     for col in ("open", "high", "low", "close"):
         mutated.loc[mask, col] = mutated.loc[mask, col].to_numpy(float) * factor
