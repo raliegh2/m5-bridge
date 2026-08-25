@@ -1,0 +1,326 @@
+{
+  "version": "US_INDEX_FORWARD_V3",
+  "research_symbol": "US500",
+  "trained_at_utc": "2026-08-25T01:31:30.246283+00:00",
+  "training_start": 1351468800,
+  "training_end": 1609372800,
+  "training_years": 8.1727,
+  "training_rows": 2103,
+  "feature_names": [
+    "ret_1",
+    "ret_3",
+    "ret_5",
+    "ret_10",
+    "ret_20",
+    "ret_60",
+    "z_10",
+    "z_20",
+    "z_60",
+    "vol_10",
+    "vol_20",
+    "vol_60",
+    "down_vol_20",
+    "atr_pct",
+    "range_pos_20",
+    "drawdown_60",
+    "gap_1"
+  ],
+  "feature_mean": [
+    0.0005149018718103418,
+    0.001512729509718575,
+    0.002505582659697628,
+    0.004943510493385158,
+    0.00977678317510557,
+    0.0278394236207647,
+    0.3355870288533534,
+    0.4391698368494541,
+    0.6793680827497125,
+    0.007699809284343528,
+    0.00818416125095485,
+    0.008746439849053017,
+    0.004763475342282335,
+    0.012565530270425423,
+    0.683309638826736,
+    -0.027571127109772785,
+    -0.0001126848340720675
+  ],
+  "feature_std": [
+    0.010444951553070883,
+    0.016818526732436494,
+    0.02152040572091201,
+    0.02974691513028802,
+    0.04127277546704963,
+    0.0612465830554374,
+    1.228163233865079,
+    1.2810473827269928,
+    1.2452367780261548,
+    0.006404125150259501,
+    0.006160514208282935,
+    0.005580598208532544,
+    0.003909286215044397,
+    0.009010702900551051,
+    0.2855193331600148,
+    0.039599892771424415,
+    0.0019897995249722115
+  ],
+  "fast_coefficients": [
+    -0.00028055586440560627,
+    0.0006985965708796282,
+    -0.0010288231732882055,
+    0.0013730889759718543,
+    -0.001886128911547698,
+    -2.1759195111082414e-05,
+    0.002325966289948032,
+    -0.004121564523147367,
+    0.0021324918619726224,
+    -0.0038328694138586054,
+    0.0017980815006268967,
+    0.0013855331088308469,
+    -0.001448721782486421,
+    -0.00020035167851830952,
+    0.0011213708392903774,
+    -0.004351403526638056,
+    -0.0004872044209910835
+  ],
+  "fast_intercept": 0.0015260968932455522,
+  "slow_coefficients": [
+    -0.0007256801988443823,
+    0.0017109595059409178,
+    0.0008011990648143985,
+    0.0014776215615274573,
+    -0.004984619429670219,
+    -0.002141884958300815,
+    -0.0006290745397751231,
+    -0.0025179665789988237,
+    0.007033655005369388,
+    -0.007303343304266307,
+    0.007395999798936454,
+    0.0037173516250172756,
+    -0.00694133236769234,
+    0.0037079087395679054,
+    -0.0028892802202254006,
+    -0.005760852203344069,
+    0.0008239244173842557
+  ],
+  "slow_intercept": 0.005079540980697785,
+  "score_threshold": 0.002288300763665048,
+  "candidate": {
+    "name": "active_open",
+    "ridge_alpha": 30.0,
+    "signal_quantile": 0.58,
+    "fast_weight": 0.78,
+    "stop_atr": 2.0,
+    "take_profit_atr": 3.0,
+    "max_holding_bars": 4,
+    "regime_filter": false,
+    "short_multiplier": 1.05,
+    "long_only": false
+  },
+  "selection_report": {
+    "active_fast": {
+      "folds": [
+        {
+          "train_cutoff": "2016-12-31",
+          "error": "training span is 4.17 years; need 5.00+",
+          "score": -999.0
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 1.8094,
+          "max_drawdown_pct": 1.5573,
+          "profit_factor": 1.314,
+          "trades": 23,
+          "score": 2.967
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": -1.6132,
+          "max_drawdown_pct": 4.9671,
+          "profit_factor": 0.8121,
+          "trades": 26,
+          "score": -3.8572
+        }
+      ],
+      "positive_folds": 1,
+      "pre2021_trades": 49,
+      "median_fold_score": -0.4451,
+      "worst_fold_score": -3.8572,
+      "robust_selection_score": -0.8051
+    },
+    "active_balanced": {
+      "folds": [
+        {
+          "train_cutoff": "2016-12-31",
+          "error": "training span is 4.17 years; need 5.00+",
+          "score": -999.0
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 0.8156,
+          "max_drawdown_pct": 1.6121,
+          "profit_factor": 1.1828,
+          "trades": 20,
+          "score": 1.3967
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": 0.8054,
+          "max_drawdown_pct": 4.4958,
+          "profit_factor": 1.1126,
+          "trades": 21,
+          "score": -0.5043
+        }
+      ],
+      "positive_folds": 2,
+      "pre2021_trades": 41,
+      "median_fold_score": 0.4462,
+      "worst_fold_score": -0.5043,
+      "robust_selection_score": 1.6797
+    },
+    "active_trend": {
+      "folds": [
+        {
+          "train_cutoff": "2016-12-31",
+          "error": "training span is 4.17 years; need 5.00+",
+          "score": -999.0
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 2.7097,
+          "max_drawdown_pct": 1.1316,
+          "profit_factor": 1.7378,
+          "trades": 18,
+          "score": 5.1441
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": -0.3468,
+          "max_drawdown_pct": 4.2047,
+          "profit_factor": 0.942,
+          "trades": 19,
+          "score": -2.0936
+        }
+      ],
+      "positive_folds": 1,
+      "pre2021_trades": 37,
+      "median_fold_score": 1.5252,
+      "worst_fold_score": -2.0936,
+      "robust_selection_score": 1.6625
+    },
+    "active_guarded": {
+      "folds": [
+        {
+          "train_cutoff": "2016-12-31",
+          "error": "training span is 4.17 years; need 5.00+",
+          "score": -999.0
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 3.0562,
+          "max_drawdown_pct": 1.1309,
+          "profit_factor": 1.9188,
+          "trades": 16,
+          "score": 5.9341
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": -2.2931,
+          "max_drawdown_pct": 4.508,
+          "profit_factor": 0.6698,
+          "trades": 19,
+          "score": -5.0385
+        }
+      ],
+      "positive_folds": 1,
+      "pre2021_trades": 35,
+      "median_fold_score": 0.4478,
+      "worst_fold_score": -5.0385,
+      "robust_selection_score": -0.4657
+    },
+    "active_open": {
+      "folds": [
+        {
+          "train_cutoff": "2016-12-31",
+          "error": "training span is 4.17 years; need 5.00+",
+          "score": -999.0
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 2.4244,
+          "max_drawdown_pct": 1.823,
+          "profit_factor": 1.4296,
+          "trades": 27,
+          "score": 3.9694
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": 1.2623,
+          "max_drawdown_pct": 3.8305,
+          "profit_factor": 1.0903,
+          "trades": 47,
+          "score": 0.7349
+        }
+      ],
+      "positive_folds": 2,
+      "pre2021_trades": 74,
+      "median_fold_score": 2.3521,
+      "worst_fold_score": 0.7349,
+      "robust_selection_score": 4.3494
+    },
+    "active_long_bias": {
+      "folds": [
+        {
+          "train_cutoff": "2016-12-31",
+          "error": "training span is 4.17 years; need 5.00+",
+          "score": -999.0
+        },
+        {
+          "train_cutoff": "2018-12-31",
+          "validation_year": "2019",
+          "return_pct": 0.8071,
+          "max_drawdown_pct": 1.6095,
+          "profit_factor": 1.1875,
+          "trades": 19,
+          "score": 1.3539
+        },
+        {
+          "train_cutoff": "2019-12-31",
+          "validation_year": "2020",
+          "return_pct": -0.4815,
+          "max_drawdown_pct": 4.395,
+          "profit_factor": 0.9313,
+          "trades": 20,
+          "score": -2.3246
+        }
+      ],
+      "positive_folds": 1,
+      "pre2021_trades": 39,
+      "median_fold_score": -0.4854,
+      "worst_fold_score": -2.3246,
+      "robust_selection_score": -0.409
+    },
+    "selected": "active_open",
+    "selection_rule": "median fold score + 0.35*worst + 0.50*positive folds + capped activity reward"
+  },
+  "config": {
+    "research_symbol": "US500",
+    "timeframe": "D1",
+    "fast_horizon": 3,
+    "slow_horizon": 10,
+    "atr_period": 14,
+    "risk_percent": 1.0,
+    "max_fraction_invested": 0.7,
+    "min_training_years": 5.0,
+    "training_cutoff": "2020-12-31"
+  }
+}
