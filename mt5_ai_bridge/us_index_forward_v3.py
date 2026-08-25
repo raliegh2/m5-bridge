@@ -9,7 +9,7 @@ existing 70% allocation/margin cap and downstream drawdown governors.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, replace
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -24,7 +24,6 @@ from .us_index_forward_v2 import (
     USIndexForwardV2Config,
     _fit_candidate,
     backtest_window as _v2_backtest_window,
-    feature_frame,
     latest_decision as _v2_latest_decision,
 )
 
@@ -75,12 +74,16 @@ def select_candidate(bars: pd.DataFrame, cfg: USIndexForwardV2Config = LOCKED_CO
         fold_results = []
         for train_cutoff, val_start, val_end in folds:
             fold_cfg = replace(cfg, training_cutoff=train_cutoff, min_training_years=5.0)
+            val_end_ts = int(pd.Timestamp(val_end, tz="UTC").timestamp())
+            # Critical leakage guard: no training or validation trade in this
+            # fold can observe a bar after the fold's own validation end date.
+            fold_bars = bars[bars["time"].astype(int) <= val_end_ts].copy()
             try:
-                artifact = _fit_candidate(bars, candidate, fold_cfg)
+                artifact = _fit_candidate(fold_bars, candidate, fold_cfg)
                 summary = _v2_backtest_window(
-                    bars, artifact, fold_cfg, 10_000.0,
+                    fold_bars, artifact, fold_cfg, 10_000.0,
                     int(pd.Timestamp(val_start, tz="UTC").timestamp()),
-                    int(pd.Timestamp(val_end, tz="UTC").timestamp()),
+                    val_end_ts,
                 )
                 fold_results.append({
                     "train_cutoff": train_cutoff,
