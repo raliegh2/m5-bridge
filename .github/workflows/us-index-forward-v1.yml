@@ -20,6 +20,8 @@ jobs:
   train-and-validate:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,9 +51,11 @@ jobs:
       - name: Commit reproducible artifact and result
         shell: bash
         run: |
+          test -f research/us_index_forward_v1_model.json
+          test -f research/us_index_forward_v1_result.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add research/us_index_forward_v1_model.json research/us_index_forward_v1_result.json
+          git add -f research/us_index_forward_v1_model.json research/us_index_forward_v1_result.json
           if git diff --cached --quiet; then
             echo "No generated changes to commit."
           else
