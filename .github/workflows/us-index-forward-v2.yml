@@ -1,0 +1,75 @@
+name: Train US index forward v2
+
+on:
+  push:
+    branches:
+      - us-index-forward-v2
+    paths:
+      - "mt5_ai_bridge/us_index_forward_v2.py"
+      - "us_index_forward_v2_bot.py"
+      - "research/train_us_index_forward_v2.py"
+      - "research/data/US500_D1.csv"
+      - "research/us_index_forward_v1_model.json"
+      - "tests/test_us_index_forward_v2.py"
+      - ".github/workflows/us-index-forward-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  train-and-compare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: us-index-forward-v2
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pip numpy pandas pytest python-dotenv
+
+      - name: Compile V2 and automatic runner
+        run: python -m py_compile mt5_ai_bridge/us_index_forward_v2.py research/train_us_index_forward_v2.py us_index_forward_v2_bot.py
+
+      - name: Run V2 tests
+        run: python -m pytest -q tests/test_us_index_forward_v2.py
+
+      - name: Train and compare on $5,000
+        id: train
+        shell: bash
+        run: |
+          set +e
+          python research/train_us_index_forward_v2.py --balance 5000
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Commit reproducible V2 artifact and reports
+        shell: bash
+        run: |
+          test -f research/us_index_forward_v2_model.json
+          test -f research/us_index_forward_v2_result.json
+          test -f research/us_index_forward_v2_result_ledger.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f research/us_index_forward_v2_model.json research/us_index_forward_v2_result.json research/us_index_forward_v2_result_ledger.json
+          if git diff --cached --quiet; then
+            echo "No generated V2 changes to commit."
+          else
+            git commit -m "Train US index forward V2 on $5k [skip ci]"
+            git push origin HEAD:us-index-forward-v2
+          fi
+
+      - name: Enforce stronger-model gate
+        if: steps.train.outputs.status != '0'
+        run: |
+          echo "V2 did not clear the stronger-model gate. Reports were committed for inspection."
+          exit 1
