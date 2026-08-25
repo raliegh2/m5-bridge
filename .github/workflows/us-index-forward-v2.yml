@@ -6,6 +6,7 @@ on:
       - us-index-forward-v2
     paths:
       - "mt5_ai_bridge/us_index_forward_v2.py"
+      - "us_index_forward_v2_bot.py"
       - "research/train_us_index_forward_v2.py"
       - "research/data/US500_D1.csv"
       - "research/us_index_forward_v1_model.json"
@@ -35,8 +36,8 @@ jobs:
       - name: Install focused dependencies
         run: python -m pip install --upgrade pip numpy pandas pytest python-dotenv
 
-      - name: Compile V2
-        run: python -m py_compile mt5_ai_bridge/us_index_forward_v2.py research/train_us_index_forward_v2.py
+      - name: Compile V2 and automatic runner
+        run: python -m py_compile mt5_ai_bridge/us_index_forward_v2.py research/train_us_index_forward_v2.py us_index_forward_v2_bot.py
 
       - name: Run V2 tests
         run: python -m pytest -q tests/test_us_index_forward_v2.py
