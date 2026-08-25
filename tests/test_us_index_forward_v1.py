@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ from mt5_ai_bridge.us_index_forward_v1 import (
     fit_model,
     size_for_risk,
 )
+from us_index_forward_bot import _broker_lots
 
 
 def _daily(start="2012-01-03", periods=2400, seed=7):
@@ -68,3 +70,33 @@ def test_risk_size_respects_stop_and_70pct_cap():
     # Exact-step floating-point flooring is deliberately conservative here.
     assert size_for_risk(10_000, 5_000, 25, 0.5, 0.70, 1.0, 0.1, 0.1) == 1.3
     assert size_for_risk(10_000, 1_000, 25, 0.5, 0.70, 0.5, 0.1, 0.1) == 1.0
+
+
+def test_broker_sizing_refuses_contract_above_risk_budget():
+    # MES-like economics: 0.25-point tick worth $1.25, whole contracts only.
+    # A 100-point stop risks $500 per contract, so a $10k account at 0.50%
+    # ($50 budget) must correctly refuse to force a minimum contract.
+    info = SimpleNamespace(
+        trade_tick_size=0.25,
+        trade_tick_value=1.25,
+        margin_initial=2_000.0,
+        trade_contract_size=5.0,
+        volume_min=1.0,
+        volume_max=100.0,
+        volume_step=1.0,
+    )
+    assert _broker_lots(info, 10_000, 6_000, 100, 1.0) == 0.0
+
+
+def test_broker_sizing_uses_margin_cap_when_available():
+    info = SimpleNamespace(
+        trade_tick_size=1.0,
+        trade_tick_value=1.0,
+        margin_initial=1_000.0,
+        trade_contract_size=1.0,
+        volume_min=0.1,
+        volume_max=100.0,
+        volume_step=0.1,
+    )
+    # Stop risk gives 2 lots; 70% margin budget would allow 7, so stop risk wins.
+    assert _broker_lots(info, 10_000, 5_000, 25, 1.0) == 2.0
