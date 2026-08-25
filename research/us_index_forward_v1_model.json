@@ -1,0 +1,59 @@
+{
+  "version": "US_INDEX_FORWARD_V1",
+  "research_symbol": "US500",
+  "trained_at_utc": "2026-08-25T01:06:10.203497+00:00",
+  "training_start": 1346630400,
+  "training_end": 1609372800,
+  "training_years": 8.326,
+  "training_rows": 2148,
+  "feature_names": [
+    "ret_1",
+    "ret_5",
+    "ret_20",
+    "z_20",
+    "vol_20",
+    "atr_pct"
+  ],
+  "feature_mean": [
+    0.0005064001244989408,
+    0.002491821570289191,
+    0.009870219217166068,
+    0.4389401385092696,
+    0.00813750031676828,
+    0.012494385923879536
+  ],
+  "feature_std": [
+    0.010382099209394514,
+    0.021434742264158445,
+    0.040955354267037086,
+    1.2839317904408498,
+    0.00610515913849027,
+    0.008931551743225675
+  ],
+  "coefficients": [
+    -0.0005948955091422659,
+    8.425248251973691e-05,
+    0.0006855528143092957,
+    -0.0014724512735917767,
+    0.0029618894786343514,
+    -0.00022575686051620178
+  ],
+  "intercept": 0.0024880098303774662,
+  "signal_threshold": 0.0032724038008346682,
+  "config": {
+    "research_symbol": "US500",
+    "timeframe": "D1",
+    "horizon_bars": 5,
+    "lookback": 20,
+    "atr_period": 14,
+    "ridge_alpha": 10.0,
+    "signal_quantile": 0.7,
+    "stop_atr": 2.5,
+    "take_profit_atr": 3.5,
+    "max_holding_bars": 5,
+    "risk_percent": 0.5,
+    "max_fraction_invested": 0.7,
+    "min_training_years": 5.0,
+    "training_cutoff": "2020-12-31"
+  }
+}

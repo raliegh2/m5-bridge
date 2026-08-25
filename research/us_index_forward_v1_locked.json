@@ -1,0 +1,45 @@
+{
+  "model": "US_INDEX_FORWARD_V1",
+  "locked_on": "2026-08-24",
+  "purpose": "Create a US-index automatic demo forward-test candidate whose learned coefficients come from at least five years of historical data and whose later evaluation period is never used for fitting.",
+  "research_symbol": "US500",
+  "execution_note": "The research history is the broker's US500 index series. Live execution symbol is configurable so the same signal can be mapped to a broker-supported US500/ES/MES-style contract. Options execution is intentionally not enabled because this repository does not contain five years of historical option-chain data.",
+  "training_protocol": {
+    "training_cutoff_utc": "2020-12-31",
+    "minimum_training_years": 5.0,
+    "leakage_rule": "A training row is eligible only when both the feature timestamp and the forward target timestamp are on or before the cutoff.",
+    "post_cutoff_rule": "All bars after the cutoff are validation/forward-simulation only. The model is never refit inside validation or the live runner.",
+    "feature_set": ["1-day return", "5-day return", "20-day return", "20-day z-score", "20-day realised volatility", "ATR/price"],
+    "learner": "ridge regression fitted with numpy only",
+    "ridge_alpha": 10.0,
+    "prediction_horizon_bars": 5,
+    "signal_threshold": "70th percentile of absolute in-sample predictions, measured on training only"
+  },
+  "risk": {
+    "risk_per_trade_percent": 0.50,
+    "maximum_fraction_invested": 0.70,
+    "drawdown_governor_soft_limit": 0.05,
+    "drawdown_governor_hard_limit": 0.20,
+    "drawdown_governor_floor": 0.25,
+    "daily_loss_stop": 0.02,
+    "server_side_stop_atr": 2.5,
+    "server_side_take_profit_atr": 3.5,
+    "maximum_holding_bars": 5,
+    "one_managed_position": true
+  },
+  "forward_test_gate": {
+    "minimum_training_years": 5.0,
+    "validation_return_pct": "> 0",
+    "validation_profit_factor": ">= 1.0",
+    "validation_max_drawdown_pct": "<= 10.0",
+    "validation_trades": ">= 40",
+    "funded_live_authorization": false
+  },
+  "safety": {
+    "automatic_execution": "DEMO accounts only",
+    "real_account_behavior": "fail closed before any order",
+    "artifact_required": true,
+    "historical_result_required": true,
+    "failed_backtest_behavior": "runner refuses AUTO and reports the failed gate"
+  }
+}
