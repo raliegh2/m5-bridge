@@ -6,6 +6,7 @@ on:
       - us-index-forward-v1
     paths:
       - "mt5_ai_bridge/us_index_forward_v1.py"
+      - "us_index_forward_bot.py"
       - "research/train_us_index_forward_v1.py"
       - "research/us_index_forward_v1_locked.json"
       - "research/data/US500_D1.csv"
@@ -34,6 +35,13 @@ jobs:
 
       - name: Install focused dependencies
         run: python -m pip install --upgrade pip numpy pandas pytest python-dotenv
+
+      - name: Compile model and runner
+        run: >-
+          python -m py_compile
+          mt5_ai_bridge/us_index_forward_v1.py
+          research/train_us_index_forward_v1.py
+          us_index_forward_bot.py
 
       - name: Run focused tests
         run: python -m pytest -q tests/test_us_index_forward_v1.py
