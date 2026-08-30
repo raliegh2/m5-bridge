@@ -1,0 +1,167 @@
+{
+  "status": "COMPLETED",
+  "historical_trade_counts": {
+    "trades_before_open_risk_admission": 362,
+    "wins": 126,
+    "losses": 236,
+    "win_rate_percent": 34.8066,
+    "win_loss_count_ratio": 0.5339,
+    "maximum_raw_losing_streak": 11
+  },
+  "deterministic": {
+    "base_demo_cost": {
+      "trades": 357,
+      "wins": 124,
+      "losses": 233,
+      "breakeven": 0,
+      "win_rate_percent": 34.7339,
+      "win_loss_count_ratio": 0.5322,
+      "average_win_loss_payoff_ratio": 3.8722,
+      "maximum_losing_streak": 11,
+      "skipped_open_risk": 5,
+      "starting_balance": 5000.0,
+      "ending_balance": 12579.18,
+      "net_profit": 7579.18,
+      "return_percent": 151.5836,
+      "cagr_percent": 9.5867,
+      "profit_factor": 2.0607,
+      "maximum_closed_drawdown_percent": 8.8765,
+      "net_by_engine": {
+        "GBPUSD_V10_PRECISION": 4004.15,
+        "GBPJPY_SWING_CORE": 2525.61,
+        "GOLD_DAILY_TREND": 1049.43
+      }
+    },
+    "extra_0_03R_each_trade": {
+      "trades": 357,
+      "wins": 123,
+      "losses": 234,
+      "breakeven": 0,
+      "win_rate_percent": 34.4538,
+      "win_loss_count_ratio": 0.5256,
+      "average_win_loss_payoff_ratio": 3.3892,
+      "maximum_losing_streak": 11,
+      "skipped_open_risk": 5,
+      "starting_balance": 5000.0,
+      "ending_balance": 10420.87,
+      "net_profit": 5420.87,
+      "return_percent": 108.4174,
+      "cagr_percent": 7.5589,
+      "profit_factor": 1.7815,
+      "maximum_closed_drawdown_percent": 9.7781,
+      "net_by_engine": {
+        "GBPUSD_V10_PRECISION": 3160.08,
+        "GBPJPY_SWING_CORE": 1423.59,
+        "GOLD_DAILY_TREND": 837.2
+      }
+    },
+    "winners_haircut_20_percent": {
+      "trades": 357,
+      "wins": 124,
+      "losses": 233,
+      "breakeven": 0,
+      "win_rate_percent": 34.7339,
+      "win_loss_count_ratio": 0.5322,
+      "average_win_loss_payoff_ratio": 2.8843,
+      "maximum_losing_streak": 11,
+      "skipped_open_risk": 5,
+      "starting_balance": 5000.0,
+      "ending_balance": 8015.67,
+      "net_profit": 3015.67,
+      "return_percent": 60.3134,
+      "cagr_percent": 4.7945,
+      "profit_factor": 1.535,
+      "maximum_closed_drawdown_percent": 9.7896,
+      "net_by_engine": {
+        "GBPUSD_V10_PRECISION": 2009.46,
+        "GBPJPY_SWING_CORE": 514.29,
+        "GOLD_DAILY_TREND": 491.92
+      }
+    },
+    "losses_inflated_20_percent": {
+      "trades": 358,
+      "wins": 124,
+      "losses": 234,
+      "breakeven": 0,
+      "win_rate_percent": 34.6369,
+      "win_loss_count_ratio": 0.5299,
+      "average_win_loss_payoff_ratio": 3.0966,
+      "maximum_losing_streak": 11,
+      "skipped_open_risk": 4,
+      "starting_balance": 5000.0,
+      "ending_balance": 8599.74,
+      "net_profit": 3599.74,
+      "return_percent": 71.9948,
+      "cagr_percent": 5.5284,
+      "profit_factor": 1.6409,
+      "maximum_closed_drawdown_percent": 10.2428,
+      "net_by_engine": {
+        "GBPUSD_V10_PRECISION": 2559.72,
+        "GBPJPY_SWING_CORE": 829.05,
+        "GOLD_DAILY_TREND": 210.97
+      }
+    },
+    "combined_payoff_stress": {
+      "trades": 357,
+      "wins": 122,
+      "losses": 235,
+      "breakeven": 0,
+      "win_rate_percent": 34.1737,
+      "win_loss_count_ratio": 0.5191,
+      "average_win_loss_payoff_ratio": 2.3881,
+      "maximum_losing_streak": 11,
+      "skipped_open_risk": 5,
+      "starting_balance": 5000.0,
+      "ending_balance": 6154.85,
+      "net_profit": 1154.85,
+      "return_percent": 23.0971,
+      "cagr_percent": 2.0833,
+      "profit_factor": 1.2398,
+      "maximum_closed_drawdown_percent": 10.5029,
+      "net_by_engine": {
+        "GBPUSD_V10_PRECISION": 1325.19,
+        "GOLD_DAILY_TREND": 47.73,
+        "GBPJPY_SWING_CORE": -218.06
+      }
+    },
+    "miss_best_10_percent_of_winners": {
+      "trades": 349,
+      "wins": 114,
+      "losses": 235,
+      "breakeven": 0,
+      "win_rate_percent": 32.6648,
+      "win_loss_count_ratio": 0.4851,
+      "average_win_loss_payoff_ratio": 2.2912,
+      "maximum_losing_streak": 14,
+      "skipped_open_risk": 1,
+      "starting_balance": 5000.0,
+      "ending_balance": 5278.93,
+      "net_profit": 278.93,
+      "return_percent": 5.5786,
+      "cagr_percent": 0.5401,
+      "profit_factor": 1.1115,
+      "maximum_closed_drawdown_percent": 10.1542,
+      "net_by_engine": {
+        "GBPUSD_V10_PRECISION": 529.82,
+        "GOLD_DAILY_TREND": -15.99,
+        "GBPJPY_SWING_CORE": -234.9
+      }
+    }
+  },
+  "monte_carlo_trade_bootstrap": {
+    "simulations": 5000,
+    "ending_balance_p05": 9285.63,
+    "ending_balance_median": 13223.79,
+    "ending_balance_p95": 18183.98,
+    "drawdown_p50_percent": 5.981,
+    "drawdown_p95_percent": 9.4485,
+    "drawdown_p99_percent": 9.9621,
+    "probability_losing_percent": 0.02,
+    "probability_drawdown_over_10_percent": 0.54
+  },
+  "limitations": [
+    "Monte Carlo resamples closed R outcomes and does not recreate gaps or tick-level path risk.",
+    "Historical drawdown is closed-trade drawdown; live intratrade drawdown may be larger.",
+    "The reviewed recent period is not a fresh untouched holdout."
+  ]
+}
