@@ -82,7 +82,11 @@ def market_snapshot(client, symbol: str, timeframe: str = "M30",
                     atr_period: int = 14) -> dict | None:
     df = get_rates(client, symbol, timeframe)
 
-    if df is None:
+    # EMA-200 is a mandatory input to the rule engine. Pandas EWM emits values
+    # before 200 observations by default, which previously let short/incomplete
+    # confirmation charts fabricate a warmed-up trend. Fail closed until every
+    # required lookback is genuinely available.
+    if df is None or len(df) < max(200, atr_period + 1):
         return None
 
     df = add_indicators(df, atr_period=atr_period)

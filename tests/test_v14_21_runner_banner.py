@@ -5,14 +5,14 @@ from v14_21_demo_auto_runner import _startup_banner
 from v14_3_satellite_bot_m1 import _restore_persistent_scan_time
 
 
-def test_enabled_gold_banner_reports_active_and_auto_connected(
+def test_enabled_gold_banner_reports_active_but_shadow_only(
     monkeypatch, capsys
 ) -> None:
     monkeypatch.setenv("GOLD_ENGINE", "on")
     monkeypatch.setenv("GOLD_RISK_PERCENT", "0.25")
     _startup_banner(V1421DemoAutoConfig(), "http://127.0.0.1:8800/")
     text = capsys.readouterr().out
-    assert "AUTO CONNECTED" in text
+    assert "SHADOW ONLY" in text
     assert "Gold trigger/context    : ACTIVE" in text
     assert "when enabled" not in text
     assert "SHADOW_ONLY" in text

@@ -50,7 +50,7 @@ def _startup_banner(
     print(
         " Gold metals engine      : "
         + (f"ON  (XAUUSD M30 breakout, H4 trend, risk {_gold_risk}%, "
-           "AUTO CONNECTED)"
+           "SHADOW ONLY pending engine-specific parity evidence)"
            if _gold_on else "OFF  (set GOLD_ENGINE=on in .env to enable)")
     )
     print(f" Per-trade risk ceiling  : {PARITY_MAX_TRADE_RISK_PERCENT:.2f}%")
@@ -74,7 +74,7 @@ def _startup_banner(
     print(
         " Gold trigger/context    : "
         + (
-            "ACTIVE; M30 breakout AUTO + H4/M30/M15 pullback SHADOW_ONLY"
+            "ACTIVE; M30 breakout and H4/M30/M15 pullback SHADOW_ONLY"
             if _gold_on
             else "DISABLED; no XAUUSD scans or candidates"
         )

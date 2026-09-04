@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import json
 from types import SimpleNamespace
 
+import pandas as pd
 import pytest
 
 from mt5_ai_bridge.v14_3_live_execution import LiveSignal
@@ -12,6 +13,17 @@ from mt5_ai_bridge.v14_21_demo_auto_execution import (
     V1421DemoAutoExecutor,
     validate_demo_runtime,
 )
+from mt5_ai_bridge.v14_21_forward_gate import (
+    evidence_from_csv,
+    write_evidence,
+)
+from mt5_ai_bridge.v14_21_portfolio_manifest import (
+    HISTORICAL_CUTOFF,
+    MANIFEST_ID,
+    manifest_sha256,
+)
+from mt5_ai_bridge.v14_3_live_signals import SYMBOLS
+from v14_21_demo_auto_preflight import build_preflight_snapshot
 
 
 NOW = datetime(2026, 7, 19, 14, 0, tzinfo=timezone.utc)
@@ -30,6 +42,8 @@ class FakeClient:
     POSITION_TYPE_SELL = 1
     ACCOUNT_TRADE_MODE_DEMO = 0
     ACCOUNT_TRADE_MODE_REAL = 2
+    ACCOUNT_MARGIN_MODE_RETAIL_NETTING = 0
+    ACCOUNT_MARGIN_MODE_RETAIL_HEDGING = 2
     DEAL_ENTRY_OUT = 1
     DEAL_ENTRY_INOUT = 2
     DEAL_ENTRY_OUT_BY = 3
@@ -43,6 +57,7 @@ class FakeClient:
             trade_mode=trade_mode,
             trade_allowed=True,
             trade_expert=True,
+            margin_mode=self.ACCOUNT_MARGIN_MODE_RETAIL_HEDGING,
         )
         self.terminal = SimpleNamespace(
             connected=True,
@@ -118,6 +133,37 @@ class FakeClient:
 
 
 def make_config(tmp_path, mode="READ_ONLY", **overrides):
+    evidence_path = tmp_path / "forward-evidence.json"
+    if mode == "AUTO":
+        source_path = tmp_path / "forward-ledger.csv"
+        rows = []
+        equity = 5000.0
+        for index in range(200):
+            signal_time = HISTORICAL_CUTOFF + timedelta(
+                days=1 + index * 60 / 199,
+            )
+            pnl = 15.0 if index % 2 == 0 else -10.0
+            before = equity
+            equity += pnl
+            rows.append({
+                "signal_time": signal_time.isoformat(),
+                "closed_at": (signal_time + timedelta(hours=1)).isoformat(),
+                "accepted": True,
+                "risk_dollars": 10.0,
+                "pnl": pnl,
+                "equity_before": before,
+                "equity_after": equity,
+                "rule_violation": False,
+                "future_data": False,
+                "hard_stop_breach": False,
+                "manifest_id": MANIFEST_ID,
+                "manifest_sha256": manifest_sha256(),
+            })
+        pd.DataFrame(rows).to_csv(source_path, index=False)
+        write_evidence(
+            evidence_from_csv(source_path, phase="DEMO"),
+            evidence_path,
+        )
     values = {
         "execution_mode": mode,
         "state_path": str(tmp_path / "state.json"),
@@ -125,9 +171,14 @@ def make_config(tmp_path, mode="READ_ONLY", **overrides):
         "kill_switch_path": str(tmp_path / "STOP"),
         "forward_gate_passed": mode == "AUTO",
         "allow_demo_auto": mode == "AUTO",
-        "expected_login": 12345 if mode == "AUTO" else None,
-        "expected_server": "UnitTest-Demo" if mode == "AUTO" else None,
-        "demo_acknowledgement": "DEMO_ONLY" if mode == "AUTO" else "",
+        "expected_login": 12345 if mode in {"APPROVAL", "AUTO"} else None,
+        "expected_server": (
+            "UnitTest-Demo" if mode in {"APPROVAL", "AUTO"} else None
+        ),
+        "demo_acknowledgement": (
+            "DEMO_ONLY" if mode in {"APPROVAL", "AUTO"} else ""
+        ),
+        "forward_evidence_path": str(evidence_path) if mode == "AUTO" else "",
     }
     values.update(overrides)
     result = V1421DemoAutoConfig(**values)
@@ -155,6 +206,7 @@ def signal(**overrides) -> LiveSignal:
 
 def test_demo_auto_environment_requires_every_explicit_gate(
     monkeypatch,
+    tmp_path,
 ) -> None:
     monkeypatch.setenv("V14_21_EXECUTION_MODE", "DEMO_AUTO")
     monkeypatch.setenv("V14_21_FORWARD_GATE_PASSED", "true")
@@ -162,6 +214,10 @@ def test_demo_auto_environment_requires_every_explicit_gate(
     monkeypatch.setenv("V14_21_ACKNOWLEDGE_DEMO_ONLY", "DEMO_ONLY")
     monkeypatch.setenv("V14_21_EXPECTED_LOGIN", "12345")
     monkeypatch.setenv("V14_21_EXPECTED_SERVER", "UnitTest-Demo")
+    monkeypatch.setenv(
+        "V14_21_FORWARD_EVIDENCE_PATH",
+        str(tmp_path / "forward-evidence.json"),
+    )
     result = V1421DemoAutoConfig.from_env()
     assert result.execution_mode == "AUTO"
     assert result.requested_mode == "DEMO_AUTO"
@@ -177,6 +233,16 @@ def test_demo_auto_config_rejects_missing_acknowledgement(tmp_path) -> None:
         allow_demo_auto=True,
         expected_login=12345,
         expected_server="UnitTest-Demo",
+        forward_evidence_path="forward-evidence.json",
+    )
+    with pytest.raises(ValueError, match="ACKNOWLEDGE_DEMO_ONLY"):
+        result.validate()
+
+
+def test_approval_mode_also_requires_pinned_demo_acknowledgement(tmp_path) -> None:
+    result = V1421DemoAutoConfig(
+        execution_mode="APPROVAL",
+        state_path=str(tmp_path / "state.json"),
     )
     with pytest.raises(ValueError, match="ACKNOWLEDGE_DEMO_ONLY"):
         result.validate()
@@ -214,6 +280,61 @@ def test_expected_login_and_server_are_pinned(tmp_path) -> None:
     client.account.login = 12345
     client.account.server = "Another-Demo"
     assert validate_demo_runtime(client, config).code == "EXPECTED_SERVER_MISMATCH"
+
+
+def test_transmitting_mode_requires_hedging_account(tmp_path) -> None:
+    client = FakeClient()
+    client.account.margin_mode = client.ACCOUNT_MARGIN_MODE_RETAIL_NETTING
+    status = validate_demo_runtime(client, make_config(tmp_path, "AUTO"))
+    assert status.code == "HEDGING_ACCOUNT_REQUIRED"
+    assert status.allowed is False
+
+
+def test_preflight_uses_the_actual_live_symbol_registry(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "v14_21_demo_auto_preflight.resolve_all_symbols",
+        lambda _client: {symbol: symbol for symbol in SYMBOLS},
+    )
+    monkeypatch.setattr(
+        "v14_21_demo_auto_preflight._bar_ready",
+        lambda *_args: True,
+    )
+    snapshot = build_preflight_snapshot(
+        FakeClient(),
+        make_config(tmp_path),
+        require_auto=False,
+    )
+    assert snapshot["checks"]["all_symbols_resolved"] is True
+    assert snapshot["passed"] is True
+
+
+def test_enabled_gold_must_pass_preflight_data_checks(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("GOLD_ENGINE", "on")
+    monkeypatch.setattr(
+        "v14_21_demo_auto_preflight.resolve_all_symbols",
+        lambda _client: {symbol: symbol for symbol in SYMBOLS},
+    )
+    monkeypatch.setattr(
+        "mt5_ai_bridge.v14_3_live_execution.resolve_broker_symbol",
+        lambda *_args: "XAUUSD",
+    )
+    monkeypatch.setattr(
+        "v14_21_demo_auto_preflight._bar_ready",
+        lambda _client, _symbol, timeframe: timeframe != "H4",
+    )
+    snapshot = build_preflight_snapshot(
+        FakeClient(),
+        make_config(tmp_path),
+        require_auto=False,
+    )
+    assert snapshot["checks"]["gold_ready"] is False
+    assert snapshot["passed"] is False
 
 
 def test_kill_switch_blocks_before_order_check(tmp_path) -> None:
@@ -330,6 +451,120 @@ def test_demo_auto_runs_order_check_before_order_send(tmp_path) -> None:
     assert result.code == "ORDER_FILLED"
     assert client.calls == ["check", "send"]
     assert result.risk_percent <= 0.55
+
+
+def test_learning_auto_places_capped_demo_trade_and_writes_reason_journals(
+    tmp_path,
+) -> None:
+    client = FakeClient()
+    config = V1421DemoAutoConfig(
+        execution_mode="AUTO",
+        learning_auto=True,
+        state_path=str(tmp_path / "state.json"),
+        audit_log_path=str(tmp_path / "audit.jsonl"),
+        kill_switch_path=str(tmp_path / "STOP"),
+        expected_login=12345,
+        expected_server="UnitTest-Demo",
+        demo_acknowledgement="DEMO_ONLY",
+        learning_jsonl_path=str(tmp_path / "learning.jsonl"),
+        learning_document_path=str(tmp_path / "learning.md"),
+    )
+    config.validate()
+    result = V1421DemoAutoExecutor(client, config).place(signal(), now=NOW)
+    assert result.code == "ORDER_FILLED"
+    assert result.risk_percent <= 0.25
+    assert client.calls == ["check", "send"]
+    event = json.loads(
+        (tmp_path / "learning.jsonl").read_text(encoding="utf-8").splitlines()[0]
+    )
+    assert event["event"] == "TRADE_DECISION"
+    assert event["signal"]["metadata"]["learning_risk_ceiling_percent"] == 0.25
+    document = (tmp_path / "learning.md").read_text(encoding="utf-8")
+    assert "Why:" in document
+    assert "EURUSD_SWING_CORE" in document
+
+
+def test_learning_auto_cannot_raise_risk_above_quarter_percent(tmp_path) -> None:
+    config = V1421DemoAutoConfig(
+        execution_mode="AUTO",
+        learning_auto=True,
+        learning_max_risk_percent=0.26,
+        expected_login=12345,
+        expected_server="UnitTest-Demo",
+        demo_acknowledgement="DEMO_ONLY",
+    )
+    with pytest.raises(ValueError, match="0.25%"):
+        config.validate()
+
+
+def test_learning_auto_environment_needs_no_completed_forward_artifact(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("V14_21_EXECUTION_MODE", "DEMO_LEARNING_AUTO")
+    monkeypatch.setenv("V14_21_ACKNOWLEDGE_DEMO_ONLY", "DEMO_ONLY")
+    monkeypatch.setenv("V14_21_EXPECTED_LOGIN", "12345")
+    monkeypatch.setenv("V14_21_EXPECTED_SERVER", "UnitTest-Demo")
+    monkeypatch.delenv("V14_21_FORWARD_EVIDENCE_PATH", raising=False)
+    monkeypatch.setenv(
+        "V14_21_LEARNING_JSONL_PATH",
+        str(tmp_path / "learning.jsonl"),
+    )
+    monkeypatch.setenv(
+        "V14_21_LEARNING_DOCUMENT_PATH",
+        str(tmp_path / "learning.md"),
+    )
+    config = V1421DemoAutoConfig.from_env()
+    assert config.requested_mode == "DEMO_LEARNING_AUTO"
+    assert config.execution_mode == "AUTO"
+    assert config.learning_auto is True
+    assert validate_demo_runtime(FakeClient(), config).allowed is True
+
+
+def test_combined_open_risk_cap_applies_to_v12(tmp_path) -> None:
+    client = FakeClient()
+    client.positions = [SimpleNamespace(
+        ticket=1,
+        symbol="GBPUSD",
+        type=client.POSITION_TYPE_BUY,
+        price_open=1.10010,
+        sl=1.09810,
+        volume=0.10,
+        magic=0,
+    )]
+    executor = V1421DemoAutoExecutor(client, make_config(tmp_path, "AUTO"))
+    executor.state.data["positions"] = {
+        "1": {
+            "ticket": 1,
+            "symbol": "GBPUSD",
+            "mode": "V12",
+            "executed_risk_percent": 3.20,
+        }
+    }
+    executor.state.save()
+    candidate = signal()
+    result = executor.place(candidate, now=NOW)
+    assert result.code == "COMBINED_OPEN_RISK_CAP"
+    assert client.calls == []
+
+
+def test_unprotected_external_position_blocks_new_risk(tmp_path) -> None:
+    client = FakeClient()
+    client.positions = [SimpleNamespace(
+        ticket=1,
+        symbol="GBPUSD",
+        type=client.POSITION_TYPE_BUY,
+        price_open=1.10010,
+        sl=0.0,
+        volume=0.10,
+        magic=0,
+    )]
+    result = V1421DemoAutoExecutor(
+        client,
+        make_config(tmp_path, "AUTO"),
+    ).place(signal(), now=NOW)
+    assert result.code == "UNPROTECTED_OPEN_POSITION"
+    assert client.calls == []
 
 
 def test_order_flow_conflict_is_logged_but_does_not_block(
@@ -501,12 +736,10 @@ def test_eligible_conflict_reduces_risk_and_records_closed_outcome(
         ("EURUSD", "EURUSD_SWING_CORE", "V12"),
         ("GBPJPY", "GBPJPY_SWING_CORE", "V12"),
         ("AUDUSD", "AUDUSD_TREND_PULLBACK", "V12"),
-        ("USDJPY", "USDJPY_SAFE_HAVEN_BREAKOUT", "V12"),
         ("GBPUSD", "ICT_V14_3_GBPUSD", "ICT"),
         ("GBPJPY", "ICT_V14_3_GBPJPY", "ICT"),
         ("EURUSD", "EURUSD_ICT_LIQUIDITY", "ICT"),
         ("AUDUSD", "AUDUSD_ICT_ASIA_LONDON", "ICT"),
-        ("USDJPY", "USDJPY_ICT_SESSION_SWEEP", "ICT"),
         ("XAUUSD", "GOLD_INTRADAY_M30", "GOLD"),
     ],
 )
@@ -560,9 +793,43 @@ def test_order_flow_wraps_every_existing_engine_candidate(
             engine=engine,
             setup=f"{engine}_SETUP",
             mode=mode,
+            requested_risk_percent=(0.25 if mode == "GOLD" else 0.55),
         ),
         now=NOW,
     )
     assert observed == [engine]
     assert executor.recent_order_flow_shadow[0]["engine"] == engine
     assert result.proposal["order_flow"]["scope"] == "ALL_ENGINE_CANDIDATES"
+
+
+def test_unlocked_engine_is_rejected_before_broker_checks(tmp_path) -> None:
+    client = FakeClient()
+    result = V1421DemoAutoExecutor(client, make_config(tmp_path)).place(
+        signal(
+            symbol="USDJPY",
+            broker_symbol="USDJPY",
+            engine="USDJPY_SAFE_HAVEN_BREAKOUT",
+        ),
+        now=NOW,
+    )
+    assert result.code == "PORTFOLIO_ENGINE_NOT_LOCKED"
+    assert client.calls == []
+
+
+def test_unvalidated_gold_is_shadow_only_in_transmitting_mode(tmp_path) -> None:
+    client = FakeClient()
+    result = V1421DemoAutoExecutor(
+        client,
+        make_config(tmp_path, "AUTO"),
+    ).place(
+        signal(
+            symbol="XAUUSD",
+            broker_symbol="XAUUSD",
+            engine="GOLD_INTRADAY_M30",
+            mode="GOLD",
+            requested_risk_percent=0.25,
+        ),
+        now=NOW,
+    )
+    assert result.code == "PORTFOLIO_ENGINE_SHADOW_ONLY"
+    assert client.calls == []

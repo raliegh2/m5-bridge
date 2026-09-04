@@ -22,14 +22,47 @@ than introducing a second order adapter.
 13. In `DEMO_AUTO`, call `order_send` only after every gate above passes.
 14. Persist the broker position and append a credential-free JSONL audit record.
 
+The runner is pinned to the hashed
+`V14_21_FORWARD_CANDIDATE_2026_07_03` portfolio manifest. Signals with an
+unknown engine, symbol, mode or risk allocation fail closed. The existing
+`GOLD_INTRADAY_M30` engine remains shadow-only because the historical Gold
+daily ledger does not validate that implementation.
+
 ## Modes
 
 - `READ_ONLY`: validates and records proposals. No order transmission.
-- `APPROVAL`: requires exact `YES` for each order and a confirmed demo account.
+- `APPROVAL`: requires exact `YES` for each order, a pinned demo login/server,
+  the demo-only acknowledgement and a confirmed MT5 hedging account. Use this
+  mode to collect real broker-forward data manually.
+- `DEMO_LEARNING_AUTO`: unattended data collection on the same pinned demo
+  hedging account. It does not require prior forward evidence, caps every order
+  at 0.25% risk, keeps all execution/risk gates active, and writes both
+  machine-readable JSONL and a readable Markdown decision journal. It cannot
+  promote or modify the trading model while running.
 - `DEMO_AUTO`: automatic demo transmission. It is rejected unless all explicit
-  gates, acknowledgement, expected login and expected server are configured.
+  gates, acknowledgement, expected login/server and a recomputable DEMO
+  forward-evidence artifact are configured.
 
 No funded or real-account mode exists in V14.21.
+
+To collect automatic demo learning evidence, set:
+
+```dotenv
+V14_21_EXECUTION_MODE=DEMO_LEARNING_AUTO
+V14_21_ACKNOWLEDGE_DEMO_ONLY=DEMO_ONLY
+V14_21_EXPECTED_LOGIN=<exact demo login>
+V14_21_EXPECTED_SERVER=<exact demo server>
+V14_21_REQUIRE_HEDGING_ACCOUNT=true
+V14_21_LEARNING_MAX_RISK_PERCENT=0.25
+V14_21_LEARNING_JSONL_PATH=state/v14_21_learning_events.jsonl
+V14_21_LEARNING_DOCUMENT_PATH=state/v14_21_learning_journal.md
+```
+
+Every candidate records the engine, setup, direction, pre-entry metadata,
+decision code, execution explanation, requested/executed risk and proposal.
+Reconciliation later appends broker-net P/L and R-multiple close events. Model
+training must occur offline against this immutable evidence; a trained
+challenger remains shadow-only until it passes a new forward gate.
 
 ## Setup
 
@@ -47,7 +80,20 @@ No funded or real-account mode exists in V14.21.
 
 6. Review proposals, broker-native sizing, dashboard state and the V14.21 audit
    log.
-7. After the controlled demo-forward gate is actually satisfied, set:
+7. Record every accepted and rejected candidate in the schema shown by
+   `research/v14_21_forward_ledger_template.csv`. Build the evidence artifact
+   from the unedited source ledger:
+
+   ```powershell
+   python v14_21_forward_gate.py state/v14_21_forward_ledger.csv --phase DEMO
+   ```
+
+   The gate requires at least 56 calendar days, eight active weeks, 200 closed
+   accepted trades, 10 accepted trades per active week, profit factor 1.10,
+   positive net R, maximum drawdown 9.5%, and zero rule, future-data or hard-stop
+   violations. The runtime re-hashes and re-evaluates the source CSV; editing
+   the JSON summary cannot promote the bot.
+8. After that gate actually passes, set:
 
    ```dotenv
    V14_21_EXECUTION_MODE=DEMO_AUTO
@@ -56,9 +102,10 @@ No funded or real-account mode exists in V14.21.
    V14_21_ACKNOWLEDGE_DEMO_ONLY=DEMO_ONLY
    V14_21_EXPECTED_LOGIN=<exact demo login>
    V14_21_EXPECTED_SERVER=<exact demo server>
+   V14_21_FORWARD_EVIDENCE_PATH=state/v14_21_forward_evidence.json
    ```
 
-8. Run `Start-V14-21-Demo-Auto.bat`. It performs the strict AUTO preflight
+9. Run `Start-V14-21-Demo-Auto.bat`. It performs the strict AUTO preflight
    before starting the scheduler.
 
 ## Emergency stop
@@ -101,6 +148,8 @@ When the strict V14.20 live gate passes, V14.21 records
 ## Important boundary
 
 Historical results do not guarantee demo performance. `DEMO_AUTO` is not a
-funded-account authorization. Keep the state file between runs so peak equity,
-initial balance, reconciled losses, duplicate keys and live expectancy are not
-reset.
+funded-account authorization. A real-account executor must not be added until a
+second, non-overlapping locked demo window passes the same gate and the broker
+execution audit receives a separate human review. Keep the state file between
+runs so peak equity, initial balance, reconciled losses, duplicate keys and live
+expectancy are not reset.

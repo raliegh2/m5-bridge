@@ -196,3 +196,48 @@ def test_order_ticket_is_remapped_to_actual_position_and_loss_is_reconciled(
     # Repeated reconciliation must not count the same closed position twice.
     executor.reconcile(datetime(2025, 7, 15, 13, 2, tzinfo=timezone.utc))
     assert executor.state.data["day"]["global_daily_losses"] == 1
+
+
+def test_pending_submission_is_recovered_after_process_interruption(tmp_path) -> None:
+    client = FakeBrokerClient()
+    executor = ReconciledResearchParityLiveExecutor(client, _config(tmp_path))
+    now = datetime(2025, 7, 15, 12, 1, tzinfo=timezone.utc)
+    candidate = _signal()
+    request = {
+        "symbol": "GBPUSD",
+        "magic": 20264331,
+        "comment": "V143P ICT recovery123",
+    }
+    executor.state.mark_pending_order(
+        candidate,
+        request,
+        risk_dollars=731.0,
+        admission_risk_percent=0.731,
+        executed_risk_percent=0.731,
+        now=now,
+    )
+    executor.state.mark_seen(candidate.key, now)
+    client.positions = [SimpleNamespace(
+        ticket=901,
+        identifier=78,
+        symbol="GBPUSD",
+        type=client.POSITION_TYPE_BUY,
+        volume=1.0,
+        price_open=1.35360,
+        price_current=1.35360,
+        sl=1.35300,
+        tp=1.35435,
+        profit=0.0,
+        magic=20264331,
+        comment=request["comment"],
+        time=int(now.timestamp()),
+        time_msc=int(now.timestamp() * 1000),
+    )]
+
+    executor.reconcile(now)
+
+    assert executor.state.data["pending_orders"] == {}
+    recovered = executor.state.data["positions"]["901"]
+    assert recovered["position_identifier"] == 78
+    assert recovered["risk_dollars"] == 731.0
+    assert "recovered_at" in recovered

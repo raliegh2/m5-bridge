@@ -10,7 +10,7 @@ from tests.fakes import (FakeMT5Client, make_order_result, make_symbol_info,
                          make_settings, make_tick)
 
 
-def _rates(n=60):
+def _rates(n=200):
     return [{"time": 1_700_000_000 + i * 1800, "open": 1.20, "high": 1.21,
              "low": 1.19, "close": 1.20 + i * 0.0001, "tick_volume": 100}
             for i in range(n)]

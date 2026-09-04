@@ -96,8 +96,8 @@ def test_entry_gate_confirms_veto_and_fail_open():
     opp = lambda snap: Decision(Signal.SELL, "bearish", 0.9)         # noqa: E731
     ok, reason = _entry_gate_ok(opp, {"rsi_14": 40}, Signal.BUY)
     assert ok is False
-    # Empty snapshot -> allow (fail-open).
-    assert _entry_gate_ok(agree, None, Signal.BUY)[0] is True
+    # A configured analyst gate cannot confirm without a warmed-up snapshot.
+    assert _entry_gate_ok(agree, None, Signal.BUY)[0] is False
 
 
 def test_entry_gate_relays_the_engine_proposal_to_the_analyst():

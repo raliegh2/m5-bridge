@@ -18,7 +18,9 @@ The parity path includes:
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -145,9 +147,35 @@ class ResearchParityState(AtomicLiveState):
         return {
             "seen": {},
             "positions": {},
+            "pending_orders": {},
             "peak_equity": 0.0,
             "day": self._new_day(None, 0.0),
         }
+
+    def mark_pending_order(
+        self,
+        signal: LiveSignal,
+        request: dict[str, Any],
+        *,
+        risk_dollars: float,
+        admission_risk_percent: float,
+        executed_risk_percent: float,
+        now: datetime,
+    ) -> None:
+        self.data.setdefault("pending_orders", {})[signal.key] = {
+            "signal_key": signal.key,
+            "signal": asdict(signal),
+            "request": dict(request),
+            "risk_dollars": float(risk_dollars),
+            "admission_risk_percent": float(admission_risk_percent),
+            "executed_risk_percent": float(executed_risk_percent),
+            "submitted_at": now.astimezone(timezone.utc).isoformat(),
+        }
+        self.save()
+
+    def clear_pending_order(self, signal_key: str) -> None:
+        self.data.setdefault("pending_orders", {}).pop(signal_key, None)
+        self.save()
 
     @staticmethod
     def _new_day(date: str | None, equity: float) -> dict[str, Any]:
@@ -192,6 +220,9 @@ class ResearchParityState(AtomicLiveState):
             "setup": signal.setup,
             "mode": signal.mode,
             "side": signal.side,
+            "signal_key": signal.key,
+            "signal_time": signal.signal_time.astimezone(timezone.utc).isoformat(),
+            "metadata": dict(signal.metadata),
             "risk_dollars": float(actual_risk_dollars),
             "admission_risk_percent": float(admission_risk_percent),
             "executed_risk_percent": float(executed_risk_percent),
@@ -338,6 +369,28 @@ class ResearchParityLiveExecutor:
         )
         return abs(float(result)) if result is not None else 0.0
 
+    def _unprotected_positions(self, positions: list[Any]) -> list[str]:
+        """Return positions whose worst-case stop loss cannot be measured.
+
+        An external/manual position is part of portfolio risk too. Treating a
+        missing stop or a failed broker P/L calculation as zero risk made the
+        combined cap unsafe, so every new admission now fails closed instead.
+        """
+
+        unsafe: list[str] = []
+        for position in positions:
+            entry = float(getattr(position, "price_open", 0.0) or 0.0)
+            stop = float(getattr(position, "sl", 0.0) or 0.0)
+            volume = float(getattr(position, "volume", 0.0) or 0.0)
+            symbol = str(getattr(position, "symbol", "UNKNOWN") or "UNKNOWN")
+            if entry <= 0 or stop <= 0 or volume <= 0 or entry == stop:
+                unsafe.append(symbol)
+                continue
+            dollars = self._position_risk_dollars(position)
+            if not math.isfinite(dollars) or dollars <= 0:
+                unsafe.append(symbol)
+        return sorted(set(unsafe))
+
     def _closed_position_result(
         self,
         ticket: int,
@@ -416,7 +469,11 @@ class ResearchParityLiveExecutor:
             if int(key) in tickets
         ]
 
-    def _admission_open_risk(self, account: Any) -> tuple[float, float]:
+    def _admission_open_risk(
+        self,
+        account: Any,
+        positions: list[Any] | None = None,
+    ) -> tuple[float, float]:
         balance = float(getattr(account, "balance", 0.0) or 0.0)
         tracked = {
             int(value["ticket"]): value
@@ -424,12 +481,12 @@ class ResearchParityLiveExecutor:
         }
         combined = 0.0
         ict = 0.0
-        for position in self._positions():
+        for position in positions if positions is not None else self._positions():
             stored = tracked.get(int(position.ticket))
             if stored is not None:
                 risk = float(
-                    stored.get("admission_risk_percent")
-                    or stored.get("executed_risk_percent")
+                    stored.get("executed_risk_percent")
+                    or stored.get("admission_risk_percent")
                     or 0.0
                 )
                 mode = str(stored.get("mode", "")).upper()
@@ -551,6 +608,15 @@ class ResearchParityLiveExecutor:
         self.state.update_equity(float(account.equity))
         self.reconcile(now)
 
+        pending = self.state.data.get("pending_orders", {})
+        if pending:
+            return ExecutionResult(
+                False,
+                "PENDING_ORDER_RECONCILIATION_REQUIRED",
+                "A prior broker submission has an unresolved execution state; "
+                "new risk is blocked until it is reconciled",
+            )
+
         if signal.key in self.state.data["seen"]:
             return ExecutionResult(False, "DUPLICATE_SIGNAL", "Signal was already processed")
         age = now - signal.signal_time.astimezone(timezone.utc)
@@ -575,19 +641,6 @@ class ResearchParityLiveExecutor:
 
         if signal.mode.upper() == "ICT":
             requested = self._ict_admission_risk(signal, drawdown)
-            combined_open, ict_open = self._admission_open_risk(account)
-            if ict_open + requested > PARITY_MAX_ICT_OPEN_RISK_PERCENT + 1e-12:
-                return ExecutionResult(
-                    False,
-                    "ICT_OPEN_RISK_CAP",
-                    "ICT admission risk would exceed 1.75%",
-                )
-            if combined_open + requested > PARITY_MAX_COMBINED_OPEN_RISK_PERCENT + 1e-12:
-                return ExecutionResult(
-                    False,
-                    "COMBINED_OPEN_RISK_CAP",
-                    "Combined admission risk would exceed 3.25%",
-                )
         else:
             requested = float(signal.requested_risk_percent)
 
@@ -604,6 +657,42 @@ class ResearchParityLiveExecutor:
                 False,
                 "DRAWDOWN_GOVERNOR_HARD_STOP",
                 "Enhanced drawdown governor returned zero risk",
+            )
+
+        positions = self._positions()
+        if len(positions) >= self.config.max_open_positions:
+            return ExecutionResult(
+                False,
+                "MAX_OPEN_POSITIONS",
+                "Maximum broker-visible open positions reached",
+            )
+        unsafe_symbols = self._unprotected_positions(positions)
+        if unsafe_symbols:
+            return ExecutionResult(
+                False,
+                "UNPROTECTED_OPEN_POSITION",
+                "Cannot admit new risk while open positions have no measurable "
+                f"broker stop: {', '.join(unsafe_symbols)}",
+            )
+        combined_open, ict_open = self._admission_open_risk(account, positions)
+        if (
+            signal.mode.upper() == "ICT"
+            and ict_open + governed
+            > PARITY_MAX_ICT_OPEN_RISK_PERCENT + 1e-12
+        ):
+            return ExecutionResult(
+                False,
+                "ICT_OPEN_RISK_CAP",
+                "ICT admission risk would exceed 1.75%",
+            )
+        if (
+            combined_open + governed
+            > PARITY_MAX_COMBINED_OPEN_RISK_PERCENT + 1e-12
+        ):
+            return ExecutionResult(
+                False,
+                "COMBINED_OPEN_RISK_CAP",
+                "Combined admission risk would exceed 3.25%",
             )
 
         info = self.client.symbol_info(signal.broker_symbol)
@@ -693,6 +782,7 @@ class ResearchParityLiveExecutor:
             )
 
         digits = int(getattr(info, "digits", 5) or 5)
+        signal_token = hashlib.sha256(signal.key.encode("utf-8")).hexdigest()[:12]
         request = {
             "action": self.client.TRADE_ACTION_DEAL,
             "symbol": signal.broker_symbol,
@@ -703,7 +793,7 @@ class ResearchParityLiveExecutor:
             "tp": round(target, digits),
             "deviation": self.config.max_deviation_points,
             "magic": MAGIC_BY_ENGINE.get(signal.engine, 20264399),
-            "comment": f"V143P {signal.mode} {signal.engine}"[:31],
+            "comment": f"V143P {str(signal.mode).upper()[:3]} {signal_token}"[:31],
             "type_time": self.client.ORDER_TIME_GTC,
             "type_filling": int(
                 getattr(
@@ -757,8 +847,10 @@ class ResearchParityLiveExecutor:
                 "Exact YES approval was not received",
                 proposal=proposal,
             )
+        learning_auto = bool(getattr(self.config, "learning_auto", False))
         if self.config.execution_mode == "AUTO" and not (
-            self.config.allow_demo_auto and self.config.forward_gate_passed
+            learning_auto
+            or self.config.allow_demo_auto and self.config.forward_gate_passed
         ):
             return ExecutionResult(
                 False,
@@ -787,6 +879,14 @@ class ResearchParityLiveExecutor:
                 proposal=proposal,
             )
 
+        self.state.mark_pending_order(
+            signal,
+            request,
+            risk_dollars=actual_risk_dollars,
+            admission_risk_percent=requested,
+            executed_risk_percent=governed,
+            now=now,
+        )
         self.state.mark_seen(signal.key, now)
         result = self.client.order_send(request)
         if result is None:
@@ -797,6 +897,7 @@ class ResearchParityLiveExecutor:
                 proposal=proposal,
             )
         if not _successful_retcode(self.client, getattr(result, "retcode", None)):
+            self.state.clear_pending_order(signal.key)
             return ExecutionResult(
                 False,
                 "ORDER_REJECTED",
@@ -830,6 +931,7 @@ class ResearchParityLiveExecutor:
             governed,
             now,
         )
+        self.state.clear_pending_order(signal.key)
         if signal.mode.upper() == "ICT":
             self.state.record_ict_entry(signal)
         return ExecutionResult(

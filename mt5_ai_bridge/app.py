@@ -152,10 +152,12 @@ def _entry_gate_ok(gate_agent, snap, side, proposed_reason: str = "") -> tuple:
     methodology, rather than judging in a vacuum. Returns (allowed, reason).
     Confirms only when the analyst independently favours the SAME side with
     enough confidence (its config downgrades weak calls to WAIT, so a marginal
-    setup is vetoed -- capital preservation). No gate / no snapshot -> allow
-    (fail-open, deferring to the rule engine that found the setup)."""
-    if gate_agent is None or not snap:
+    setup is vetoed -- capital preservation). No gate defers to the rule engine;
+    a configured gate with no snapshot fails closed."""
+    if gate_agent is None:
         return True, ""
+    if not snap:
+        return False, "market snapshot unavailable or not warmed up"
     ctx = dict(snap)
     ctx["proposed_side"] = side.value
     ctx["proposed_reason"] = proposed_reason
@@ -366,7 +368,11 @@ def _bot_thinking(client, settings, strategy_fn, symbol=None) -> Optional[dict]:
     def evaluate(tf, label):
         try:
             snap = market_snapshot(client, symbol, tf, settings.atr_period)
-            decision = strategy_fn(snap)
+            decision = (
+                strategy_fn(snap)
+                if snap is not None
+                else evaluate_strategy(None)
+            )
         except Exception as exc:  # noqa: BLE001
             log.warning("Dashboard analysis unavailable for %s: %s", tf, exc)
             return None, {
@@ -923,7 +929,7 @@ def _run_once(client, journal, settings, strategy_fn, limits, tracker,
     primary = _pick_primary(client, settings)
     market = market_snapshot(client, primary, settings.timeframe,
                              settings.atr_period)
-    decision = strategy_fn(market)
+    decision = strategy_fn(market) if market is not None else evaluate_strategy(None)
 
     # Per-symbol engine breakdown (both engines + decision reasons for EVERY
     # pair). The primary symbol's read is reused for the top thinking panel and
@@ -1073,7 +1079,12 @@ def _run_books(client, journal, settings, strategy_fn, planner_cfgs, positions,
     def decide(tf):
         if tf not in cache:
             snap = market_snapshot(client, symbol, tf, settings.atr_period)
-            cache[tf] = (snap, strategy_fn(snap))
+            decision = (
+                strategy_fn(snap)
+                if snap is not None
+                else evaluate_strategy(None)
+            )
+            cache[tf] = (snap, decision)
         return cache[tf]
 
     timeframes = (settings.timeframe, settings.trend_tf_mid,

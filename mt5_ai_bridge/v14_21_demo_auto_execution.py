@@ -20,6 +20,7 @@ V14.21 adds:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import asdict, dataclass, field, replace
@@ -43,6 +44,12 @@ from .v14_4_profit_guard_execution import (
     ProfitGuardedState,
 )
 from .v14_20_range_anti_consensus_live import apply_live_range_anti_consensus
+from .v14_21_portfolio_manifest import (
+    MANIFEST_ID,
+    manifest_sha256,
+    signal_guard,
+)
+from .v14_21_forward_gate import validate_evidence_file
 from .v14_22_order_flow_shadow import (
     append_order_flow_shadow,
     evaluate_order_flow_shadow,
@@ -52,9 +59,15 @@ from .v14_22_order_flow_forward import (
     order_flow_bucket,
 )
 from .v14_25_futures_order_flow import DatabentoFuturesOrderFlow
+from .v14_21_learning_journal import append_learning_event
 
 TRUTHY = {"1", "TRUE", "YES", "ON"}
-REQUESTED_MODES = {"READ_ONLY", "APPROVAL", "DEMO_AUTO"}
+REQUESTED_MODES = {
+    "READ_ONLY",
+    "APPROVAL",
+    "DEMO_LEARNING_AUTO",
+    "DEMO_AUTO",
+}
 ORDER_FLOW_ENFORCEMENT_MODES = {
     "SHADOW_ONLY",
     "REDUCE_CONFLICT",
@@ -100,6 +113,13 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
     maximum_consecutive_losses: int = 2
     maximum_tick_age_seconds: float = 10.0
     initial_balance_override: float = 0.0
+    require_hedging_account: bool = True
+    portfolio_manifest_id: str = MANIFEST_ID
+    forward_evidence_path: str = ""
+    learning_auto: bool = False
+    learning_max_risk_percent: float = 0.25
+    learning_jsonl_path: str = "state/v14_21_learning_events.jsonl"
+    learning_document_path: str = "state/v14_21_learning_journal.md"
     spread_caps: dict[str, float] = field(
         default_factory=lambda: {
             "GBPUSD": 2.0,
@@ -113,6 +133,8 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
 
     @property
     def requested_mode(self) -> str:
+        if self.learning_auto:
+            return "DEMO_LEARNING_AUTO"
         return "DEMO_AUTO" if self.execution_mode == "AUTO" else self.execution_mode
 
     @classmethod
@@ -124,9 +146,15 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
         ).strip().upper()
         if requested_mode not in REQUESTED_MODES:
             raise ValueError(
-                "V14_21_EXECUTION_MODE must be READ_ONLY, APPROVAL or DEMO_AUTO"
+                "V14_21_EXECUTION_MODE must be READ_ONLY, APPROVAL, "
+                "DEMO_LEARNING_AUTO or DEMO_AUTO"
             )
-        execution_mode = "AUTO" if requested_mode == "DEMO_AUTO" else requested_mode
+        learning_auto = requested_mode == "DEMO_LEARNING_AUTO"
+        execution_mode = (
+            "AUTO"
+            if requested_mode in {"DEMO_AUTO", "DEMO_LEARNING_AUTO"}
+            else requested_mode
+        )
         config = cls(
             execution_mode=execution_mode,
             state_path=os.getenv(
@@ -209,6 +237,24 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
             initial_balance_override=_optional_float(
                 "V14_21_INITIAL_BALANCE"
             ),
+            require_hedging_account=_truthy(
+                "V14_21_REQUIRE_HEDGING_ACCOUNT", "true"
+            ),
+            forward_evidence_path=os.getenv(
+                "V14_21_FORWARD_EVIDENCE_PATH", ""
+            ).strip(),
+            learning_auto=learning_auto,
+            learning_max_risk_percent=float(
+                os.getenv("V14_21_LEARNING_MAX_RISK_PERCENT", "0.25")
+            ),
+            learning_jsonl_path=os.getenv(
+                "V14_21_LEARNING_JSONL_PATH",
+                "state/v14_21_learning_events.jsonl",
+            ),
+            learning_document_path=os.getenv(
+                "V14_21_LEARNING_DOCUMENT_PATH",
+                "state/v14_21_learning_journal.md",
+            ),
             spread_caps={
                 symbol: float(
                     os.getenv(f"V14_21_MAX_SPREAD_{symbol}", default)
@@ -240,6 +286,44 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
             raise ValueError("Maximum tick age must be positive")
         if self.initial_balance_override < 0:
             raise ValueError("Initial balance override cannot be negative")
+        if self.execution_mode in {"APPROVAL", "AUTO"} and not self.require_hedging_account:
+            raise ValueError("V14.21 transmitting modes require a hedging account")
+        if self.portfolio_manifest_id != MANIFEST_ID:
+            raise ValueError(
+                f"V14.21 portfolio manifest must remain {MANIFEST_ID}"
+            )
+        if self.execution_mode in {"APPROVAL", "AUTO"}:
+            if self.demo_acknowledgement != AUTO_ACKNOWLEDGEMENT:
+                raise ValueError(
+                    "Transmitting modes require "
+                    "V14_21_ACKNOWLEDGE_DEMO_ONLY=DEMO_ONLY"
+                )
+            if not self.expected_login:
+                raise ValueError(
+                    "Transmitting modes require V14_21_EXPECTED_LOGIN"
+                )
+            if not self.expected_server:
+                raise ValueError(
+                    "Transmitting modes require V14_21_EXPECTED_SERVER"
+                )
+        if not 0 < self.learning_max_risk_percent <= 0.25:
+            raise ValueError(
+                "DEMO_LEARNING_AUTO risk must remain within (0, 0.25%]"
+            )
+        if self.learning_auto and self.execution_mode != "AUTO":
+            raise ValueError("DEMO_LEARNING_AUTO must use the automatic order path")
+        if self.learning_auto and (
+            not self.learning_jsonl_path or not self.learning_document_path
+        ):
+            raise ValueError("DEMO_LEARNING_AUTO requires both learning journals")
+        if (
+            self.execution_mode == "AUTO"
+            and not self.learning_auto
+            and not self.forward_evidence_path
+        ):
+            raise ValueError(
+                "DEMO_AUTO requires V14_21_FORWARD_EVIDENCE_PATH"
+            )
         if not 0 < self.order_flow_directional_threshold <= 1:
             raise ValueError(
                 "Order-flow directional threshold must be in (0, 1]"
@@ -277,7 +361,7 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
             raise ValueError("V14.21 must retain the 0.80% trade-risk ceiling")
         if self.max_open_risk_percent != PARITY_MAX_COMBINED_OPEN_RISK_PERCENT:
             raise ValueError("V14.21 must retain the 3.25% combined-risk cap")
-        if self.execution_mode == "AUTO":
+        if self.execution_mode == "AUTO" and not self.learning_auto:
             if not self.forward_gate_passed:
                 raise ValueError(
                     "DEMO_AUTO requires V14_21_FORWARD_GATE_PASSED=true"
@@ -285,19 +369,6 @@ class V1421DemoAutoConfig(ResearchParityLiveRunnerConfig):
             if not self.allow_demo_auto:
                 raise ValueError(
                     "DEMO_AUTO requires V14_21_ALLOW_DEMO_AUTO=true"
-                )
-            if self.demo_acknowledgement != AUTO_ACKNOWLEDGEMENT:
-                raise ValueError(
-                    "DEMO_AUTO requires "
-                    "V14_21_ACKNOWLEDGE_DEMO_ONLY=DEMO_ONLY"
-                )
-            if not self.expected_login:
-                raise ValueError(
-                    "DEMO_AUTO requires V14_21_EXPECTED_LOGIN"
-                )
-            if not self.expected_server:
-                raise ValueError(
-                    "DEMO_AUTO requires V14_21_EXPECTED_SERVER"
                 )
 
 
@@ -316,6 +387,9 @@ class V1421DemoAutoState(ProfitGuardedState):
         payload.setdefault("v14_21_initialised_at", None)
         payload.setdefault("v14_21_closed_trades", 0)
         payload.setdefault("order_flow_forward_outcomes", {})
+        payload.setdefault("learning_closed_outcomes", [])
+        payload.setdefault("learning_journaled_decisions", {})
+        payload.setdefault("learning_journaled_closes", {})
         return payload
 
     def ensure_initial_balance(
@@ -344,6 +418,28 @@ class V1421DemoAutoState(ProfitGuardedState):
     ) -> None:
         flow = position.get("order_flow")
         risk_dollars = float(position.get("risk_dollars", 0.0) or 0.0)
+        close_id = hashlib.sha256(
+            (
+                f"{position.get('signal_key', position.get('ticket'))}:"
+                f"{closed_at.astimezone(timezone.utc).isoformat()}"
+            ).encode("utf-8")
+        ).hexdigest()
+        outcomes = self.data.setdefault("learning_closed_outcomes", [])
+        if not any(row.get("event_id") == close_id for row in outcomes):
+            outcomes.append({
+                "event_id": close_id,
+                "event": "TRADE_CLOSED",
+                "closed_at": closed_at.astimezone(timezone.utc).isoformat(),
+                "pnl": float(pnl),
+                "risk_dollars": risk_dollars,
+                "r_multiple": (
+                    round(float(pnl) / risk_dollars, 6)
+                    if risk_dollars > 0
+                    else None
+                ),
+                "position": dict(position),
+            })
+            del outcomes[:-10000]
         if isinstance(flow, dict) and risk_dollars > 0:
             engine = str(position.get("engine", "UNKNOWN"))
             timeframe = str(position.get("timeframe", "UNKNOWN"))
@@ -464,7 +560,33 @@ def validate_demo_runtime(
         )
 
     transmitting = config.execution_mode in {"APPROVAL", "AUTO"}
+    if config.execution_mode == "AUTO" and not config.learning_auto:
+        evidence = validate_evidence_file(
+            config.forward_evidence_path,
+            required_phase="DEMO",
+        )
+        if not evidence.passed:
+            return RuntimeGuardResult(False, evidence.code, evidence.message)
     if transmitting:
+        hedging_constant = getattr(
+            client,
+            "ACCOUNT_MARGIN_MODE_RETAIL_HEDGING",
+            None,
+        )
+        margin_mode = getattr(account, "margin_mode", None)
+        if hedging_constant is None or margin_mode is None:
+            return RuntimeGuardResult(
+                False,
+                "ACCOUNT_MARGIN_MODE_UNAVAILABLE",
+                "MT5 account margin mode is unavailable; hedging cannot be confirmed",
+            )
+        if config.require_hedging_account and int(margin_mode) != int(hedging_constant):
+            return RuntimeGuardResult(
+                False,
+                "HEDGING_ACCOUNT_REQUIRED",
+                "V14.21 requires an MT5 hedging account because concurrent "
+                "same-symbol positions are part of the strategy",
+            )
         if not bool(getattr(terminal, "trade_allowed", False)):
             return RuntimeGuardResult(
                 False,
@@ -531,6 +653,70 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
         self.futures_order_flow = DatabentoFuturesOrderFlow.from_env()
         self.futures_order_flow.start()
 
+    def _ict_admission_risk(
+        self,
+        signal: LiveSignal,
+        drawdown_percent: float,
+    ) -> float:
+        risk = super()._ict_admission_risk(signal, drawdown_percent)
+        if self.config.learning_auto:
+            return min(risk, self.config.learning_max_risk_percent)
+        return risk
+
+    def _append_learning_decision(
+        self,
+        signal: LiveSignal,
+        result: ExecutionResult,
+        now: datetime,
+    ) -> None:
+        if not self.config.learning_auto:
+            return
+        event_id = hashlib.sha256(
+            f"DECISION:{signal.key}:{result.code}".encode("utf-8")
+        ).hexdigest()
+        written = self.state.data.setdefault("learning_journaled_decisions", {})
+        if event_id in written:
+            return
+        append_learning_event(
+            self.config.learning_jsonl_path,
+            self.config.learning_document_path,
+            {
+                "event_id": event_id,
+                "event": "TRADE_DECISION",
+                "created_at": now.astimezone(timezone.utc).isoformat(),
+                "manifest_id": self.config.portfolio_manifest_id,
+                "manifest_sha256": manifest_sha256(),
+                "signal_key": signal.key,
+                "signal": asdict(signal),
+                "result": asdict(result),
+            },
+        )
+        written[event_id] = now.astimezone(timezone.utc).isoformat()
+        self.state.save()
+
+    def _flush_learning_closes(self) -> None:
+        if not self.config.learning_auto:
+            return
+        written = self.state.data.setdefault("learning_journaled_closes", {})
+        changed = False
+        for event in self.state.data.get("learning_closed_outcomes", []):
+            event_id = str(event.get("event_id", ""))
+            if not event_id or event_id in written:
+                continue
+            append_learning_event(
+                self.config.learning_jsonl_path,
+                self.config.learning_document_path,
+                event,
+            )
+            written[event_id] = event.get("closed_at")
+            changed = True
+        if changed:
+            self.state.save()
+
+    def reconcile(self, now: datetime) -> None:
+        super().reconcile(now)
+        self._flush_learning_closes()
+
     def _append_audit(
         self,
         *,
@@ -546,7 +732,21 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
         record = {
             "created_at": now.isoformat(),
             "runner": "V14.21_DEMO_AUTO",
+            "forward_evidence": (
+                {"required": False, "reason": "DEMO_LEARNING_AUTO_COLLECTION"}
+                if self.config.learning_auto
+                else {
+                    "required": True,
+                    "path": self.config.forward_evidence_path,
+                    **asdict(validate_evidence_file(
+                        self.config.forward_evidence_path,
+                        required_phase="DEMO",
+                    )),
+                }
+            ),
             "requested_mode": self.config.requested_mode,
+            "portfolio_manifest_id": self.config.portfolio_manifest_id,
+            "portfolio_manifest_sha256": manifest_sha256(),
             "signal_key": signal.key,
             "signal": asdict(signal),
             "result": asdict(result),
@@ -555,6 +755,7 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
                 "login": getattr(account, "login", None),
                 "server": str(getattr(account, "server", "") or ""),
                 "trade_mode": getattr(account, "trade_mode", None),
+                "margin_mode": getattr(account, "margin_mode", None),
             },
             "terminal": {
                 "connected": getattr(terminal, "connected", None),
@@ -627,6 +828,10 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
             terminal=terminal,
             order_flow_shadow=shadow,
         )
+        try:
+            self._append_learning_decision(signal, result, now)
+        except Exception:  # noqa: BLE001 - never retry an already-filled order
+            pass
         return result
 
     def _loss_stop_reason(self, account: Any) -> tuple[str, str] | None:
@@ -821,6 +1026,10 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
             "daily_loss_limit_dollars": self.config.daily_loss_limit_dollars,
             "overall_loss_limit_dollars": self.config.overall_loss_limit_dollars,
             "maximum_consecutive_losses": self.config.maximum_consecutive_losses,
+            "learning_auto": self.config.learning_auto,
+            "learning_max_risk_percent": self.config.learning_max_risk_percent,
+            "learning_jsonl_path": self.config.learning_jsonl_path,
+            "learning_document_path": self.config.learning_document_path,
             "order_flow_enforcement_mode": (
                 self.config.order_flow_enforcement_mode
             ),
@@ -834,6 +1043,18 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
             "futures_order_flow": self.futures_order_flow.snapshot(),
             "account_login": getattr(account, "login", None),
             "account_server": str(getattr(account, "server", "") or ""),
+            "account_margin_mode": getattr(account, "margin_mode", None),
+            "hedging_required": self.config.require_hedging_account,
+            "hedging_confirmed": (
+                getattr(account, "margin_mode", None)
+                == getattr(
+                    self.client,
+                    "ACCOUNT_MARGIN_MODE_RETAIL_HEDGING",
+                    object(),
+                )
+                if account is not None
+                else False
+            ),
             "demo_confirmed": (
                 int(getattr(account, "trade_mode", -1))
                 == int(getattr(self.client, "ACCOUNT_TRADE_MODE_DEMO", 0))
@@ -912,6 +1133,24 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
         assert account is not None
 
         effective_signal = signal
+        if self.config.learning_auto and signal.mode.upper() != "ICT":
+            reduced_risk = min(
+                float(signal.requested_risk_percent),
+                self.config.learning_max_risk_percent,
+            )
+            effective_signal = replace(
+                signal,
+                requested_risk_percent=reduced_risk,
+                metadata={
+                    **dict(signal.metadata),
+                    "learning_original_risk_percent": (
+                        float(signal.requested_risk_percent)
+                    ),
+                    "learning_risk_ceiling_percent": (
+                        self.config.learning_max_risk_percent
+                    ),
+                },
+            )
         shadow = self._pending_order_flow_shadow.get(signal.key)
         if isinstance(shadow, dict):
             shadow["timeframe"] = self._signal_timeframe(signal)
@@ -957,16 +1196,16 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
                 )
             if bool(assessment.get("eligible")):
                 reduced_risk = (
-                    float(signal.requested_risk_percent) * multiplier
+                    float(effective_signal.requested_risk_percent) * multiplier
                 )
                 shadow["risk_multiplier_applied"] = multiplier
                 effective_signal = replace(
-                    signal,
+                    effective_signal,
                     requested_risk_percent=reduced_risk,
                     metadata={
-                        **dict(signal.metadata),
+                        **dict(effective_signal.metadata),
                         "order_flow_original_risk_percent": (
-                            float(signal.requested_risk_percent)
+                            float(effective_signal.requested_risk_percent)
                         ),
                         "order_flow_risk_multiplier": multiplier,
                         "order_flow_forward_bucket": assessment["bucket"],
@@ -1016,6 +1255,20 @@ class V1421DemoAutoExecutor(ProfitGuardedLiveExecutor):
                     filtered_reason,
                     risk_percent=0.0,
                 ),
+                now,
+                account,
+                terminal,
+            )
+
+        manifest_stop = signal_guard(
+            signal,
+            transmitting=self.config.execution_mode in {"APPROVAL", "AUTO"},
+        )
+        if manifest_stop is not None:
+            code, message = manifest_stop
+            return self._finish(
+                signal,
+                ExecutionResult(False, code, message),
                 now,
                 account,
                 terminal,

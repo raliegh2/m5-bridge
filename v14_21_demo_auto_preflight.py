@@ -10,7 +10,7 @@ from typing import Any
 from mt5_ai_bridge.app import connect
 from mt5_ai_bridge.config import load_settings
 from mt5_ai_bridge.mt5_client import create_client as create_raw_client
-from mt5_ai_bridge.v14_3_live_signals import resolve_all_symbols
+from mt5_ai_bridge.v14_3_live_signals import SYMBOLS, resolve_all_symbols
 from mt5_ai_bridge.v14_3_mt5_broker_compat import MT5BrokerCompatibilityClient
 from mt5_ai_bridge.v14_21_demo_auto_execution import (
     V1421DemoAutoConfig,
@@ -59,10 +59,15 @@ def build_preflight_snapshot(
     # Metals satellite (opt-in): show gold's M30/H4 readiness beside the FX rows
     # without affecting the FX resolution/market-data checks.
     gold_engine: dict[str, Any] | None = None
-    if os.getenv("GOLD_ENGINE", "").strip().lower() in {"1", "true", "yes", "on"}:
+    gold_enabled = os.getenv("GOLD_ENGINE", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+    if gold_enabled:
+        gold_symbol = "XAUUSD"
         try:
             from mt5_ai_bridge.gold_intraday_engine import GOLD_SYMBOL
             from mt5_ai_bridge.v14_3_live_execution import resolve_broker_symbol
+            gold_symbol = GOLD_SYMBOL
             _gb = resolve_broker_symbol(client, GOLD_SYMBOL)
             gold_engine = {
                 "symbol": GOLD_SYMBOL, "broker_symbol": _gb, "mode": "GOLD",
@@ -71,17 +76,24 @@ def build_preflight_snapshot(
                 "H4_completed": _bar_ready(client, _gb, "H4"),
             }
         except Exception as exc:  # noqa: BLE001
-            gold_engine = {"symbol": GOLD_SYMBOL, "resolved": False,
+            gold_engine = {"symbol": gold_symbol, "resolved": False,
                            "error": str(exc)}
+    gold_ready = (
+        not gold_enabled
+        or bool(gold_engine)
+        and bool(gold_engine.get("resolved", True))
+        and bool(gold_engine.get("M30_completed"))
+        and bool(gold_engine.get("H4_completed"))
+    )
     checks = {
         "runtime_allowed": bool(runtime["allowed"]),
         "kill_switch_clear": not Path(config.kill_switch_path).exists(),
-        "all_symbols_resolved": set(broker_map)
-        == {"GBPUSD", "EURUSD", "GBPJPY", "AUDUSD", "USDJPY"},
+        "all_symbols_resolved": set(broker_map) == set(SYMBOLS),
         "completed_market_data": all(
             item["H1_completed"] and item["M1_completed"]
             for item in bars.values()
         ),
+        "gold_ready": gold_ready,
         "automatic_mode_selected": (
             config.execution_mode == "AUTO"
             if require_auto

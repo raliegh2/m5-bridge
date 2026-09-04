@@ -131,6 +131,82 @@ class ReconciledResearchParityLiveExecutor(ResearchParityLiveExecutor):
             ),
         )
 
+    def _recover_pending_orders(
+        self,
+        open_positions: list[Any],
+        now: datetime,
+    ) -> None:
+        """Recover an order accepted just before a process interruption.
+
+        A deterministic signal token is placed in the MT5 comment.  If the
+        broker strips comments, a unique same-magic/symbol position opened
+        after submission is accepted as a conservative fallback.
+        """
+
+        pending_orders = self.state.data.get("pending_orders", {})
+        for signal_key, pending in list(pending_orders.items()):
+            signal = dict(pending.get("signal") or {})
+            request = dict(pending.get("request") or {})
+            broker_symbol = str(signal.get("broker_symbol", ""))
+            magic = int(request.get("magic", 0) or 0)
+            comment = str(request.get("comment", ""))
+            submitted_at = datetime.fromisoformat(
+                str(pending["submitted_at"])
+            ).astimezone(timezone.utc)
+
+            compatible: list[Any] = []
+            for position in open_positions:
+                if str(getattr(position, "symbol", "")) != broker_symbol:
+                    continue
+                if int(getattr(position, "magic", 0) or 0) != magic:
+                    continue
+                position_msc = self._position_time_msc(position)
+                if position_msc and position_msc < int(
+                    (submitted_at - timedelta(seconds=5)).timestamp() * 1000
+                ):
+                    continue
+                compatible.append(position)
+            exact = [
+                position
+                for position in compatible
+                if comment
+                and str(getattr(position, "comment", "")) == comment
+            ]
+            candidates = exact or (compatible if len(compatible) == 1 else [])
+            if not candidates:
+                continue
+            actual = max(candidates, key=self._position_time_msc)
+            ticket = self._position_ticket(actual)
+            identifier = self._position_identifier(actual)
+            self.state.data["positions"][str(ticket)] = {
+                "ticket": ticket,
+                "position_ticket": ticket,
+                "position_identifier": identifier,
+                "order_ticket": 0,
+                "deal_ticket": 0,
+                "magic": magic,
+                "symbol": signal.get("symbol"),
+                "broker_symbol": broker_symbol,
+                "engine": signal.get("engine"),
+                "setup": signal.get("setup"),
+                "mode": signal.get("mode"),
+                "side": signal.get("side"),
+                "risk_dollars": float(pending.get("risk_dollars", 0.0) or 0.0),
+                "admission_risk_percent": float(
+                    pending.get("admission_risk_percent", 0.0) or 0.0
+                ),
+                "executed_risk_percent": float(
+                    pending.get("executed_risk_percent", 0.0) or 0.0
+                ),
+                "opened_at": submitted_at.isoformat(),
+                "signal_key": signal_key,
+                "signal_time": signal.get("signal_time"),
+                "metadata": dict(signal.get("metadata") or {}),
+                "recovered_at": now.astimezone(timezone.utc).isoformat(),
+            }
+            pending_orders.pop(signal_key, None)
+        self.state.save()
+
     def _remap_registered_position(
         self,
         broker_result_ticket: int | None,
@@ -300,8 +376,8 @@ class ReconciledResearchParityLiveExecutor(ResearchParityLiveExecutor):
         )
 
     def reconcile(self, now: datetime) -> None:
-        del now
         open_positions = self._positions()
+        self._recover_pending_orders(open_positions, now)
         by_ticket = {
             self._position_ticket(position): position for position in open_positions
         }

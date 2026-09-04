@@ -225,13 +225,33 @@ def build_v12_candidates(prepared: dict[str, tuple[pd.DataFrame, pd.DataFrame, p
     return apply_satellite_v12_risk(apply_weak_symbol_profile(combined))
 
 
-def _v12_atr(prepared: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]], row: Any) -> float:
+def _v12_pre_entry_features(
+    prepared: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]],
+    row: Any,
+) -> dict[str, float]:
+    """Return an explicit no-lookahead feature allowlist for learning logs."""
     timeframe = "H1" if str(row.setup) == "H1_BREAKOUT_RETEST" else "H4"
     frame = prepared[str(row.symbol)][0 if timeframe == "H1" else 1]
     matches = frame[frame["end"] == pd.Timestamp(row.entry_time)]
     if matches.empty:
         raise RuntimeError(f"ATR row missing for {row.symbol}/{row.engine}/{row.setup}")
-    return float(matches.iloc[-1]["atr14"])
+    candle = matches.iloc[-1]
+    allowed = (
+        "close",
+        "ema20",
+        "ema50",
+        "atr14",
+        "adx14",
+        "dclose",
+        "dema20",
+        "dema50",
+        "directional_di_gap",
+    )
+    return {
+        name: float(candle[name])
+        for name in allowed
+        if name in candle.index and pd.notna(candle[name])
+    }
 
 
 def build_v12_live_signals(client: Any, broker_map: dict[str, str], lookback_hours: int = 8) -> list[LiveSignal]:
@@ -248,7 +268,8 @@ def build_v12_live_signals(client: Any, broker_map: dict[str, str], lookback_hou
             continue
         info = client.symbol_info(broker_map[str(row.symbol)])
         pip = pip_size(info, str(row.symbol))
-        atr_value = _v12_atr(prepared, row)
+        market_features = _v12_pre_entry_features(prepared, row)
+        atr_value = market_features["atr14"]
         stop_atr, target_r = V12_EXIT_MAP[key]
         stop_pips = atr_value * stop_atr / pip
         metadata = {
@@ -256,6 +277,11 @@ def build_v12_live_signals(client: Any, broker_map: dict[str, str], lookback_hou
             "timeframe": (
                 "H1" if str(row.setup) == "H1_BREAKOUT_RETEST" else "H4"
             ),
+            "decision_reason": (
+                f"{row.engine}/{row.setup} passed the locked completed-candle "
+                "trend, momentum and entry filters"
+            ),
+            "market_features": market_features,
         }
         if str(row.engine) == "EURUSD_SWING_CORE":
             metadata["channel_bars"] = EURUSD_CORE_CHANNEL_BARS
@@ -335,6 +361,10 @@ def build_satellite_ict_live_signals(client: Any, broker_map: dict[str, str], lo
             stop_pips=float(stop_pips), target_pips=float(stop_pips * profile.target_r),
             metadata={
                 "source": "closed_mt5_satellite_ict", "profile": profile.name,
+                "decision_reason": (
+                    f"{row.engine}/{row.setup} passed the locked "
+                    f"{profile.name} session-liquidity filters"
+                ),
                 "session_high": float(row.session_high), "session_low": float(row.session_low),
                 "signal_atr": float(row.signal_atr), "range_atr": float(row.range_atr),
             },

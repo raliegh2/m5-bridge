@@ -62,7 +62,7 @@ def test_range_regime_blocks_new_trades(tmp_path):
     rates = [{"time": 1_700_000_000 + i * 900, "open": 1.20,
               "high": 1.2005, "low": 1.1995,
               "close": 1.20 + (0.0002 if i % 2 else -0.0002),
-              "tick_volume": 100} for i in range(120)]
+              "tick_volume": 100} for i in range(200)]
     db = str(tmp_path / "j.db")
     client = _client(rates)
     run(settings=make_settings(mode=Mode.AUTO, db_path=db, multi_book=True,

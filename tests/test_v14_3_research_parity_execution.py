@@ -272,6 +272,42 @@ def test_ict_and_combined_admission_caps_match_research(tmp_path) -> None:
     assert result.code == "COMBINED_OPEN_RISK_CAP"
 
 
+@pytest.mark.parametrize("mode", ["V12", "GOLD"])
+def test_combined_cap_is_not_limited_to_ict_mode(tmp_path, mode) -> None:
+    client = FakeClient()
+    client.positions = [position(1, "GBPUSD")]
+    executor = ResearchParityLiveExecutor(client, config(tmp_path))
+    executor.state.data["positions"] = {
+        "1": {
+            "ticket": 1,
+            "symbol": "GBPUSD",
+            "mode": "V12",
+            "executed_risk_percent": 3.20,
+        }
+    }
+    executor.state.save()
+    candidate = v12_signal()
+    if mode == "GOLD":
+        candidate = LiveSignal(
+            symbol="XAUUSD",
+            broker_symbol="XAUUSD",
+            engine="GOLD_INTRADAY_M30",
+            setup="M30_BREAKOUT",
+            mode="GOLD",
+            side="BUY",
+            signal_time=candidate.signal_time,
+            requested_risk_percent=0.25,
+            stop_pips=20.0,
+            target_pips=40.0,
+            metadata={},
+        )
+    result = executor.place(
+        candidate,
+        now=datetime(2026, 7, 15, 12, 1, tzinfo=timezone.utc),
+    )
+    assert result.code == "COMBINED_OPEN_RISK_CAP"
+    assert client.calls == []
+
 def test_loss_pressure_applies_symbol_multiplier(tmp_path) -> None:
     client = FakeClient()
     executor = ResearchParityLiveExecutor(client, config(tmp_path))
